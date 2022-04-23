@@ -9,3 +9,8 @@ final case class ModuleHooks(
     post: List[PostHook]
 )
 
+object ModuleHooks {
+
+  def empty = ModuleHooks(Nil, Nil, Nil, Nil, Nil, Nil)
+
+}

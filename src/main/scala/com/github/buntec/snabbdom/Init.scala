@@ -1,37 +1,28 @@
 package com.github.buntec.snabbdom
 
 import org.scalajs.dom
+import scala.collection.mutable
 
 object Init {
-
-  val emptyNode = VNode.create(Some(""), None, None, None, None)
-
-  def sameVnode(vnode1: VNode, vnode2: VNode): Boolean = {
-    vnode1.key == vnode2.key && vnode1.data.map(_.is) == vnode2.data.map(_.is)
-  }
-
-  def createKeyToOldIdx(
-      children: Array[VNode],
-      beginIdx: Int,
-      endIdx: Int
-  ): Map[String, Int] = {
-    children.zipWithIndex
-      .map { case (ch, i) =>
-        ch.key.map { key => (key.asInstanceOf[String] -> i) }
-      }
-      .collect { case Some(a) => a }
-      .toMap
-      .filter(kv => kv._2 >= beginIdx && kv._2 <= endIdx)
-  }
 
   def apply(
       modules: Seq[Module],
       domApi: Option[DomApi]
-  ) = {
+  ): Patch = {
 
     val api = domApi.getOrElse(DomApi.apply)
 
-    val cbs: ModuleHooks = ???
+    val cbs: ModuleHooks = modules.foldLeft(ModuleHooks.empty) {
+      case (hooks, module) =>
+        hooks.copy(
+          create = module.create.fold(hooks.create)(_ :: hooks.create),
+          update = module.update.fold(hooks.update)(_ :: hooks.update),
+          remove = module.remove.fold(hooks.remove)(_ :: hooks.remove),
+          destroy = module.destroy.fold(hooks.destroy)(_ :: hooks.destroy),
+          pre = module.pre.fold(hooks.pre)(_ :: hooks.pre),
+          post = module.post.fold(hooks.post)(_ :: hooks.post)
+        )
+    }
 
     def emptyNodeAt(elm: dom.Element): VNode = {
       val id = Option(elm.id).map("#" + _).getOrElse("")
@@ -344,11 +335,10 @@ object Init {
       vnode.elm = Some(elm)
       val oldCh = oldVnode.children
       val ch = vnode.children
-      if (oldVnode == vnode) {
-        () // done
-      } else {
 
-        vnode.data.foreach { data =>
+      if (oldVnode != vnode) {
+
+        vnode.data.foreach { _ =>
           cbs.update.foreach(hook => hook(oldVnode, vnode))
           vnode.data
             .flatMap(_.hook)
@@ -356,10 +346,100 @@ object Init {
             .foreach(hook => hook(oldVnode, vnode))
         }
 
+        vnode.text match {
+          case None =>
+            (oldCh, ch) match {
+              case (Some(oldCh), Some(ch)) =>
+                if (oldCh != ch) {
+                  updateChildren(elm, oldCh, ch, insertedVNodeQueue)
+                }
+              case (None, Some(ch)) =>
+                oldVnode.text.foreach(_ => api.setTextContext(elm, Some("")))
+                addVnodes(elm, None, ch, 0, ch.length - 1, insertedVNodeQueue)
+              case (Some(oldCh), None) =>
+                removeVnodes(elm, oldCh, 0, oldCh.length - 1)
+              case (None, None) =>
+                oldVnode.text.foreach(_ => api.setTextContext(elm, Some("")))
+            }
+          case Some(text) if oldVnode.text.forall(_ != text) =>
+            oldCh.foreach(oldChildren =>
+              removeVnodes(elm, oldChildren, 0, oldChildren.length - 1)
+            )
+            api.setTextContext(elm, Some(text))
+          case Some(_) => ()
+        }
+
+        hook.flatMap(_.postpatch).foreach(hook => hook(oldVnode, vnode))
+
       }
+    }
+
+    def patch(oldVnode: VNode, vnode: VNode): VNode = {
+
+      val insertedVNodeQueue: VNodeQueue = mutable.ArrayBuffer.empty[VNode]
+
+      if (sameVnode(oldVnode, vnode)) {
+        patchVnode(oldVnode, vnode, insertedVNodeQueue)
+      } else {
+        val elm = oldVnode.elm.get
+        val parent = api.parentNode(elm)
+        createElm(vnode, insertedVNodeQueue)
+        parent match {
+          case Some(parent) =>
+            api.insertBefore(parent, vnode.elm.get, api.nextSibling(elm))
+            removeVnodes(parent, Array(oldVnode), 0, 0)
+          case None => ()
+        }
+      }
+
+      insertedVNodeQueue.foreach(vnode =>
+        vnode.data
+          .flatMap(_.hook)
+          .flatMap(_.insert)
+          .foreach(hook => hook(vnode))
+      )
+
+      cbs.post.foreach(hook => hook())
+
+      vnode
 
     }
 
+    new Patch {
+
+      override def apply(oldVnode: VNode, vnode: VNode): VNode =
+        patch(oldVnode, vnode)
+
+      override def apply(elm: dom.Element, vnode: VNode): VNode =
+        patch(emptyNodeAt(elm), vnode)
+
+      override def apply(frag: dom.DocumentFragment, vnode: VNode): VNode =
+        patch(emptyDocumentFragmentAt(frag), vnode)
+
+    }
+
+  }
+
+  private val emptyNode = VNode.create(Some(""), None, None, None, None)
+
+  private def sameVnode(vnode1: VNode, vnode2: VNode): Boolean = {
+    vnode1.key == vnode2.key &&
+    vnode1.data.map(_.is) == vnode2.data.map(_.is) &&
+    vnode1.sel == vnode2.sel
+  }
+
+  private def createKeyToOldIdx(
+      children: Array[VNode],
+      beginIdx: Int,
+      endIdx: Int
+  ): Map[String, Int] = {
+    children.zipWithIndex
+      .map { case (ch, i) =>
+        ch.key.map { key => (key.asInstanceOf[String] -> i) }
+      }
+      .collect { case Some(a) => a }
+      .toMap
+      .filter(kv => kv._2 >= beginIdx && kv._2 <= endIdx)
   }
 
 }
