@@ -12,5 +12,6 @@ case class VNodeData(
     dataset: Option[Map[String, String]],
     hook: Option[Hooks],
     key: Option[KeyValue],
-    ns: Option[String]
+    ns: Option[String],
+    is: Option[String]
 )

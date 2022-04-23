@@ -6,6 +6,24 @@ object Init {
 
   val emptyNode = VNode.create(Some(""), None, None, None, None)
 
+  def sameVnode(vnode1: VNode, vnode2: VNode): Boolean = {
+    vnode1.key == vnode2.key && vnode1.data.map(_.is) == vnode2.data.map(_.is)
+  }
+
+  def createKeyToOldIdx(
+      children: Array[VNode],
+      beginIdx: Int,
+      endIdx: Int
+  ): Map[String, Int] = {
+    children.zipWithIndex
+      .map { case (ch, i) =>
+        ch.key.map { key => (key.asInstanceOf[String] -> i) }
+      }
+      .collect { case Some(a) => a }
+      .toMap
+      .filter(kv => kv._2 >= beginIdx && kv._2 <= endIdx)
+  }
+
   def apply(
       modules: Seq[Module],
       domApi: Option[DomApi]
@@ -163,7 +181,7 @@ object Init {
       }
     }
 
-    def removeVNodes(
+    def removeVnodes(
         parentElm: dom.Node,
         vnodes: Array[VNode],
         startIdx: Int,
@@ -191,6 +209,155 @@ object Init {
           }
         }
       }
+    }
+
+    def updateChildren(
+        parentElm: dom.Node,
+        oldCh: Array[VNode],
+        newCh: Array[VNode],
+        insertedVnodeQueue: VNodeQueue
+    ): Unit = {
+
+      var oldStartIdx = 0
+      var newStartIdx = 0
+      var oldEndIdx = oldCh.length - 1
+      var oldStartVnode = oldCh(0)
+      var oldEndVnode = oldCh(oldEndIdx)
+      var newEndIdx = newCh.length - 1
+      var newStartVnode = newCh(0)
+      var newEndVnode = newCh(newEndIdx)
+
+      var oldKeyToIdx: Map[String, Int] = null
+      var elmToMove: VNode = null
+
+      while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
+        if (oldStartVnode == null) {
+          oldStartIdx += 1
+          oldStartVnode = oldCh(oldStartIdx) // Vnode might have been moved left
+        } else if (oldEndVnode == null) {
+          oldEndIdx -= 1
+          oldEndVnode = oldCh(oldEndIdx)
+        } else if (newStartVnode == null) {
+          newStartIdx += 1
+          newStartVnode = newCh(newStartIdx)
+        } else if (newEndVnode == null) {
+          newEndIdx -= 1
+          newEndVnode = newCh(newEndIdx)
+        } else if (sameVnode(oldStartVnode, newStartVnode)) {
+          patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue)
+          oldStartIdx += 1
+          oldStartVnode = oldCh(oldStartIdx)
+          newStartIdx += 1
+          newStartVnode = newCh(newStartIdx)
+        } else if (sameVnode(oldEndVnode, newEndVnode)) {
+          patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue)
+          oldEndIdx -= 1
+          oldEndVnode = oldCh(oldEndIdx)
+          newEndIdx -= 1
+          newEndVnode = newCh(newEndIdx)
+        } else if (sameVnode(oldStartVnode, newEndVnode)) {
+          // Vnode moved right
+          patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue)
+          api.insertBefore(
+            parentElm,
+            oldStartVnode.elm.get,
+            api.nextSibling(oldEndVnode.elm.get)
+          )
+          oldStartIdx += 1
+          oldStartVnode = oldCh(oldStartIdx)
+          newEndIdx -= 1
+          newEndVnode = newCh(newEndIdx)
+        } else if (sameVnode(oldEndVnode, newStartVnode)) {
+          // Vnode moved left
+          patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue)
+          api.insertBefore(
+            parentElm,
+            oldEndVnode.elm.get,
+            oldStartVnode.elm
+          )
+          oldEndIdx -= 1
+          oldEndVnode = oldCh(oldEndIdx)
+          newStartIdx += 1
+          newStartVnode = newCh(newStartIdx)
+        } else {
+          if (oldKeyToIdx == null) {
+            oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx)
+          }
+          val idxInOld =
+            oldKeyToIdx.get(newStartVnode.key.asInstanceOf[String])
+          idxInOld match {
+            case None =>
+              // New element
+              api.insertBefore(
+                parentElm,
+                createElm(newStartVnode, insertedVnodeQueue),
+                oldStartVnode.elm
+              )
+            case Some(idxInOld) =>
+              elmToMove = oldCh(idxInOld)
+              if (elmToMove.sel != newStartVnode.sel) {
+                api.insertBefore(
+                  parentElm,
+                  createElm(newStartVnode, insertedVnodeQueue),
+                  oldStartVnode.elm
+                )
+              } else {
+                patchVnode(elmToMove, newStartVnode, insertedVnodeQueue)
+                oldCh(idxInOld) = null // undefined as any
+                api.insertBefore(
+                  parentElm,
+                  elmToMove.elm.get,
+                  oldStartVnode.elm
+                )
+              }
+          }
+          newStartIdx += 1
+          newStartVnode = newCh(newStartIdx)
+        }
+      }
+
+      if (newStartIdx <= newEndIdx) {
+        val before = Option(newCh(newEndIdx + 1)).flatMap(_.elm)
+        addVnodes(
+          parentElm,
+          before,
+          newCh,
+          newStartIdx,
+          newEndIdx,
+          insertedVnodeQueue
+        )
+      }
+      if (oldStartIdx <= oldEndIdx) {
+        removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx)
+      }
+
+    }
+
+    def patchVnode(
+        oldVnode: VNode,
+        vnode: VNode,
+        insertedVNodeQueue: VNodeQueue
+    ): Unit = {
+      val hook = vnode.data.flatMap(_.hook)
+      hook.flatMap(_.prepatch).foreach(hook => hook(oldVnode, vnode))
+      val elm = oldVnode.elm.get
+      vnode.elm = Some(elm)
+      val oldCh = oldVnode.children
+      val ch = vnode.children
+      if (oldVnode == vnode) {
+        () // done
+      } else {
+
+        vnode.data.foreach { data =>
+          cbs.update.foreach(hook => hook(oldVnode, vnode))
+          vnode.data
+            .flatMap(_.hook)
+            .flatMap(_.update)
+            .foreach(hook => hook(oldVnode, vnode))
+        }
+
+      }
+
     }
 
   }
