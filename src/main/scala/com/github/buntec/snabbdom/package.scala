@@ -2,8 +2,11 @@ package com.github.buntec
 
 import scala.scalajs.js
 import scala.scalajs.js.|
+import scala.collection.mutable
 
 package object snabbdom {
+
+  type VNodeQueue = mutable.ArrayBuffer[VNode]
 
   type Key = String | Double | Int
 

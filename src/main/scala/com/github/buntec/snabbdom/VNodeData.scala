@@ -10,6 +10,7 @@ case class VNodeData(
     `class`: Option[Map[String, Boolean]],
     style: Option[Map[String, StyleValue]],
     dataset: Option[Map[String, String]],
+    hook: Option[Hooks],
     key: Option[KeyValue],
     ns: Option[String]
 )
