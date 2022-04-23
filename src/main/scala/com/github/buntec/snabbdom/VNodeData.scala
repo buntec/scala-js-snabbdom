@@ -1,17 +1,20 @@
 package com.github.buntec.snabbdom
 
-import org.scalajs.dom._
-
-import scala.scalajs.js
-
-case class VNodeData(
-    props: Option[Map[String, PropValue]],
-    attrs: Option[Map[String, AttrValue]],
-    `class`: Option[Map[String, Boolean]],
-    style: Option[Map[String, StyleValue]],
-    dataset: Option[Map[String, String]],
-    hook: Option[Hooks],
-    key: Option[KeyValue],
-    ns: Option[String],
-    is: Option[String]
+class VNodeData(
+    var props: Option[Map[String, PropValue]],
+    var attrs: Option[Map[String, AttrValue]],
+    var `class`: Option[Map[String, Boolean]],
+    var style: Option[Map[String, StyleValue]],
+    var dataset: Option[Map[String, String]],
+    var hook: Option[Hooks],
+    var key: Option[KeyValue],
+    var ns: Option[String],
+    var is: Option[String]
 )
+
+object VNodeData {
+
+  def empty =
+    new VNodeData(None, None, None, None, None, None, None, None, None)
+
+}

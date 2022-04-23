@@ -1,10 +1,10 @@
 package com.github.buntec.snabbdom
 
 final case class Module(
-    pre: Option[PreHook],
-    create: Option[CreateHook],
-    update: Option[UpdateHook],
-    destroy: Option[DestroyHook],
-    remove: Option[RemoveHook],
-    post: Option[PostHook]
+    pre: Option[PreHook] = None,
+    create: Option[CreateHook] = None,
+    update: Option[UpdateHook] = None,
+    destroy: Option[DestroyHook] = None,
+    remove: Option[RemoveHook] = None,
+    post: Option[PostHook] = None
 )
