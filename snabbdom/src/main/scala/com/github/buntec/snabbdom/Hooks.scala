@@ -2,24 +2,24 @@ package com.github.buntec.snabbdom
 
 trait Hooks {
 
-  def pre: Option[PreHook]
+  def pre: Option[PreHook] = None
 
-  def init: Option[InitHook]
+  def init: Option[InitHook] = None
 
-  def create: Option[CreateHook]
+  def create: Option[CreateHook] = None
 
-  def insert: Option[InsertHook]
+  def insert: Option[InsertHook] = None
 
-  def prepatch: Option[PrePatchHook]
+  def prepatch: Option[PrePatchHook] = None
 
-  def update: Option[UpdateHook]
+  def update: Option[UpdateHook] = None
 
-  def postpatch: Option[PostPatchHook]
+  def postpatch: Option[PostPatchHook] = None
 
-  def destroy: Option[DestroyHook]
+  def destroy: Option[DestroyHook] = None
 
-  def remove: Option[RemoveHook]
+  def remove: Option[RemoveHook] = None
 
-  def post: Option[PostHook]
+  def post: Option[PostHook] = None
 
 }

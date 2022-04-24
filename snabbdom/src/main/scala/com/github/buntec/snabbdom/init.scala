@@ -7,7 +7,7 @@ object init {
 
   def apply(
       modules: Seq[Module],
-      domApi: Option[DomApi]
+      domApi: Option[DomApi] = None
   ): Patch = {
 
     val api = domApi.getOrElse(DomApi.apply)

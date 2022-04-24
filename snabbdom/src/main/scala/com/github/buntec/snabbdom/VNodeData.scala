@@ -10,15 +10,30 @@ class VNodeData(
     var dataset: Option[Map[String, String]],
     var on: Option[Map[String, dom.Event => Unit]],
     var hook: Option[Hooks],
-    var key: Option[KeyValue],
-    var ns: Option[String],
+    var key: Option[String],
+    var ns: Option[String], // for SVG
+    var fn: Option[Seq[Any] => VNode], // for thunks
+    var args: Option[Seq[Any]], // for thunks
     var is: Option[String]
 )
 
 object VNodeData {
 
   def empty =
-    new VNodeData(None, None, None, None, None, None, None, None, None, None)
+    new VNodeData(
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None
+    )
 
   def builder = new Builder()
 

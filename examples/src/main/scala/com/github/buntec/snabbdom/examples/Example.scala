@@ -15,9 +15,9 @@ object Example {
         Classes.module,
         Props.module,
         Styles.module,
-        EventListeners.module
-      ),
-      None
+        EventListeners.module,
+        Dataset.module
+      )
     )
 
     val container = dom.document.getElementById("app");
@@ -25,7 +25,7 @@ object Example {
     val vnode = h(
       "div",
       VNodeData.builder
-        .withOn("click" -> ((ev: dom.Event) => println("foo")))
+        .withOn("click" -> ((_: dom.Event) => println("foo")))
         .build,
       Array[VNode](
         h(
@@ -47,7 +47,7 @@ object Example {
     val newVnode = h(
       "div#container.two.classes",
       VNodeData.builder
-        .withOn("click" -> ((ev: dom.Event) => println("bar")))
+        .withOn("click" -> ((_: dom.Event) => println("bar")))
         .build,
       Array[VNode](
         h(
@@ -68,6 +68,8 @@ object Example {
 
     // Second `patch` invocation
     patch(vnode, newVnode)
+
+    ()
 
   }
 
