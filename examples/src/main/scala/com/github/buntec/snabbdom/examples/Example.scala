@@ -7,7 +7,7 @@ import com.github.buntec.snabbdom.modules._
 
 object Example {
 
-  def main(args: Array[String]): Unit = {
+  def apply(): Unit = {
 
     val patch = init(
       Seq(
