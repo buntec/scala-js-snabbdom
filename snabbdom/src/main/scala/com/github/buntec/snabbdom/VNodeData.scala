@@ -1,11 +1,14 @@
 package com.github.buntec.snabbdom
 
+import org.scalajs.dom
+
 class VNodeData(
     var props: Option[Map[String, PropValue]],
     var attrs: Option[Map[String, AttrValue]],
     var classes: Option[Map[String, ClassValue]],
     var style: Option[Map[String, StyleValue]],
     var dataset: Option[Map[String, String]],
+    var on: Option[Map[String, dom.Event => Unit]],
     var hook: Option[Hooks],
     var key: Option[KeyValue],
     var ns: Option[String],
@@ -15,7 +18,7 @@ class VNodeData(
 object VNodeData {
 
   def empty =
-    new VNodeData(None, None, None, None, None, None, None, None, None)
+    new VNodeData(None, None, None, None, None, None, None, None, None, None)
 
   def builder = new Builder()
 
@@ -41,6 +44,11 @@ object VNodeData {
 
     def withStyle(style: (String, StyleValue)*): Builder = {
       data.style = Some(style.toMap)
+      this
+    }
+
+    def withOn(on: (String, (dom.Event) => Unit)*): Builder = {
+      data.on = Some(on.toMap)
       this
     }
 

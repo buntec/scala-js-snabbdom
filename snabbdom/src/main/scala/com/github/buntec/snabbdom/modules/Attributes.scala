@@ -1,6 +1,5 @@
 package com.github.buntec.snabbdom.modules
 
-import com.github.buntec.snabbdom.Module
 import com.github.buntec.snabbdom._
 import org.scalajs.dom
 

@@ -11,19 +11,20 @@ object HelloWorld {
 
     val patch = Init(
       Seq(
-        // Init patch function with chosen modules
         Attributes.module,
-        Classes.module, // makes it easy to toggle classes
-        Props.module, // for setting properties on DOM elements
-        Styles.module // styleModule, // handles styling on elements with support for animations
-        // eventListenersModule, // attaches event listeners
+        Classes.module,
+        Props.module,
+        Styles.module,
+        EventListeners.module
       ),
       None
     )
 
     val container = dom.document.getElementById("app");
 
-    val data = VNodeData.empty
+    val data = VNodeData.builder
+      .withOn("click" -> ((ev: dom.Event) => println(ev)))
+      .build
     val data1 = VNodeData.builder.withStyle("fontWeight" -> "bold").build
     val data2 = VNodeData.builder.withProps("href" -> "/foo").build
 
