@@ -22,25 +22,52 @@ object HelloWorld {
 
     val container = dom.document.getElementById("app");
 
-    val data = VNodeData.builder
-      .withOn("click" -> ((ev: dom.Event) => println(ev)))
-      .build
-    val data1 = VNodeData.builder.withStyle("fontWeight" -> "bold").build
-    val data2 = VNodeData.builder.withProps("href" -> "/foo").build
-
     val vnode = h(
       "div",
-      data,
-      Array(
-        h("span", data1, "This is bold"),
-        VNode.text(" and this is just normal text"),
-        h("a", data2, VNode.text("I'll take you places!"))
+      VNodeData.builder
+        .withOn("click" -> ((ev: dom.Event) => println("foo")))
+        .build,
+      Array[VNode](
+        h(
+          "span",
+          VNodeData.builder.withStyle("fontWeight" -> "bold").build,
+          "This is bold"
+        ),
+        " and this is just normal text",
+        h(
+          "a",
+          VNodeData.builder.withProps("href" -> "/foo").build,
+          "I'll take you places!"
+        )
       )
     )
     // Patch into empty DOM element this modifies the DOM as a side effect
     patch(container, vnode);
 
-    ()
+    val newVnode = h(
+      "div#container.two.classes",
+      VNodeData.builder
+        .withOn("click" -> ((ev: dom.Event) => println("bar")))
+        .build,
+      Array[VNode](
+        h(
+          "span",
+          VNodeData.builder
+            .withStyle("fontWeight" -> "normal", "fontStyle" -> "italic")
+            .build,
+          "This is now italic type"
+        ),
+        " and this is still just normal text",
+        h(
+          "a",
+          VNodeData.builder.withProps("href" -> "/foo").build,
+          "I'll take you places!"
+        )
+      )
+    )
+
+    // Second `patch` invocation
+    patch(vnode, newVnode)
 
   }
 
