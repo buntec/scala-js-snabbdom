@@ -3,7 +3,7 @@ package com.github.buntec.snabbdom
 class VNodeData(
     var props: Option[Map[String, PropValue]],
     var attrs: Option[Map[String, AttrValue]],
-    var `class`: Option[Map[String, Boolean]],
+    var `class`: Option[Map[String, ClassValue]],
     var style: Option[Map[String, StyleValue]],
     var dataset: Option[Map[String, String]],
     var hook: Option[Hooks],
