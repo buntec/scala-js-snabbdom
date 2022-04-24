@@ -2,6 +2,7 @@ package com.github.buntec.snabbdom
 
 import org.scalajs.dom
 import scala.collection.mutable
+
 import com.github.buntec.snabbdom.modules._
 
 object init {
@@ -57,11 +58,13 @@ object init {
       VNode.create(None, None, None, None, Some(frag))
     }
 
-    def createRmCb(childElm: dom.Node, listeners: Int): () => Unit = { () =>
-      {
-        if (listeners == 1) {
+    def createRmCb(childElm: dom.Node, listeners: Int): () => Unit = {
+      var listeners0 = listeners
+      () => {
+        listeners0 -= 1
+        if (listeners0 == 0) {
           val parent = api.parentNode(childElm)
-          parent.foreach(node => api.removeChild(node, childElm))
+          parent.foreach(parent => api.removeChild(parent, childElm))
         }
       }
     }
@@ -108,7 +111,7 @@ object init {
           if (dotIdx > 0) {
             elm.setAttribute(
               "class",
-              sel.slice(dot + 1, sel.length).replaceAll("""\./g""", " ")
+              sel.slice(dot + 1, sel.length).replaceAll("""\.""", " ")
             )
           }
           cbs.create.foreach(_.apply(emptyNode, vnode))
@@ -217,7 +220,7 @@ object init {
     }
 
     def getOrNull(vnodes: Array[VNode], idx: Int): VNode = {
-      if (idx > 0 && idx < vnodes.length) {
+      if (idx >= 0 && idx < vnodes.length) {
         vnodes(idx)
       } else {
         null
@@ -458,7 +461,7 @@ object init {
   ): Map[String, Int] = {
     children.zipWithIndex
       .map { case (ch, i) =>
-        ch.key.map { key => (key.asInstanceOf[String] -> i) }
+        ch.key.map { key => (key -> i) }
       }
       .collect { case Some(a) => a }
       .toMap

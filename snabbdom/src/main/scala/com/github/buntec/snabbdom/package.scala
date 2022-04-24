@@ -1,6 +1,5 @@
 package com.github.buntec
 
-import scala.scalajs.js.|
 import scala.collection.mutable
 
 package object snabbdom {
@@ -11,7 +10,6 @@ package object snabbdom {
   type AttrValue = Any // JS snabbdom uses string | number | boolean
   type ClassValue = Boolean
   type StyleValue = String
-  type KeyValue =
-    String | Double | Int // https://github.com/snabbdom/snabbdom#key--string--number
+  type KeyValue = String
 
 }
