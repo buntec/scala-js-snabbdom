@@ -2,8 +2,22 @@ package com.github.buntec.snabbdom
 
 import org.scalajs.dom
 import scala.collection.mutable
+import com.github.buntec.snabbdom.modules._
 
 object init {
+
+  def apply: Patch = {
+    apply(
+      Seq(
+        Attributes.module,
+        Classes.module,
+        Props.module,
+        Styles.module,
+        EventListeners.module,
+        Dataset.module
+      )
+    )
+  }
 
   def apply(
       modules: Seq[Module],
@@ -202,6 +216,14 @@ object init {
       }
     }
 
+    def getOrNull(vnodes: Array[VNode], idx: Int): VNode = {
+      if (idx > 0 && idx < vnodes.length) {
+        vnodes(idx)
+      } else {
+        null
+      }
+    }
+
     def updateChildren(
         parentElm: dom.Node,
         oldCh: Array[VNode],
@@ -212,11 +234,11 @@ object init {
       var oldStartIdx = 0
       var newStartIdx = 0
       var oldEndIdx = oldCh.length - 1
-      var oldStartVnode = oldCh(0)
-      var oldEndVnode = oldCh(oldEndIdx)
+      var oldStartVnode = getOrNull(oldCh, 0)
+      var oldEndVnode = getOrNull(oldCh, oldEndIdx)
       var newEndIdx = newCh.length - 1
-      var newStartVnode = newCh(0)
-      var newEndVnode = newCh(newEndIdx)
+      var newStartVnode = getOrNull(newCh, 0)
+      var newEndVnode = getOrNull(newCh, newEndIdx)
 
       var oldKeyToIdx: Map[String, Int] = null
       var elmToMove: VNode = null
@@ -224,28 +246,29 @@ object init {
       while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
         if (oldStartVnode == null) {
           oldStartIdx += 1
-          oldStartVnode = oldCh(oldStartIdx) // Vnode might have been moved left
+          oldStartVnode =
+            getOrNull(oldCh, oldStartIdx) // Vnode might have been moved left
         } else if (oldEndVnode == null) {
           oldEndIdx -= 1
-          oldEndVnode = oldCh(oldEndIdx)
+          oldEndVnode = getOrNull(oldCh, oldEndIdx)
         } else if (newStartVnode == null) {
           newStartIdx += 1
-          newStartVnode = newCh(newStartIdx)
+          newStartVnode = getOrNull(newCh, newStartIdx)
         } else if (newEndVnode == null) {
           newEndIdx -= 1
-          newEndVnode = newCh(newEndIdx)
+          newEndVnode = getOrNull(newCh, newEndIdx)
         } else if (sameVnode(oldStartVnode, newStartVnode)) {
           patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue)
           oldStartIdx += 1
-          oldStartVnode = oldCh(oldStartIdx)
+          oldStartVnode = getOrNull(oldCh, oldStartIdx)
           newStartIdx += 1
-          newStartVnode = newCh(newStartIdx)
+          newStartVnode = getOrNull(newCh, newStartIdx)
         } else if (sameVnode(oldEndVnode, newEndVnode)) {
           patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue)
           oldEndIdx -= 1
-          oldEndVnode = oldCh(oldEndIdx)
+          oldEndVnode = getOrNull(oldCh, oldEndIdx)
           newEndIdx -= 1
-          newEndVnode = newCh(newEndIdx)
+          newEndVnode = getOrNull(newCh, newEndIdx)
         } else if (sameVnode(oldStartVnode, newEndVnode)) {
           // Vnode moved right
           patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue)
@@ -255,7 +278,7 @@ object init {
             api.nextSibling(oldEndVnode.elm.get)
           )
           oldStartIdx += 1
-          oldStartVnode = oldCh(oldStartIdx)
+          oldStartVnode = getOrNull(oldCh, oldStartIdx)
           newEndIdx -= 1
           newEndVnode = newCh(newEndIdx)
         } else if (sameVnode(oldEndVnode, newStartVnode)) {
@@ -267,9 +290,9 @@ object init {
             oldStartVnode.elm
           )
           oldEndIdx -= 1
-          oldEndVnode = oldCh(oldEndIdx)
+          oldEndVnode = getOrNull(oldCh, oldEndIdx)
           newStartIdx += 1
-          newStartVnode = newCh(newStartIdx)
+          newStartVnode = getOrNull(newCh, newStartIdx)
         } else {
           if (oldKeyToIdx == null) {
             oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx)
@@ -303,12 +326,12 @@ object init {
               }
           }
           newStartIdx += 1
-          newStartVnode = newCh(newStartIdx)
+          newStartVnode = getOrNull(newCh, newStartIdx)
         }
       }
 
       if (newStartIdx <= newEndIdx) {
-        val before = Option(newCh(newEndIdx + 1)).flatMap(_.elm)
+        val before = Option(getOrNull(newCh, newEndIdx + 1)).flatMap(_.elm)
         addVnodes(
           parentElm,
           before,

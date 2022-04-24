@@ -28,7 +28,9 @@ object Props {
       props.foreach { case (key, cur) =>
         if (
           oldProps.get(key).forall(_ != cur) && (key != "value" || elm
-            .asInstanceOf[js.Dictionary[Any]](key) != cur)
+            .asInstanceOf[js.Dictionary[Any]]
+            .get(key)
+            .forall(_ != cur))
         ) { elm.asInstanceOf[js.Dictionary[Any]](key) = cur }
       }
     }

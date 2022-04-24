@@ -18,8 +18,6 @@ object Attributes {
 
   private val xlinkNS = "http://www.w3.org/1999/xlink"
   private val xmlNS = "http://www.w3.org/XML/1998/namespace"
-  private val colonChar = 58
-  private val xChar = 120
 
   private def updateAttrs(oldVnode: VNode, vnode: VNode): Unit = {
 
@@ -37,11 +35,11 @@ object Attributes {
           } else if (cur == false) {
             elm.removeAttribute(key)
           } else {
-            if (key.codePointAt(0) != xChar) {
+            if (key.charAt(0) != 'x') {
               elm.setAttribute(key, cur.toString)
-            } else if (key.codePointAt(3) == colonChar) {
+            } else if (key.length > 3 && key.charAt(3) == ':') {
               elm.setAttributeNS(xmlNS, key, cur.toString)
-            } else if (key.codePointAt(5) == colonChar) {
+            } else if (key.length > 5 && key.charAt(5) == ':') {
               elm.setAttributeNS(xlinkNS, key, cur.toString)
             } else {
               elm.setAttribute(key, cur.toString)

@@ -24,12 +24,11 @@ object thunk {
     data.fn = Some(fn)
     data.args = Some(args)
     data.hook = Some(
-      new Hooks {
-        override def init: Option[InitHook] =
-          Some((vNode: VNode) => init0(vNode))
-        override def prepatch: Option[PrePatchHook] =
+      Hooks().copy(
+        init = Some((vNode: VNode) => init0(vNode)),
+        prepatch =
           Some((oldVNode: VNode, vNode: VNode) => prepatch0(oldVNode, vNode))
-      }
+      )
     )
     h(sel, data)
   }
