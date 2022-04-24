@@ -21,4 +21,6 @@ object VNode {
       elm: Option[dom.Node]
   ) = new VNode(sel, data, children, elm, text, data.flatMap(_.key))
 
+  def text(text: String) = new VNode(None, None, None, None, Some(text), None)
+
 }

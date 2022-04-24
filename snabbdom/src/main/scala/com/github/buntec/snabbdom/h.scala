@@ -18,6 +18,10 @@ object h {
     apply(sel, Some(data), Some(children), None)
   }
 
+  def apply(sel: String, data: VNodeData, child: VNode): VNode = {
+    apply(sel, Some(data), Some(Array(child)), None)
+  }
+
   private def apply(
       sel: String,
       data: Option[VNodeData],
