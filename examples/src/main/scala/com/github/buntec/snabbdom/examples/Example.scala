@@ -5,7 +5,7 @@ import org.scalajs.dom
 import com.github.buntec.snabbdom._
 import com.github.buntec.snabbdom.modules._
 
-object HelloWorld {
+object Example {
 
   def main(args: Array[String]): Unit = {
 
