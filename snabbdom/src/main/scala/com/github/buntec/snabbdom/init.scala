@@ -3,7 +3,7 @@ package com.github.buntec.snabbdom
 import org.scalajs.dom
 import scala.collection.mutable
 
-object Init {
+object init {
 
   def apply(
       modules: Seq[Module],

@@ -9,7 +9,7 @@ object HelloWorld {
 
   def main(args: Array[String]): Unit = {
 
-    val patch = Init(
+    val patch = init(
       Seq(
         Attributes.module,
         Classes.module,
