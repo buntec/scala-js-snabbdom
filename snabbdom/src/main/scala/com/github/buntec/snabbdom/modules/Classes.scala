@@ -41,7 +41,7 @@ object Classes {
       }
     }
 
-    (oldVnode.data.flatMap(_.`class`), vnode.data.flatMap(_.`class`)) match {
+    (oldVnode.data.flatMap(_.classes), vnode.data.flatMap(_.classes)) match {
       case (Some(oldClass), Some(klass)) if oldClass != klass =>
         update(oldClass, klass)
       case (Some(oldClass), None) => update(oldClass, Map.empty)

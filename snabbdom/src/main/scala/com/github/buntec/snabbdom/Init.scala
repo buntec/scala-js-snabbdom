@@ -150,11 +150,11 @@ object Init {
     ): Unit = {
       var i = startIdx
       while (i <= endIdx) {
-        i += 1
         val ch = vnodes(i)
         if (ch != null) { // TODO: is this necessary?
           api.insertBefore(parentElm, createElm(ch, insertedVNodeQueue), before)
         }
+        i += 1
       }
     }
 
@@ -181,7 +181,6 @@ object Init {
 
       var i = startIdx
       while (i <= endIdx) {
-        i += 1
         val ch = vnodes(i)
         if (ch != null) { // TODO: is this necessary?
           ch.sel match {
@@ -199,6 +198,7 @@ object Init {
 
           }
         }
+        i += 1
       }
     }
 

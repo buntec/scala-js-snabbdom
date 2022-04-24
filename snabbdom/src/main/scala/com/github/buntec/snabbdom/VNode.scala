@@ -23,4 +23,6 @@ object VNode {
 
   def text(text: String) = new VNode(None, None, None, None, Some(text), None)
 
+  implicit def fromString(s: String): VNode = text(s)
+
 }
