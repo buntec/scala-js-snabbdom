@@ -25,6 +25,15 @@ lazy val examples = (project
   .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
   .settings(
     name := "scala-js-snabbdom-examples",
-    scalaJSUseMainModuleInitializer := true
+    scalaJSUseMainModuleInitializer := true,
+    Compile / fastLinkJS / scalaJSLinkerConfig ~= {
+      import org.scalajs.linker.interface.ModuleSplitStyle
+      _.withModuleKind(ModuleKind.ESModule)
+        .withModuleSplitStyle(
+          ModuleSplitStyle.SmallModulesFor(
+            List("com.github.buntec.snabbdom.examples")
+          )
+        )
+    }
   )
   .dependsOn(snabbdom)
