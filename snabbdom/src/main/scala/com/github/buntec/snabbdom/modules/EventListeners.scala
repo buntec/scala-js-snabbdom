@@ -41,6 +41,8 @@ package com.github.buntec.snabbdom.modules
 import com.github.buntec.snabbdom._
 import org.scalajs.dom
 
+import scala.annotation.unused
+
 object EventListeners {
 
   val module: Module = Module().copy(
@@ -60,7 +62,7 @@ object EventListeners {
 
   private def invokeHandler(
       handler: dom.Event => Unit,
-      vnode: VNode, // TODO
+      @unused vnode: VNode, // TODO
       event: Option[dom.Event]
   ): Unit = {
     event.foreach(handler) // TODO:  compare with JS snabbdom

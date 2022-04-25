@@ -6,8 +6,6 @@ ThisBuild / crossScalaVersions := Seq(scala213, "3.1.2")
 ThisBuild / organization := "com.github.buntec"
 ThisBuild / organizationName := "buntec"
 
-ThisBuild / tlFatalWarningsInCi := false
-
 lazy val scalajsDomVersion = "2.1.0"
 
 lazy val root = tlCrossRootProject.aggregate(snabbdom, examples)
