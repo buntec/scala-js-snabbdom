@@ -39,7 +39,7 @@
 package com.github.buntec.snabbdom
 
 class CoreSuite extends munit.FunSuite {
-  
+
   test("create vnode with proper tag") {
     assertEquals(h("div").sel, Some("div"))
     assertEquals(h("a").sel, Some("a"))
