@@ -73,27 +73,27 @@ class HyperscriptSuite extends munit.FunSuite {
     assertEquals(children.flatMap(_(0).text), Some("I am a string"))
   }
 
-  // TODO these compile but don't pass, I ported them wrong? :(
+  test("create vnode with text content in string") {
+    val vnode = h("a", "I am a string")
+    assertEquals(vnode.text, Some("I am a string"))
+  }
 
-  // test("create vnode with text content in string") {
-  //   val vnode = h("a", Array(VNode.text("I am a string")))
-  //   assertEquals(vnode.text, Some("I am a string"))
-  // }
+  test("create vnode with props and text content in string") {
+    val vnode = h("a", VNodeData.empty, "I am a string")
+    assertEquals(vnode.text, Some("I am a string"))
+  }
 
-  // test("create vnode with props and text content in string") {
-  //   val vnode = h("a", VNodeData.empty, "I am a string")
-  //   assertEquals(vnode.text, Some("I am a string"))
-  // }
+  test("create vnode with String obj content") {
+    val vnode = h("a", new String("b"))
+    assertEquals(vnode.text, Some("b"))
+  }
 
-  // test("create vnode with String obj content") {
-  //   val vnode = h("a", Array(VNode.text(new String("b"))))
-  //   assertEquals(vnode.text, Some("b"))
-  // }
+  test("create vnode with props and String obj content") {
+    val vnode = h("a", VNodeData.empty, new String("b"))
+    assertEquals(vnode.text, Some("b"))
+  }
 
-  // test("create vnode with props and String obj content") {
-  //   val vnode = h("a", VNodeData.empty, new String("b"))
-  //   assertEquals(vnode.text, Some("b"))
-  // }
+  // TODO: do these make sense even in Scala.js?
 
   // test("create vnode with Number obj content") {
   //   val vnode = h("a", new Number(1))
@@ -108,10 +108,10 @@ class HyperscriptSuite extends munit.FunSuite {
   //   assertEquals(children.flatMap(_(0).text), Some("I am a string"))
   // }
 
-  // test("create vnode for comment") {
-  //   val vnode = h("!", Array(VNode.text("test")))
-  //   assertEquals(vnode.sel, Some("!"))
-  //   assertEquals(vnode.text, Some("test"))
-  // }
+  test("create vnode for comment") {
+    val vnode = h("!", "test")
+    assertEquals(vnode.sel, Some("!"))
+    assertEquals(vnode.text, Some("test"))
+  }
 
 }

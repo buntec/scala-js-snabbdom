@@ -52,6 +52,14 @@ object h {
     apply(sel, None, Some(children), None)
   }
 
+  def apply(sel: String, text: String): VNode = {
+    apply(sel, None, None, Some(text))
+  }
+
+  def apply(sel: String, data: VNodeData, text: String): VNode = {
+    apply(sel, Some(data), None, Some(text))
+  }
+
   def apply(sel: String, data: VNodeData, children: Array[VNode]): VNode = {
     apply(sel, Some(data), Some(children), None)
   }
