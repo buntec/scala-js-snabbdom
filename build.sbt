@@ -27,6 +27,6 @@ lazy val examples = (project
   .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
   .settings(
     name := "scala-js-snabbdom-examples",
-    scalaJSUseMainModuleInitializer := true,
+    scalaJSUseMainModuleInitializer := true
   )
   .dependsOn(snabbdom)
