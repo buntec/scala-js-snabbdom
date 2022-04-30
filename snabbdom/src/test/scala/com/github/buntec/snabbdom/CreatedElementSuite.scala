@@ -207,7 +207,7 @@ class CreatedElementSuite extends munit.FunSuite {
     // TODO
   }
 
-  test("created element is a patch of the root element".only) {
+  test("created element is a patch of the root element") {
     val elmWithIdAndClass = dom.document.createElement("div")
     elmWithIdAndClass.id = "id"
     elmWithIdAndClass.asInstanceOf[dom.HTMLElement].className = "class"
