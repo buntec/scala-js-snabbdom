@@ -310,7 +310,7 @@ class CreatedElementSuite extends munit.FunSuite {
     assertEquals(elm("src"), "http://localhost/")
   }
 
-  vnode0.test("patching an element removes custom props".only) { vnode0 =>
+  vnode0.test("patching an element removes custom props") { vnode0 =>
     val vnode1 =
       h("a", VNodeData.builder.withProps("src" -> "http://other/").build)
     val vnode2 = h("a")
