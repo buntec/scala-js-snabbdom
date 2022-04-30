@@ -217,11 +217,12 @@ object init {
       vnode.data.foreach { data =>
         data.hook.flatMap(_.destroy).foreach(hook => hook(vnode))
         cbs.destroy.foreach(hook => hook(vnode))
-        vnode.children.foreach {
-          _.foreach { child =>
-            if (child != null) { // TODO: is this necessary?
-              invokeDestroyHook(child)
-            }
+
+      }
+      vnode.children.foreach {
+        _.foreach { child =>
+          if (child != null) { // TODO: is this necessary?
+            invokeDestroyHook(child)
           }
         }
       }
@@ -441,6 +442,7 @@ object init {
     def patch(oldVnode: VNode, vnode: VNode): VNode = {
 
       val insertedVNodeQueue: VNodeQueue = mutable.ArrayBuffer.empty[VNode]
+      cbs.pre.foreach(hook => hook())
 
       if (sameVnode(oldVnode, vnode)) {
         patchVnode(oldVnode, vnode, insertedVNodeQueue)
