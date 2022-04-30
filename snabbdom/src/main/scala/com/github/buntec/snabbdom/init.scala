@@ -339,7 +339,7 @@ object init {
             oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx)
           }
           val idxInOld =
-            oldKeyToIdx.get(newStartVnode.key.asInstanceOf[String])
+            oldKeyToIdx.get(newStartVnode.key.get.asInstanceOf[String])
           idxInOld match {
             case None =>
               // New element

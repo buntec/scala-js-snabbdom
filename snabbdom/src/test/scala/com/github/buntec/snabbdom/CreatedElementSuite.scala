@@ -44,6 +44,8 @@ import scalajs.js
 
 class CreatedElementSuite extends munit.FunSuite {
 
+  def spanNum(s: String) = h("span", VNodeData.empty, s)
+
   val vnode0 = FunFixture[dom.Element](
     setup = { _ =>
       dom.document.createElement("div")
@@ -310,7 +312,36 @@ class CreatedElementSuite extends munit.FunSuite {
     assertEquals(elm("src"), "http://localhost/")
   }
 
-  vnode0.test("patching an element removes custom props") { vnode0 =>
+  vnode0.test("patching an element preserves memoized props") { vnode0 =>
+    val cachedProps =
+      VNodeData.builder.withProps("src" -> "http://other/").build
+    val vnode1 = h("a", cachedProps)
+    val vnode2 = h("a", cachedProps)
+    val elm = patch(vnode0, vnode1).elm.get
+    assertEquals(
+      elm.asInstanceOf[js.Dictionary[String]]("src"),
+      "http://other/"
+    )
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(
+      elm2.asInstanceOf[js.Dictionary[String]]("src"),
+      "http://other/"
+    )
+  }
+
+  vnode0.test("can set prop value to empty string") { vnode0 =>
+    val vnode1 =
+      h("p", VNodeData.builder.withProps("textContent" -> "foo").build)
+    val elm = patch(vnode0, vnode1).elm.get
+    assertEquals(elm.asInstanceOf[dom.HTMLParagraphElement].textContent, "foo")
+    val vnode2 = h("p", VNodeData.builder.withProps("textContent" -> "").build)
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(elm2.asInstanceOf[dom.HTMLParagraphElement].textContent, "")
+
+  }
+
+  // TODO: This appears to be a bug in the orignal: https://github.com/snabbdom/snabbdom/pull/1019
+  vnode0.test("patching an element removes custom props".ignore) { vnode0 =>
     val vnode1 =
       h("a", VNodeData.builder.withProps("src" -> "http://other/").build)
     val vnode2 = h("a")
@@ -346,6 +377,143 @@ class CreatedElementSuite extends munit.FunSuite {
     assertEquals(elm.asInstanceOf[js.Dictionary[String]]("a"), "foo")
     val elm2 = patch(vnode1, vnode2).elm.get
     assertEquals(elm2.asInstanceOf[js.Dictionary[String]]("a"), "foo")
+  }
+
+  vnode0.test("addition of elements appends elements") { vnode0 =>
+    val vnode1 = h("span", Array("1").map(spanNum))
+    val vnode2 = h("span", Array("1", "2", "3").map(spanNum))
+    val elm = patch(vnode0, vnode1).elm.get
+    assertEquals(elm.asInstanceOf[dom.Element].children.length, 1)
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(elm2.asInstanceOf[dom.Element].children.length, 3)
+    assertEquals(elm2.asInstanceOf[dom.Element].children(1).innerHTML, "2")
+    assertEquals(elm2.asInstanceOf[dom.Element].children(2).innerHTML, "3")
+  }
+
+  vnode0.test("prepends elements") { vnode0 =>
+    val vnode1 = h("span", Array("4", "5").map(spanNum))
+    val vnode2 = h("span", Array("1", "2", "3", "4", "5").map(spanNum))
+    val elm = patch(vnode0, vnode1).elm.get
+    assertEquals(elm.asInstanceOf[dom.Element].children.length, 2)
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(
+      elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+      List(
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      )
+    )
+  }
+
+  vnode0.test("add elements in the middle") { vnode0 =>
+    val vnode1 = h("span", Array("1", "2", "4", "5").map(spanNum))
+    val vnode2 = h("span", Array("1", "2", "3", "4", "5").map(spanNum))
+    val elm = patch(vnode0, vnode1).elm.get
+    assertEquals(elm.asInstanceOf[dom.Element].children.length, 4)
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(
+      elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+      List(
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      )
+    )
+  }
+
+  vnode0.test("add elements at begin and end") { vnode0 =>
+    val vnode1 = h("span", Array("2", "3", "4").map(spanNum))
+    val vnode2 = h("span", Array("1", "2", "3", "4", "5").map(spanNum))
+    val elm = patch(vnode0, vnode1).elm.get
+    assertEquals(elm.asInstanceOf[dom.Element].children.length, 3)
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(
+      elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+      List(
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      )
+    )
+  }
+
+  vnode0.test("adds children to parent with no children") { vnode0 =>
+    val vnode1 = h("span", VNodeData.builder.withKey("span").build)
+    val vnode2 = h(
+      "span",
+      VNodeData.builder.withKey("span").build,
+      Array("1", "2", "3").map(spanNum)
+    )
+    val elm = patch(vnode0, vnode1).elm.get
+    assertEquals(elm.asInstanceOf[dom.Element].children.length, 0)
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(
+      elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+      List(
+        "1",
+        "2",
+        "3"
+      )
+    )
+  }
+
+  vnode0.test("removes all children to parent") { vnode0 =>
+    val vnode1 = h(
+      "span",
+      VNodeData.builder.withKey("span").build,
+      Array("1", "2", "3").map(spanNum)
+    )
+    val vnode2 = h("span", VNodeData.builder.withKey("span").build)
+    val elm = patch(vnode0, vnode1).elm.get
+    assertEquals(
+      elm.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+      List(
+        "1",
+        "2",
+        "3"
+      )
+    )
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(elm2.asInstanceOf[dom.Element].children.length, 0)
+  }
+
+  vnode0.test("update one child with same key but different sel") { vnode0 =>
+    val data = VNodeData.builder.withKey("span").build
+    val data2 = VNodeData.builder.withKey("2").build
+    val vnode1 = h("span", data, Array("1", "2", "3").map(spanNum))
+    val vnode2 =
+      h("span", data, Array(spanNum("1"), h("i", data2, "2"), spanNum("3")))
+
+    val elm = patch(vnode0, vnode1).elm.get
+    assertEquals(
+      elm.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+      List(
+        "1",
+        "2",
+        "3"
+      )
+    )
+
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(
+      elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+      List(
+        "1",
+        "2",
+        "3"
+      )
+    )
+
+    assertEquals(elm2.asInstanceOf[dom.Element].children.length, 3)
+    assertEquals(elm2.asInstanceOf[dom.Element].children(1).tagName, "I")
+
   }
 
 }

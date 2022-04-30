@@ -80,6 +80,11 @@ object VNodeData {
 
     def build: VNodeData = data
 
+    def withKey(key: String): Builder = {
+      data.key = Some(key)
+      this
+    }
+
     def withProps(props: (String, PropValue)*): Builder = {
       data.props = Some(props.toMap)
       this
