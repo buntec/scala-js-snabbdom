@@ -105,6 +105,11 @@ object VNodeData {
       this
     }
 
+    def withNs(ns: String): Builder = {
+      data.ns = Some(ns)
+      this
+    }
+
   }
 
 }
