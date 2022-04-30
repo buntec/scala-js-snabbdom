@@ -38,78 +38,52 @@
 
 package com.github.buntec.snabbdom
 
-import org.scalajs.dom
+import scala.collection.mutable.ArrayBuffer
 
-class VNodeData(
-    var props: Option[Map[String, PropValue]],
-    var attrs: Option[Map[String, AttrValue]],
-    var classes: Option[Map[String, ClassValue]],
-    var style: Option[Map[String, StyleValue]],
-    var dataset: Option[Map[String, String]],
-    var on: Option[Map[String, dom.Event => Unit]],
-    var hook: Option[Hooks],
-    var key: Option[String],
-    var ns: Option[String], // for SVG
-    var fn: Option[Seq[Any] => VNode], // for thunks
-    var args: Option[Seq[Any]], // for thunks
-    var is: Option[String]
-)
+class ShortCircuitingSuite extends BaseSuite {
 
-object VNodeData {
-
-  def empty =
-    new VNodeData(
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None
+  vnode0.test("does not update strictly equal vnodes") { vnode0 =>
+    val result = ArrayBuffer[VNode]()
+    val cb: UpdateHook = (vnode, _) => {
+      result += vnode
+    }
+    val vnode1 = h(
+      "div",
+      Array(
+        h(
+          "span",
+          VNodeData.builder.withHook(Hooks(update = Some(cb))).build,
+          "Hello"
+        ),
+        h("span", "there")
+      )
     )
+    patch(vnode0, vnode1)
+    patch(vnode1, vnode1)
+    assertEquals(result.length, 0)
+  }
 
-  def builder = new Builder()
-
-  class Builder() {
-    private val data = empty
-
-    def build: VNodeData = data
-
-    def withProps(props: (String, PropValue)*): Builder = {
-      data.props = Some(props.toMap)
-      this
+  vnode0.test("does not update strictly equal children") { vnode0 =>
+    val result = ArrayBuffer[VNode]()
+    val cb: UpdateHook = (vnode, _) => {
+      result += vnode
     }
-
-    def withAttrs(attrs: (String, AttrValue)*): Builder = {
-      data.attrs = Some(attrs.toMap)
-      this
-    }
-
-    def withClasses(classes: (String, ClassValue)*): Builder = {
-      data.classes = Some(classes.toMap)
-      this
-    }
-
-    def withStyle(style: (String, StyleValue)*): Builder = {
-      data.style = Some(style.toMap)
-      this
-    }
-
-    def withOn(on: (String, (dom.Event) => Unit)*): Builder = {
-      data.on = Some(on.toMap)
-      this
-    }
-
-    def withHook(hook: Hooks): Builder = {
-      data.hook = Some(hook)
-      this
-    }
-
+    val vnode1 = h(
+      "div",
+      Array(
+        h(
+          "span",
+          VNodeData.builder.withHook(Hooks(update = Some(cb))).build,
+          "Hello"
+        ),
+        h("span", "there")
+      )
+    )
+    val vnode2 = h("div")
+    vnode2.children = vnode1.children
+    patch(vnode0, vnode1)
+    patch(vnode1, vnode2)
+    assertEquals(result.length, 0)
   }
 
 }
