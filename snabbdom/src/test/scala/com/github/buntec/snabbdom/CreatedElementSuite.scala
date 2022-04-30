@@ -124,7 +124,7 @@ class CreatedElementSuite extends munit.FunSuite {
 
   vnode0.test("created element receives classes in class property") { vnode0 =>
     val data = VNodeData.builder
-      .withClasses(("am", true), ("a", true), ("class", true), ("not", false))
+      .withClasses("am" -> true, "a" -> true, "class" -> true, "not" -> false)
       .build
     val elm = patch(vnode0, h("i", data)).elm.get
     assert(elm.asInstanceOf[dom.Element].classList.contains("am"))
@@ -147,7 +147,7 @@ class CreatedElementSuite extends munit.FunSuite {
     "created element receives classes in class property when namespaced"
   ) { vnode0 =>
     val data = VNodeData.builder
-      .withClasses(("am", true), ("a", true), ("class", true), ("not", false))
+      .withClasses("am" -> true, "a" -> true, "class" -> true, "not" -> false)
       .build
     val elm = patch(vnode0, h("svg", Array(h("g", data)))).elm.get
     assert(elm.firstChild.asInstanceOf[dom.Element].classList.contains("am"))
@@ -217,6 +217,135 @@ class CreatedElementSuite extends munit.FunSuite {
     assertEquals(elm.tagName, "DIV")
     assertEquals(elm.id, "id")
     assertEquals(elm.asInstanceOf[dom.HTMLElement].className, "class")
+  }
+
+  vnode0.test("created element can create comments") { vnode0 =>
+    val elm = patch(vnode0, h("!", "test")).elm.get
+    assertEquals(elm.nodeType, dom.Node.COMMENT_NODE)
+    assertEquals(elm.textContent, "test")
+  }
+
+  // created document fragment
+
+  vnode0.test("created document fragment is an instance of DocumentFragment") {
+    vnode0 =>
+      val vnode1 =
+        fragment(
+          Array[VNode]("I am", h("span", Array[VNode](" a", " fragment")))
+        )
+      val elm = patch(vnode0, vnode1).elm.get
+      assertEquals(elm.nodeType, dom.Node.DOCUMENT_FRAGMENT_NODE)
+      assertEquals(elm.textContent, "I am a fragment")
+  }
+
+  // patching an element
+  vnode0.test("patching an element changes the elements classes") { vnode0 =>
+    val vnode1 = h(
+      "i",
+      VNodeData.builder
+        .withClasses("i" -> true, "am" -> true, "horse" -> true)
+        .build
+    )
+    val vnode2 = h(
+      "i",
+      VNodeData.builder
+        .withClasses("i" -> true, "am" -> true, "horse" -> false)
+        .build
+    )
+    patch(vnode0, vnode1)
+    val elm = patch(vnode1, vnode2).elm.get
+    assert(elm.asInstanceOf[dom.Element].classList.contains("i"))
+    assert(elm.asInstanceOf[dom.Element].classList.contains("am"))
+    assert(!elm.asInstanceOf[dom.Element].classList.contains("horse"))
+  }
+
+  vnode0.test("patching an element changes classes in selector") { _ =>
+    // TODO: looks exactly like the the one above in the original???
+  }
+
+  vnode0.test("patching an element preserves memoized classes") { vnode0 =>
+    val cachedClasses =
+      VNodeData.builder
+        .withClasses("i" -> true, "am" -> true, "horse" -> false)
+        .build
+    val vnode1 = h("i", cachedClasses)
+    val vnode2 = h("i", cachedClasses)
+    val elm = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
+    assert(elm.classList.contains("i"))
+    assert(elm.classList.contains("am"))
+    assert(!elm.classList.contains("horse"))
+    val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
+    assert(elm2.classList.contains("i"))
+    assert(elm2.classList.contains("am"))
+    assert(!elm2.classList.contains("horse"))
+  }
+
+  vnode0.test("patching an element removes missing classes") { vnode0 =>
+    val vnode1 = h(
+      "i",
+      VNodeData.builder
+        .withClasses("i" -> true, "am" -> true, "horse" -> true)
+        .build
+    )
+    val vnode2 = h(
+      "i",
+      VNodeData.builder
+        .withClasses("i" -> true, "am" -> true)
+        .build
+    )
+    patch(vnode0, vnode1)
+    val elm = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
+    assert(elm.classList.contains("i"))
+    assert(elm.classList.contains("am"))
+    assert(!elm.classList.contains("horse"))
+  }
+
+  vnode0.test("patching an element changes an elements props") { vnode0 =>
+    val vnode1 =
+      h("a", VNodeData.builder.withProps("src" -> "http://other/").build)
+    val vnode2 =
+      h("a", VNodeData.builder.withProps("src" -> "http://localhost/").build)
+    patch(vnode0, vnode1)
+    val elm = patch(vnode1, vnode2).elm.get.asInstanceOf[js.Dictionary[String]]
+    assertEquals(elm("src"), "http://localhost/")
+  }
+
+  vnode0.test("patching an element removes custom props".only) { vnode0 =>
+    val vnode1 =
+      h("a", VNodeData.builder.withProps("src" -> "http://other/").build)
+    val vnode2 = h("a")
+    patch(vnode0, vnode1)
+    val elm = patch(vnode1, vnode2).elm.get
+    assert(!elm.asInstanceOf[js.Dictionary[String]].contains("src"))
+  }
+
+  vnode0.test("patching an element cannot remove native props") { vnode0 =>
+    val vnode1 =
+      h("a", VNodeData.builder.withProps("href" -> "http://example.com/").build)
+    val vnode2 = h("a")
+    val elm1 = patch(vnode0, vnode1).elm.get
+    assert(elm1.isInstanceOf[dom.HTMLAnchorElement])
+    assertEquals(
+      elm1.asInstanceOf[dom.HTMLAnchorElement].href,
+      "http://example.com/"
+    )
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assert(elm2.isInstanceOf[dom.HTMLAnchorElement])
+    assertEquals(
+      elm2.asInstanceOf[dom.HTMLAnchorElement].href,
+      "http://example.com/"
+    )
+
+  }
+
+  vnode0.test("patching an element does not delete custom props") { vnode0 =>
+    val vnode1 = h("p", VNodeData.builder.withProps("a" -> "foo").build)
+    val vnode2 = h("p")
+    val elm = patch(vnode0, vnode1).elm.get
+    assert(elm.isInstanceOf[dom.HTMLParagraphElement])
+    assertEquals(elm.asInstanceOf[js.Dictionary[String]]("a"), "foo")
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(elm2.asInstanceOf[js.Dictionary[String]]("a"), "foo")
   }
 
 }
