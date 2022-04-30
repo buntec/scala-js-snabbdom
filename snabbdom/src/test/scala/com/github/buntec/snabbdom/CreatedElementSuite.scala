@@ -40,6 +40,7 @@ package com.github.buntec.snabbdom
 import com.github.buntec.snabbdom.modules._
 
 import org.scalajs.dom
+import scalajs.js
 
 class CreatedElementSuite extends munit.FunSuite {
 
@@ -153,6 +154,69 @@ class CreatedElementSuite extends munit.FunSuite {
     assert(elm.firstChild.asInstanceOf[dom.Element].classList.contains("a"))
     assert(elm.firstChild.asInstanceOf[dom.Element].classList.contains("class"))
     assert(!elm.firstChild.asInstanceOf[dom.Element].classList.contains("not"))
+  }
+
+  vnode0.test(
+    "created element handles classes from both selector and property"
+  ) { vnode0 =>
+    val data = VNodeData.builder.withClasses("classes" -> true).build
+    val elm = patch(vnode0, h("div", Array(h("i.has", data)))).elm.get
+    assert(elm.firstChild.asInstanceOf[dom.Element].classList.contains("has"))
+    assert(
+      elm.firstChild.asInstanceOf[dom.Element].classList.contains("classes")
+    )
+  }
+
+  vnode0.test("created element can create elements with text content") {
+    vnode0 =>
+      val elm = patch(vnode0, h("div", Array[VNode]("I am a string"))).elm.get
+      assertEquals(elm.asInstanceOf[dom.Element].innerHTML, "I am a string")
+  }
+
+  vnode0.test(
+    "created element can create elements with spand and text content"
+  ) { vnode0 =>
+    val elm =
+      patch(vnode0, h("a", Array[VNode](h("span"), "I am a string"))).elm.get
+    assertEquals(elm.childNodes(0).asInstanceOf[dom.Element].tagName, "SPAN")
+    assertEquals(
+      elm.childNodes(1).asInstanceOf[dom.Element].textContent,
+      "I am a string"
+    )
+  }
+
+  vnode0.test(
+    "created element can create vnode with array String obj content"
+  ) { vnode0 =>
+    val elm = patch(vnode0, h("a", Array[VNode]("b", "c"))).elm.get
+    assertEquals(elm.asInstanceOf[dom.Element].innerHTML, "bc")
+  }
+
+  vnode0.test("created element can create elements with props") { vnode0 =>
+    val data = VNodeData.builder.withProps("src" -> "http://localhost/").build
+    val elm = patch(vnode0, h("a", data)).elm.get
+    assertEquals(
+      elm.asInstanceOf[js.Dictionary[String]]("src"),
+      "http://localhost/"
+    )
+  }
+
+  vnode0.test(
+    "created element can create and element created inside an iframe"
+  ) { _ =>
+    // TODO
+  }
+
+  test("created element is a patch of the root element".only) {
+    val elmWithIdAndClass = dom.document.createElement("div")
+    elmWithIdAndClass.id = "id"
+    elmWithIdAndClass.asInstanceOf[dom.HTMLElement].className = "class"
+    val vnode1 = h("div#id.class", Array(h("span", "Hi")));
+    val elm = patch(elmWithIdAndClass, vnode1).elm.get.asInstanceOf[dom.Element]
+    assertEquals(elm, elmWithIdAndClass)
+    assertEquals(elm.tagName, "DIV")
+    assertEquals(elm.id, "id")
+    assertEquals(elm.asInstanceOf[dom.HTMLElement].className, "class")
   }
 
 }
