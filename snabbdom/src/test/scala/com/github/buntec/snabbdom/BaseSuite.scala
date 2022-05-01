@@ -50,9 +50,9 @@ abstract class BaseSuite extends munit.FunSuite {
     val countRegistered = countAfter - countBefore
     val registered = munitTestsBuffer.toList.drop(countBefore)
     (0 until countRegistered).foreach(_ => munitTestsBuffer.remove(countBefore))
-    registered.foreach(t =>
+    registered.foreach { t =>
       munitTestsBuffer += t.withName(s"$name ${t.name}")
-    )
+    }
   }
 
   val vnode0 = FunFixture[dom.Element](
