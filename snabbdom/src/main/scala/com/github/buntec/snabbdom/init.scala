@@ -78,7 +78,7 @@ object init {
     }
 
     def emptyNodeAt(elm: dom.Element): VNode = {
-      val id = Option(elm.id).filter(_.nonEmpty).map("#" + _).getOrElse("")
+      val id = Option(elm.id).filter(_.nonEmpty).fold("")("#" + _)
       val classes = Option(elm.getAttribute("class"))
       val c = classes.map("." + _.split(" ").mkString(".")).getOrElse("")
 
