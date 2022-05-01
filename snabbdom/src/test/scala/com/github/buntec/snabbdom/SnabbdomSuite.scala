@@ -993,7 +993,6 @@ class SnabbdomSuite extends BaseSuite {
         val vnode2 = h("div")
         patch(vnode0, vnode1)
         patch(vnode1, vnode2)
-        println(result.result())
         assertEquals(result.result().size, 1);
     }
 
@@ -1027,7 +1026,6 @@ class SnabbdomSuite extends BaseSuite {
         val vnode2 = h("div")
         patch(vnode0, vnode1)
         patch(vnode1, vnode2)
-        println((created, destroyed)) // TODO prints (5,0)
         assertEquals(created, 4)
         assertEquals(destroyed, 4)
     }
@@ -1056,7 +1054,6 @@ class SnabbdomSuite extends BaseSuite {
       val vnode2 = h("div")
       patch(vnode0, vnode1)
       patch(vnode1, vnode2)
-      println((created, removed)) // TODO prints (3,2)
       assertEquals(created, 2)
       assertEquals(removed, 2)
     }
@@ -1089,7 +1086,6 @@ class SnabbdomSuite extends BaseSuite {
         val vnode2 = h("div")
         patch(vnode0, vnode1)
         patch(vnode1, vnode2)
-        println((created, destroyed)) // TODO prints (5,0)
         assertEquals(created, 4)
         assertEquals(destroyed, 4)
     }

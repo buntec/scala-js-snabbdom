@@ -78,7 +78,7 @@ object init {
     }
 
     def emptyNodeAt(elm: dom.Element): VNode = {
-      val id = Option(elm.id).map("#" + _).getOrElse("")
+      val id = Option(elm.id).filter(_.nonEmpty).map("#" + _).getOrElse("")
       val classes = Option(elm.getAttribute("class"))
       val c = classes.map("." + _.split(" ").mkString(".")).getOrElse("")
 
@@ -217,12 +217,11 @@ object init {
       vnode.data.foreach { data =>
         data.hook.flatMap(_.destroy).foreach(hook => hook(vnode))
         cbs.destroy.foreach(hook => hook(vnode))
-
-      }
-      vnode.children.foreach {
-        _.foreach { child =>
-          if (child != null) { // TODO: is this necessary?
-            invokeDestroyHook(child)
+        vnode.children.foreach {
+          _.foreach { child =>
+            if (child != null) { // TODO: is this necessary?
+              invokeDestroyHook(child)
+            }
           }
         }
       }
