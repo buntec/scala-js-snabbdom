@@ -78,7 +78,7 @@ object init {
     }
 
     def emptyNodeAt(elm: dom.Element): VNode = {
-      val id = Option(elm.id).map("#" + _).getOrElse("")
+      val id = Option(elm.id).filter(_.nonEmpty).fold("")("#" + _)
       val classes = Option(elm.getAttribute("class"))
       val c = classes.map("." + _.split(" ").mkString(".")).getOrElse("")
 
@@ -442,6 +442,7 @@ object init {
     def patch(oldVnode: VNode, vnode: VNode): VNode = {
 
       val insertedVNodeQueue: VNodeQueue = mutable.ArrayBuffer.empty[VNode]
+      cbs.pre.foreach(hook => hook())
 
       if (sameVnode(oldVnode, vnode)) {
         patchVnode(oldVnode, vnode, insertedVNodeQueue)

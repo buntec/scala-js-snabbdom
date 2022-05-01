@@ -951,6 +951,146 @@ class SnabbdomSuite extends BaseSuite {
     }
   }
 
+  group("module hooks") {
+    vnode0.test("invokes `pre` and `post` hook") { vnode0 =>
+      val result = List.newBuilder[String]
+      val patch = init(
+        Seq(
+          Module(
+            pre = Some(() => result.addOne("pre")),
+            post = Some(() => result.addOne("post"))
+          )
+        )
+      )
+      val vnode1 = h("div")
+      patch(vnode0, vnode1)
+      assertEquals(result.result(), List("pre", "post"))
+    }
+
+    vnode0.test("invokes global `destroy` hook for all removed children") {
+      vnode0 =>
+        val result = List.newBuilder[VNode]
+        val cb: DestroyHook = (vnode) => {
+          result.addOne(vnode)
+        }
+        val vnode1 = h(
+          "div",
+          Array(
+            h("span", "First sibling"),
+            h(
+              "div",
+              Array(
+                h(
+                  "span",
+                  VNodeData.builder.withHook(Hooks(destroy = Some(cb))).build,
+                  "Child 1"
+                ),
+                h("span", "Child 2")
+              )
+            )
+          )
+        )
+        val vnode2 = h("div")
+        patch(vnode0, vnode1)
+        patch(vnode1, vnode2)
+        assertEquals(result.result().size, 1);
+    }
+
+    vnode0.test("handles text vnodes with `undefined` `data` property") {
+      vnode0 =>
+        val vnode1 = h("div", Array(VNode.text(" ")))
+        val vnode2 = h("div", Array.empty[VNode])
+        patch(vnode0, vnode1)
+        patch(vnode1, vnode2)
+    }
+
+    vnode0.test("invokes `destroy` module hook for all removed children") {
+      vnode0 =>
+        var created = 0;
+        var destroyed = 0;
+        val patch = init(
+          Seq(
+            Module(
+              create = Some((_, _) => created += 1),
+              destroy = Some(_ => destroyed += 1)
+            )
+          )
+        )
+        val vnode1 = h(
+          "div",
+          Array(
+            h("span", "First sibling"),
+            h("div", Array(h("span", "Child 1"), h("span", "Child 2")))
+          )
+        )
+        val vnode2 = h("div")
+        patch(vnode0, vnode1)
+        patch(vnode1, vnode2)
+        assertEquals(created, 4)
+        assertEquals(destroyed, 4)
+    }
+
+    vnode0.test(
+      "does not invoke `create` and `remove` module hook for text nodes"
+    ) { vnode0 =>
+      var created = 0
+      var removed = 0
+      val patch = init(
+        Seq(
+          Module(
+            create = Some((_, _) => created += 1),
+            remove = Some((_, _) => removed += 1)
+          )
+        )
+      )
+      val vnode1 = h(
+        "div",
+        Array(
+          h("span", "First child"),
+          VNode.text(""),
+          h("span", "Third child")
+        )
+      )
+      val vnode2 = h("div")
+      patch(vnode0, vnode1)
+      patch(vnode1, vnode2)
+      assertEquals(created, 2)
+      assertEquals(removed, 2)
+    }
+
+    vnode0.test("does not invoke `destroy` module hook for text nodes") {
+      vnode0 =>
+        var created = 0
+        var destroyed = 0
+        val patch = init(
+          Seq(
+            Module(
+              create = Some((_, _) => created += 1),
+              destroy = Some(_ => destroyed += 1)
+            )
+          )
+        )
+        val vnode1 = h(
+          "div",
+          Array(
+            h("span", "First sibling"),
+            h(
+              "div",
+              Array(
+                h("span", "Child 1"),
+                h("span", Array(VNode.text("Text 1"), VNode.text("Text 2")))
+              )
+            )
+          )
+        )
+        val vnode2 = h("div")
+        patch(vnode0, vnode1)
+        patch(vnode1, vnode2)
+        assertEquals(created, 4)
+        assertEquals(destroyed, 4)
+    }
+  }
+
   group("short circuiting") {
     vnode0.test("does not update strictly equal vnodes") { vnode0 =>
       val result = List.newBuilder[VNode]
