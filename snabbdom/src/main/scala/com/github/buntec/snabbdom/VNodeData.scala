@@ -114,7 +114,7 @@ object VNodeData {
       data.hook = Some(hook)
       this
     }
-      
+
     def withNs(ns: String): Builder = {
       data.ns = Some(ns)
       this
