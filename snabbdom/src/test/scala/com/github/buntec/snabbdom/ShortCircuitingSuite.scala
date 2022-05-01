@@ -40,7 +40,7 @@ package com.github.buntec.snabbdom
 
 import scala.collection.mutable.ArrayBuffer
 
-class ShortCircuitingSuite extends SnabbdomSuite {
+class ShortCircuitingSuite extends BaseSuite {
 
   vnode0.test("does not update strictly equal vnodes") { vnode0 =>
     val result = ArrayBuffer[VNode]()
