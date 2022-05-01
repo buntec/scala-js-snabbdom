@@ -715,4 +715,161 @@ class CreatedElementSuite extends munit.FunSuite {
     }
   }
 
+  vnode0.test("updated children without keys - appends elements") { vnode0 =>
+    val vnode1 = h("div", Array(h("span", "Hello")))
+    val vnode2 = h("div", Array(h("span", "Hello"), h("span", "World")))
+    val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
+    assertEquals(elm1.children.toSeq.map(_.innerHTML), List("Hello"))
+    val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
+    assertEquals(elm2.children.toSeq.map(_.innerHTML), List("Hello", "World"))
+  }
+
+  vnode0.test("updated children without keys - handles unmoved text nodes") {
+    vnode0 =>
+      val vnode1 = h("div", Array[VNode]("Text", h("span", "Span")))
+      val vnode2 = h("div", Array[VNode]("Text", h("span", "Span")))
+      val elm1 = patch(vnode0, vnode1).elm.get
+      assertEquals(elm1.childNodes(0).textContent, "Text")
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(elm2.childNodes(0).textContent, "Text")
+  }
+
+  vnode0.test(
+    "updated children without keys - handles changing text children"
+  ) { vnode0 =>
+    val vnode1 = h("div", Array[VNode]("Text", h("span", "Span")))
+    val vnode2 = h("div", Array[VNode]("Text2", h("span", "Span")))
+    val elm1 = patch(vnode0, vnode1).elm.get
+    assertEquals(elm1.childNodes(0).textContent, "Text")
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(elm2.childNodes(0).textContent, "Text2")
+  }
+
+  vnode0.test(
+    "updated children without keys - handles unmoved comment nodes"
+  ) { vnode0 =>
+    val vnode1 = h("div", Array[VNode](h("!", "Text"), h("span", "Span")))
+    val vnode2 = h("div", Array[VNode](h("!", "Text"), h("span", "Span")))
+    val elm1 = patch(vnode0, vnode1).elm.get
+    assertEquals(elm1.childNodes(0).textContent, "Text")
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(elm2.childNodes(0).textContent, "Text")
+  }
+
+  vnode0.test(
+    "updated children without keys - handles changing comment text"
+  ) { vnode0 =>
+    val vnode1 = h("div", Array[VNode](h("!", "Text"), h("span", "Span")))
+    val vnode2 = h("div", Array[VNode](h("!", "Text2"), h("span", "Span")))
+    val elm1 = patch(vnode0, vnode1).elm.get
+    assertEquals(elm1.childNodes(0).textContent, "Text")
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(elm2.childNodes(0).textContent, "Text2")
+  }
+
+  vnode0.test(
+    "updated children without keys - handles changing empty comment"
+  ) { vnode0 =>
+    val vnode1 = h("div", Array[VNode](h("!"), h("span", "Span")))
+    val vnode2 = h("div", Array[VNode](h("!", "Test"), h("span", "Span")))
+    val elm1 = patch(vnode0, vnode1).elm.get
+    assertEquals(elm1.childNodes(0).textContent, "")
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(elm2.childNodes(0).textContent, "Test")
+  }
+
+  vnode0.test("updated children without keys - prepends element") { vnode0 =>
+    val vnode1 = h("div", Array(h("span", "World")))
+    val vnode2 = h("div", Array(h("span", "Hello"), h("span", "World")))
+    val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
+    assertEquals(elm1.children.toSeq.map(_.innerHTML), List("World"))
+    val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
+    assertEquals(elm2.children.toSeq.map(_.innerHTML), List("Hello", "World"))
+  }
+
+  vnode0.test(
+    "updated children without keys - prepends element of different tag type"
+  ) { vnode0 =>
+    val vnode1 = h("div", Array(h("span", "World")))
+    val vnode2 = h("div", Array(h("div", "Hello"), h("span", "World")))
+    val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
+    assertEquals(elm1.children.toSeq.map(_.innerHTML), List("World"))
+    val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
+    assertEquals(elm2.children.toSeq.map(_.innerHTML), List("Hello", "World"))
+    assertEquals(elm2.children.toSeq.map(_.tagName), List("DIV", "SPAN"))
+  }
+
+  vnode0.test(
+    "updated children without keys - removes elements"
+  ) { vnode0 =>
+    val vnode1 =
+      h("div", Array(h("span", "One"), h("span", "Two"), h("span", "Three")))
+    val vnode2 = h("div", Array(h("span", "One"), h("span", "Three")))
+    val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
+    assertEquals(
+      elm1.children.toSeq.map(_.innerHTML),
+      List("One", "Two", "Three")
+    )
+    val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
+    assertEquals(elm2.children.toSeq.map(_.innerHTML), List("One", "Three"))
+  }
+
+  vnode0.test(
+    "updated children without keys - removes a single text node"
+  ) { vnode0 =>
+    val vnode1 = h("div", "One")
+    val vnode2 = h("div")
+    val elm1 = patch(vnode0, vnode1).elm.get
+    assertEquals(elm1.textContent, "One")
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(elm2.textContent, "")
+  }
+
+  vnode0.test(
+    "updated children without keys - removes a single text node when children are updated"
+  ) { vnode0 =>
+    val vnode1 = h("div", "One")
+    val vnode2 = h("div", Array(h("div", "Two"), h("span", "Three")))
+    val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
+    assertEquals(elm1.textContent, "One")
+    val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
+    assertEquals(elm2.childNodes.toSeq.map(_.textContent), List("Two", "Three"))
+  }
+
+  vnode0.test(
+    "updated children without keys - removes a text node among other elements"
+  ) { vnode0 =>
+    val vnode1 = h("div", Array[VNode]("One", h("span", "Two")))
+    val vnode2 = h("div", Array(h("div", "Three")))
+    val elm1 = patch(vnode0, vnode1).elm.get
+    assertEquals(
+      elm1.childNodes.toSeq.map(_.textContent),
+      List("One", "Two")
+    )
+    val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
+    assertEquals(elm2.childNodes.length, 1)
+    assertEquals(elm2.childNodes(0).asInstanceOf[dom.Element].tagName, "DIV")
+    assertEquals(elm2.childNodes(0).textContent, "Three")
+  }
+
+  vnode0.test(
+    "updated children without keys - reorders elements"
+  ) { vnode0 =>
+    val vnode1 =
+      h("div", Array(h("span", "One"), h("div", "Two"), h("b", "Three")))
+    val vnode2 =
+      h("div", Array(h("b", "Three"), h("span", "One"), h("div", "Two")))
+    val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
+    assertEquals(
+      elm1.children.toSeq.map(_.innerHTML),
+      List("One", "Two", "Three")
+    )
+    val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
+    assertEquals(elm2.children.toSeq.map(_.tagName), List("B", "SPAN", "DIV"))
+    assertEquals(
+      elm2.children.toSeq.map(_.innerHTML),
+      List("Three", "One", "Two")
+    )
+  }
+
 }

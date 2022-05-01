@@ -338,8 +338,9 @@ object init {
           if (oldKeyToIdx == null) {
             oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx)
           }
-          val idxInOld =
-            oldKeyToIdx.get(newStartVnode.key.get.asInstanceOf[String])
+          val idxInOld = newStartVnode.key.flatMap { key =>
+            oldKeyToIdx.get(key)
+          }
           idxInOld match {
             case None =>
               // New element
