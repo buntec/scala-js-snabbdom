@@ -45,6 +45,8 @@ import scalajs.js
 class CreatedElementSuite extends munit.FunSuite {
 
   def spanNum(s: String) = h("span", VNodeData.empty, s)
+  def spanNum(i: Int) =
+    h("span", VNodeData.builder.withKey(i.toString).build, i.toString)
 
   val vnode0 = FunFixture[dom.Element](
     setup = { _ =>
@@ -57,7 +59,8 @@ class CreatedElementSuite extends munit.FunSuite {
     Seq(
       Classes.module,
       Props.module,
-      EventListeners.module
+      EventListeners.module,
+      Styles.module
     )
   )
 
@@ -571,6 +574,145 @@ class CreatedElementSuite extends munit.FunSuite {
       elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
       List("4", "2", "3", "1")
     )
+  }
+
+  vnode0.test(
+    "combinations of additions, removals and reorderings - move to left and replace"
+  ) { vnode0 =>
+    val vnode1 = h("span", Array("1", "2", "3", "4", "5").map(spanNum))
+    val vnode2 = h("span", Array("4", "1", "2", "3", "6").map(spanNum))
+    val elm = patch(vnode0, vnode1).elm.get
+    assertEquals(elm.asInstanceOf[dom.Element].children.length, 5)
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(elm2.asInstanceOf[dom.Element].children.length, 5)
+    assertEquals(
+      elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+      List("4", "1", "2", "3", "6")
+    )
+  }
+
+  vnode0.test(
+    "combinations of additions, removals and reorderings - moves to left and leaves hole"
+  ) { vnode0 =>
+    val vnode1 = h("span", Array("1", "4", "5").map(spanNum))
+    val vnode2 = h("span", Array("4", "6").map(spanNum))
+    val elm = patch(vnode0, vnode1).elm.get
+    assertEquals(elm.asInstanceOf[dom.Element].children.length, 3)
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(elm2.asInstanceOf[dom.Element].children.length, 2)
+    assertEquals(
+      elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+      List("4", "6")
+    )
+  }
+
+  vnode0.test(
+    "combinations of additions, removals and reorderings - handles moved and set to undefined element ending at the end"
+  ) { vnode0 =>
+    val vnode1 = h("span", Array("2", "4", "5").map(spanNum))
+    val vnode2 = h("span", Array("4", "5", "3").map(spanNum))
+    val elm = patch(vnode0, vnode1).elm.get
+    assertEquals(elm.asInstanceOf[dom.Element].children.length, 3)
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(elm2.asInstanceOf[dom.Element].children.length, 3)
+    assertEquals(
+      elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+      List("4", "5", "3")
+    )
+  }
+
+  vnode0.test(
+    "combinations of additions, removals and reorderings - moves a key in non-keyed nodes with a size up"
+  ) { vnode0 =>
+    val vnode1 =
+      h("span", Array(spanNum(1)) ++ Array("a", "b", "c").map(spanNum))
+    val vnode2 = h(
+      "span",
+      Array("d", "a", "b", "c").map(spanNum) ++ Array(spanNum(1)) ++ Array(
+        spanNum("e")
+      )
+    )
+    val elm = patch(vnode0, vnode1).elm.get
+    assertEquals(elm.asInstanceOf[dom.Element].children.length, 4)
+    assertEquals(elm.textContent, "1abc")
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(elm2.asInstanceOf[dom.Element].children.length, 6)
+    assertEquals(elm2.textContent, "dabc1e")
+  }
+
+  // accepts symbol as key - doesn't apply to Scala.js
+
+  vnode0.test(
+    "combinations of additions, removals and reorderings - reverses elements"
+  ) { vnode0 =>
+    val vnode1 =
+      h("span", Array("1", "2", "3", "4", "5", "6", "7", "8").map(spanNum))
+    val vnode2 =
+      h("span", Array("8", "7", "6", "5", "4", "3", "2", "1").map(spanNum))
+    val elm = patch(vnode0, vnode1).elm.get
+    assertEquals(elm.asInstanceOf[dom.Element].children.length, 8)
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(elm2.asInstanceOf[dom.Element].children.length, 8)
+    assertEquals(
+      elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+      List("8", "7", "6", "5", "4", "3", "2", "1")
+    )
+  }
+
+  vnode0.test(
+    "combinations of additions, removals and reorderings - something"
+  ) { vnode0 =>
+    val vnode1 =
+      h("span", Array(0, 1, 2, 3, 4, 5).map(spanNum))
+    val vnode2 =
+      h("span", Array(4, 3, 2, 1, 5, 0).map(spanNum))
+    val elm = patch(vnode0, vnode1).elm.get
+    assertEquals(elm.asInstanceOf[dom.Element].children.length, 6)
+    val elm2 = patch(vnode1, vnode2).elm.get
+    assertEquals(elm2.asInstanceOf[dom.Element].children.length, 6)
+    assertEquals(
+      elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+      List("4", "3", "2", "1", "5", "0")
+    )
+  }
+
+  def spanNumWithOpacity(n: Int, o: String) = {
+    h(
+      "span",
+      VNodeData.builder.withKey(n.toString).withStyle("opacity" -> o).build,
+      n.toString
+    )
+  }
+
+  // it is odd that the orginal passes without using the styles module...
+  test(
+    "combinations of additions, removals and reorderings - handles random shuffles"
+  ) {
+    val elms = 14
+    val samples = 5
+    val arr = Array.tabulate(elms)(i => i)
+    val rng = new scala.util.Random
+
+    (0 until samples).foreach { _ =>
+      val vnode1 = h("span", arr.map(spanNumWithOpacity(_, "1")))
+      val shufArr = rng.shuffle(arr)
+      val elm = dom.document.createElement("div")
+      val elm1 = patch(elm, vnode1).elm.get.asInstanceOf[dom.HTMLSpanElement]
+      assertEquals(
+        elm1.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+        arr.map(_.toString).toList
+      )
+      val opacities = Array.tabulate(elms)(_ => f"${rng.nextDouble()}%.5f")
+      val vnode2 =
+        h("span", arr.map(n => spanNumWithOpacity(shufArr(n), opacities(n))))
+      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLSpanElement]
+      (0 until elms).foreach { i =>
+        assertEquals(elm2.children(i).innerHTML, shufArr(i).toString)
+        val opacity =
+          elm2.children(i).asInstanceOf[dom.HTMLSpanElement].style.opacity
+        assertEquals(opacity.toDouble, opacities(i).toDouble)
+      }
+    }
   }
 
 }
