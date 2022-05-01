@@ -41,7 +41,7 @@ package com.github.buntec.snabbdom
 import com.github.buntec.snabbdom.modules._
 import org.scalajs.dom
 
-abstract class BaseSuite extends munit.FunSuite {
+abstract class SnabbdomSuite extends munit.FunSuite {
 
   val vnode0 = FunFixture[dom.Element](
     setup = { _ =>
