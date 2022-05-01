@@ -42,6 +42,7 @@ import com.github.buntec.snabbdom.modules._
 
 import org.scalajs.dom
 import scalajs.js
+import scala.collection.mutable.ListBuffer
 
 class SnabbdomSuite extends BaseSuite {
 
@@ -948,6 +949,364 @@ class SnabbdomSuite extends BaseSuite {
         elm2.children.toSeq.map(_.innerHTML),
         List("Three", "One", "Two")
       )
+    }
+  }
+
+  group("element hooks") {
+    vnode0.test(
+      "calls `create` listener before inserted into parent but after children"
+    ) { vnode0 =>
+      val result = List.newBuilder[VNode]
+      val cb: CreateHook = (_, vnode) => {
+        assert(vnode.elm.exists(_.isInstanceOf[dom.Element]))
+        assertEquals(vnode.elm.map(_.childNodes.length), Some(2))
+        assertEquals(vnode.elm.map(_.parentNode), Some(null))
+        result.addOne(vnode)
+      }
+      val vnode1 = h(
+        "div",
+        Array(
+          h("span", "First sibling"),
+          h(
+            "div",
+            VNodeData.builder.withHook(Hooks(create = Some(cb))).build,
+            Array(
+              h("span", "Child 1"),
+              h("span", "Child 2")
+            )
+          ),
+          h("span", "Can't touch me")
+        )
+      )
+      patch(vnode0, vnode1)
+      assertEquals(result.result().length, 1)
+    }
+
+    vnode0.test(
+      "calls `insert` listener after both parents, siblings and children have been inserted"
+    ) { vnode0 =>
+      val result = List.newBuilder[VNode]
+      val cb: InsertHook = (vnode) => {
+        assert(vnode.elm.exists(_.isInstanceOf[dom.Element]))
+        assertEquals(vnode.elm.map(_.childNodes.length), Some(2))
+        assertEquals(
+          vnode.elm.flatMap(e => Option(e.parentNode)).map(_.childNodes.length),
+          Some(3)
+        )
+        result.addOne(vnode)
+      }
+      val vnode1 = h(
+        "div",
+        Array(
+          h("span", "First sibling"),
+          h(
+            "div",
+            VNodeData.builder.withHook(Hooks(insert = Some(cb))).build,
+            Array(
+              h("span", "Child 1"),
+              h("span", "Child 2")
+            )
+          ),
+          h("span", "Can touch me")
+        )
+      )
+      patch(vnode0, vnode1)
+      assertEquals(result.result().length, 1)
+    }
+
+    vnode0.test("calls `prepatch` listener") { vnode0 =>
+      val result = List.newBuilder[VNode]
+      lazy val cb: PrePatchHook = (oldVnode, vnode) => {
+        assertEquals(vnode1.children.map(_(1)), Some(oldVnode))
+        assertEquals(vnode2.children.map(_(1)), Some(vnode))
+        result.addOne(vnode)
+      }
+      lazy val vnode1 = h(
+        "div",
+        Array(
+          h("span", "First sibling"),
+          h(
+            "div",
+            VNodeData.builder.withHook(Hooks(prepatch = Some(cb))).build,
+            Array(
+              h("span", "Child 1"),
+              h("span", "Child 2")
+            )
+          )
+        )
+      )
+      lazy val vnode2 = h(
+        "div",
+        Array(
+          h("span", "First sibling"),
+          h(
+            "div",
+            VNodeData.builder.withHook(Hooks(prepatch = Some(cb))).build,
+            Array(
+              h("span", "Child 1"),
+              h("span", "Child 2")
+            )
+          )
+        )
+      )
+      patch(vnode0, vnode1)
+      patch(vnode1, vnode2)
+      assertEquals(result.result().length, 1)
+    }
+
+    vnode0.test("calls `postpatch` after `prepatch` listener") { vnode0 =>
+      var pre = 0
+      var post = 0
+      def preCb() = {
+        pre += 1
+      }
+      def postCb() = {
+        assertEquals(pre, post + 1)
+        post += 1
+      }
+      val vnode1 = h(
+        "div",
+        Array(
+          h("span", "First sibling"),
+          h(
+            "div",
+            VNodeData.builder
+              .withHook(
+                Hooks(
+                  prepatch = Some((_, _) => preCb()),
+                  postpatch = Some((_, _) => postCb())
+                )
+              )
+              .build,
+            Array(
+              h("span", "Child 1"),
+              h("span", "Child 2")
+            )
+          )
+        )
+      )
+      val vnode2 = h(
+        "div",
+        Array(
+          h("span", "First sibling"),
+          h(
+            "div",
+            VNodeData.builder
+              .withHook(
+                Hooks(
+                  prepatch = Some((_, _) => preCb()),
+                  postpatch = Some((_, _) => postCb())
+                )
+              )
+              .build,
+            Array(
+              h("span", "Child 1"),
+              h("span", "Child 2")
+            )
+          )
+        )
+      )
+      patch(vnode0, vnode1)
+      patch(vnode1, vnode2)
+      assertEquals(pre, 1)
+      assertEquals(post, 1)
+    }
+
+    vnode0.test("calls `update` listener") { vnode0 =>
+      val result1 = ListBuffer.empty[VNode]
+      val result2 = ListBuffer.empty[VNode]
+      def cb(result: ListBuffer[VNode], oldVnode: VNode, vnode: VNode) = {
+        if (result.length > 0) {
+          assertEquals(result(result.length - 1), oldVnode)
+        }
+        result.addOne(vnode)
+      }
+      val vnode1 = h(
+        "div",
+        Array(
+          h("span", "First sibling"),
+          h(
+            "div",
+            VNodeData.builder
+              .withHook(Hooks(update = Some(cb(result1, _, _))))
+              .build,
+            Array(
+              h("span", "Child 1"),
+              h(
+                "span",
+                VNodeData.builder
+                  .withHook(Hooks(update = Some(cb(result2, _, _))))
+                  .build,
+                "Child 2"
+              )
+            )
+          )
+        )
+      )
+      val vnode2 = h(
+        "div",
+        Array(
+          h("span", "First sibling"),
+          h(
+            "div",
+            VNodeData.builder
+              .withHook(Hooks(update = Some(cb(result1, _, _))))
+              .build,
+            Array(
+              h("span", "Child 1"),
+              h(
+                "span",
+                VNodeData.builder
+                  .withHook(Hooks(update = Some(cb(result2, _, _))))
+                  .build,
+                "Child 2"
+              )
+            )
+          )
+        )
+      )
+      patch(vnode0, vnode1)
+      patch(vnode1, vnode2)
+      assertEquals(result1.length, 1)
+      assertEquals(result2.length, 1)
+    }
+
+    vnode0.test("calls `remove` listener") { vnode0 =>
+      val result = List.newBuilder[VNode]
+      val cb: RemoveHook = (vnode, rm) => {
+        val parent = vnode.elm.get.parentNode
+        assert(vnode.elm.exists(_.isInstanceOf[dom.Element]))
+        assertEquals(vnode.elm.map(_.childNodes.length), Some(2))
+        assertEquals(parent.childNodes.length, 2)
+        result.addOne(vnode)
+        rm()
+        assertEquals(parent.childNodes.length, 1)
+      }
+      val vnode1 = h(
+        "div",
+        Array(
+          h("span", "First sibling"),
+          h(
+            "div",
+            VNodeData.builder.withHook(Hooks(remove = Some(cb))).build,
+            Array(
+              h("span", "Child 1"),
+              h("span", "Child 2")
+            )
+          )
+        )
+      )
+      val vnode2 = h("div", Array(h("span", "First sibling")))
+      patch(vnode0, vnode1)
+      patch(vnode1, vnode2)
+      assertEquals(result.result().length, 1)
+    }
+
+    vnode0.test(
+      "calls `destroy` listener when patching text node over node with children"
+    ) { vnode0 =>
+      var calls = 0
+      def cb() = {
+        calls += 1
+      }
+      val vnode1 = h(
+        "div",
+        Array(
+          h(
+            "div",
+            VNodeData.builder.withHook(Hooks(destroy = Some(_ => cb()))).build,
+            Array(h("span", "Child 1"))
+          )
+        )
+      )
+      val vnode2 = h("div", "Text node")
+      patch(vnode0, vnode1)
+      patch(vnode1, vnode2)
+      assertEquals(calls, 1)
+    }
+
+    vnode0.test("calls `init` and `prepatch` listeners on root") { vnode0 =>
+      var count = 0
+      lazy val init: InitHook = (vnode) => {
+        assertEquals(vnode, vnode2)
+        count += 1
+      }
+      lazy val prepatch: PrePatchHook = (_, vnode) => {
+        assertEquals(vnode, vnode1)
+        count += 1
+      }
+      lazy val vnode1 = h(
+        "div",
+        VNodeData.builder
+          .withHook(Hooks(init = Some(init), prepatch = Some(prepatch)))
+          .build
+      )
+      patch(vnode0, vnode1)
+      assertEquals(count, 1)
+      lazy val vnode2 = h(
+        "span",
+        VNodeData.builder
+          .withHook(Hooks(init = Some(init), prepatch = Some(prepatch)))
+          .build
+      )
+      patch(vnode1, vnode2)
+      assertEquals(count, 2)
+    }
+
+    vnode0.test("removes element when all remove listeners are done") {
+      vnode0 =>
+        var rm1, rm2, rm3: () => Unit = null
+        val patch = init(
+          Seq(
+            Module(remove = Some((_, rm) => rm1 = rm)),
+            Module(remove = Some((_, rm) => rm2 = rm))
+          )
+        )
+        val vnode1 = h(
+          "div",
+          Array(
+            h(
+              "a",
+              VNodeData.builder
+                .withHook(Hooks(remove = Some((_, rm) => rm3 = rm)))
+                .build
+            )
+          )
+        )
+        val vnode2 = h("div", Array.empty[VNode])
+        var elm = patch(vnode0, vnode1).elm.get
+        assertEquals(elm.childNodes.length, 1)
+        elm = patch(vnode1, vnode2).elm.get
+        assertEquals(elm.childNodes.length, 1)
+        rm1()
+        assertEquals(elm.childNodes.length, 1)
+        rm3()
+        assertEquals(elm.childNodes.length, 1)
+        rm2()
+        assertEquals(elm.childNodes.length, 0)
+    }
+
+    test("invokes remove hook on replaced root") {
+      val result = List.newBuilder[VNode]
+      val parent = dom.document.createElement("div")
+      val vnode0 = dom.document.createElement("div")
+      parent.appendChild(vnode0)
+      val cb: RemoveHook = (vnode, rm) => {
+        result.addOne(vnode)
+        rm()
+      }
+      val vnode1 = h(
+        "div",
+        VNodeData.builder.withHook(Hooks(remove = Some(cb))).build,
+        Array(
+          h("b", "Child 1"),
+          h("i", "Child 2")
+        )
+      )
+      val vnode2 = h("span", Array(h("b", "Child 1"), h("i", "Child 2")))
+      patch(vnode0, vnode1)
+      patch(vnode1, vnode2)
+      assertEquals(result.result().length, 1)
     }
   }
 
