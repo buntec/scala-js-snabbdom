@@ -63,12 +63,12 @@ class SnabbdomSuite extends BaseSuite {
   )
 
   group("hyperscript") {
-    test("create vnode with proper tag") {
+    test("can create vnode with proper tag") {
       assertEquals(h("div").sel, Some("div"))
       assertEquals(h("a").sel, Some("a"))
     }
 
-    test("create vnode with children") {
+    test("can create vnode with children") {
       val vnode = h("div", Array(h("span#hello"), h("b.world")))
       assertEquals(vnode.sel, Some("div"))
       val children = vnode.children
@@ -76,54 +76,54 @@ class SnabbdomSuite extends BaseSuite {
       assertEquals(children.flatMap(_(1).sel), Some("b.world"))
     }
 
-    test("create vnode with one child vnode") {
+    test("can create vnode with one child vnode") {
       val vnode = h("div", Array(h("span#hello")))
       assertEquals(vnode.sel, Some("div"))
       val children = vnode.children
       assertEquals(children.flatMap(_(0).sel), Some("span#hello"))
     }
 
-    test("create vnode with props and one child vnode") {
+    test("can create vnode with props and one child vnode") {
       val vnode = h("div", VNodeData.empty, h("span#hello"))
       assertEquals(vnode.sel, Some("div"))
       val children = vnode.children
       assertEquals(children.flatMap(_(0).sel), Some("span#hello"))
     }
 
-    test("create vnode with text content") {
+    test("can create vnode with text content") {
       val vnode = h("a", Array(VNode.text("I am a string")))
       val children = vnode.children
       assertEquals(children.flatMap(_(0).text), Some("I am a string"))
     }
 
-    test("create vnode with text content in string") {
+    test("can create vnode with text content in string") {
       val vnode = h("a", "I am a string")
       assertEquals(vnode.text, Some("I am a string"))
     }
 
-    test("create vnode with props and text content in string") {
+    test("can create vnode with props and text content in string") {
       val vnode = h("a", VNodeData.empty, "I am a string")
       assertEquals(vnode.text, Some("I am a string"))
     }
 
-    test("create vnode with String obj content") {
+    test("can create vnode with String obj content") {
       val vnode = h("a", new String("b"))
       assertEquals(vnode.text, Some("b"))
     }
 
-    test("create vnode with props and String obj content") {
+    test("can create vnode with props and String obj content") {
       val vnode = h("a", VNodeData.empty, new String("b"))
       assertEquals(vnode.text, Some("b"))
     }
 
     // TODO: do these make sense even in Scala.js?
 
-    // test("create vnode with Number obj content") {
+    // test("can create vnode with Number obj content") {
     //   val vnode = h("a", new Number(1))
     //   assertEquals(vnode.text, "1")
     // }
 
-    // test("create vnode with null props") {
+    // test("can create vnode with null props") {
     //   var vnode = h("a")
     //   assertEquals(vnode.data, None)
     //   vnode = h("a", null, Array(VNode.text("I am a string")))
@@ -131,7 +131,7 @@ class SnabbdomSuite extends BaseSuite {
     //   assertEquals(children.flatMap(_(0).text), Some("I am a string"))
     // }
 
-    test("create vnode for comment") {
+    test("can create vnode for comment") {
       val vnode = h("!", "test")
       assertEquals(vnode.sel, Some("!"))
       assertEquals(vnode.text, Some("test"))
