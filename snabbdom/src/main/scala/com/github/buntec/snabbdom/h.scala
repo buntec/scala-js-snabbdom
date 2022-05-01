@@ -74,13 +74,14 @@ object h {
       children: Option[Array[VNode]],
       text: Option[String]
   ): VNode = {
+    val data0 = data.getOrElse(VNodeData.empty)
     if (
       sel(0) == 's' && sel(1) == 'v' && sel(2) == 'g' &&
       (sel.length == 3 || sel(3) == '.' || sel(3) == '#')
     ) {
-      addNS(VNodeData.empty, children, Some(sel))
+      addNS(data0, children, Some(sel))
     }
-    VNode.create(Some(sel), data, children, text, None)
+    VNode.create(Some(sel), Some(data0), children, text, None)
   }
 
   private[snabbdom] def addNS(
