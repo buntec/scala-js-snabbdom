@@ -46,6 +46,8 @@ import scalajs.js
 class SnabbdomSuite extends BaseSuite {
 
   def spanNum(s: String) = h("span", VNodeData.empty, s)
+  def spanNum(i: Int) =
+    h("span", VNodeData.builder.withKey(i.toString).build, i.toString)
 
   val vnode0 = FunFixture[dom.Element](
     setup = { _ =>
@@ -58,7 +60,8 @@ class SnabbdomSuite extends BaseSuite {
     Seq(
       Classes.module,
       Props.module,
-      EventListeners.module
+      EventListeners.module,
+      Styles.module
     )
   )
 
@@ -498,13 +501,7 @@ class SnabbdomSuite extends BaseSuite {
       val elm2 = patch(vnode1, vnode2).elm.get
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
-        List(
-          "1",
-          "2",
-          "3",
-          "4",
-          "5"
-        )
+        List("1", "2", "3", "4", "5")
       )
     }
 
@@ -516,13 +513,7 @@ class SnabbdomSuite extends BaseSuite {
       val elm2 = patch(vnode1, vnode2).elm.get
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
-        List(
-          "1",
-          "2",
-          "3",
-          "4",
-          "5"
-        )
+        List("1", "2", "3", "4", "5")
       )
     }
 
@@ -534,13 +525,7 @@ class SnabbdomSuite extends BaseSuite {
       val elm2 = patch(vnode1, vnode2).elm.get
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
-        List(
-          "1",
-          "2",
-          "3",
-          "4",
-          "5"
-        )
+        List("1", "2", "3", "4", "5")
       )
     }
 
@@ -556,11 +541,7 @@ class SnabbdomSuite extends BaseSuite {
       val elm2 = patch(vnode1, vnode2).elm.get
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
-        List(
-          "1",
-          "2",
-          "3"
-        )
+        List("1", "2", "3")
       )
     }
 
@@ -574,11 +555,7 @@ class SnabbdomSuite extends BaseSuite {
       val elm = patch(vnode0, vnode1).elm.get
       assertEquals(
         elm.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
-        List(
-          "1",
-          "2",
-          "3"
-        )
+        List("1", "2", "3")
       )
       val elm2 = patch(vnode1, vnode2).elm.get
       assertEquals(elm2.asInstanceOf[dom.Element].children.length, 0)
@@ -594,26 +571,383 @@ class SnabbdomSuite extends BaseSuite {
       val elm = patch(vnode0, vnode1).elm.get
       assertEquals(
         elm.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
-        List(
-          "1",
-          "2",
-          "3"
-        )
+        List("1", "2", "3")
       )
 
       val elm2 = patch(vnode1, vnode2).elm.get
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
-        List(
-          "1",
-          "2",
-          "3"
-        )
+        List("1", "2", "3")
       )
 
       assertEquals(elm2.asInstanceOf[dom.Element].children.length, 3)
       assertEquals(elm2.asInstanceOf[dom.Element].children(1).tagName, "I")
 
+    }
+  }
+
+  group("removal of elements") {
+    vnode0.test("removes elements from the beginning") { vnode0 =>
+      val vnode1 = h("span", Array("1", "2", "3", "4", "5").map(spanNum))
+      val vnode2 = h("span", Array("3", "4", "5").map(spanNum))
+      val elm = patch(vnode0, vnode1).elm.get
+      assertEquals(elm.asInstanceOf[dom.Element].children.length, 5)
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(
+        elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+        List("3", "4", "5")
+      )
+    }
+
+    vnode0.test("removes elements from the end") { vnode0 =>
+      val vnode1 = h("span", Array("1", "2", "3", "4", "5").map(spanNum))
+      val vnode2 = h("span", Array("1", "2", "3").map(spanNum))
+      val elm = patch(vnode0, vnode1).elm.get
+      assertEquals(elm.asInstanceOf[dom.Element].children.length, 5)
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(
+        elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+        List("1", "2", "3")
+      )
+    }
+
+    vnode0.test("removes elements from the middle") { vnode0 =>
+      val vnode1 = h("span", Array("1", "2", "3", "4", "5").map(spanNum))
+      val vnode2 = h("span", Array("1", "2", "4", "5").map(spanNum))
+      val elm = patch(vnode0, vnode1).elm.get
+      assertEquals(elm.asInstanceOf[dom.Element].children.length, 5)
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(elm2.asInstanceOf[dom.Element].children.length, 4)
+      assertEquals(
+        elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+        List("1", "2", "4", "5")
+      )
+    }
+  }
+
+  group("element reordering") {
+    vnode0.test("moves element forward") { vnode0 =>
+      val vnode1 = h("span", Array("1", "2", "3", "4").map(spanNum))
+      val vnode2 = h("span", Array("2", "3", "1", "4").map(spanNum))
+      val elm = patch(vnode0, vnode1).elm.get
+      assertEquals(elm.asInstanceOf[dom.Element].children.length, 4)
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(elm2.asInstanceOf[dom.Element].children.length, 4)
+      assertEquals(
+        elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+        List("2", "3", "1", "4")
+      )
+    }
+
+    vnode0.test("moves element to end") { vnode0 =>
+      val vnode1 = h("span", Array("1", "2", "3").map(spanNum))
+      val vnode2 = h("span", Array("2", "3", "1").map(spanNum))
+      val elm = patch(vnode0, vnode1).elm.get
+      assertEquals(elm.asInstanceOf[dom.Element].children.length, 3)
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(elm2.asInstanceOf[dom.Element].children.length, 3)
+      assertEquals(
+        elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+        List("2", "3", "1")
+      )
+    }
+
+    vnode0.test("moves element backwards") { vnode0 =>
+      val vnode1 = h("span", Array("1", "2", "3", "4").map(spanNum))
+      val vnode2 = h("span", Array("1", "4", "2", "3").map(spanNum))
+      val elm = patch(vnode0, vnode1).elm.get
+      assertEquals(elm.asInstanceOf[dom.Element].children.length, 4)
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(elm2.asInstanceOf[dom.Element].children.length, 4)
+      assertEquals(
+        elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+        List("1", "4", "2", "3")
+      )
+    }
+
+    vnode0.test("swaps first and last") { vnode0 =>
+      val vnode1 = h("span", Array("1", "2", "3", "4").map(spanNum))
+      val vnode2 = h("span", Array("4", "2", "3", "1").map(spanNum))
+      val elm = patch(vnode0, vnode1).elm.get
+      assertEquals(elm.asInstanceOf[dom.Element].children.length, 4)
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(elm2.asInstanceOf[dom.Element].children.length, 4)
+      assertEquals(
+        elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+        List("4", "2", "3", "1")
+      )
+    }
+  }
+
+  group("combinations of additions, removals and reorderings") {
+    vnode0.test("move to left and replace") { vnode0 =>
+      val vnode1 = h("span", Array("1", "2", "3", "4", "5").map(spanNum))
+      val vnode2 = h("span", Array("4", "1", "2", "3", "6").map(spanNum))
+      val elm = patch(vnode0, vnode1).elm.get
+      assertEquals(elm.asInstanceOf[dom.Element].children.length, 5)
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(elm2.asInstanceOf[dom.Element].children.length, 5)
+      assertEquals(
+        elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+        List("4", "1", "2", "3", "6")
+      )
+    }
+
+    vnode0.test("moves to left and leaves hole") { vnode0 =>
+      val vnode1 = h("span", Array("1", "4", "5").map(spanNum))
+      val vnode2 = h("span", Array("4", "6").map(spanNum))
+      val elm = patch(vnode0, vnode1).elm.get
+      assertEquals(elm.asInstanceOf[dom.Element].children.length, 3)
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(elm2.asInstanceOf[dom.Element].children.length, 2)
+      assertEquals(
+        elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+        List("4", "6")
+      )
+    }
+
+    vnode0.test(
+      "handles moved and set to undefined element ending at the end"
+    ) { vnode0 =>
+      val vnode1 = h("span", Array("2", "4", "5").map(spanNum))
+      val vnode2 = h("span", Array("4", "5", "3").map(spanNum))
+      val elm = patch(vnode0, vnode1).elm.get
+      assertEquals(elm.asInstanceOf[dom.Element].children.length, 3)
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(elm2.asInstanceOf[dom.Element].children.length, 3)
+      assertEquals(
+        elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+        List("4", "5", "3")
+      )
+    }
+
+    vnode0.test("moves a key in non-keyed nodes with a size up") { vnode0 =>
+      val vnode1 =
+        h("span", Array(spanNum(1)) ++ Array("a", "b", "c").map(spanNum))
+      val vnode2 = h(
+        "span",
+        Array("d", "a", "b", "c").map(spanNum) ++ Array(spanNum(1)) ++ Array(
+          spanNum("e")
+        )
+      )
+      val elm = patch(vnode0, vnode1).elm.get
+      assertEquals(elm.asInstanceOf[dom.Element].children.length, 4)
+      assertEquals(elm.textContent, "1abc")
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(elm2.asInstanceOf[dom.Element].children.length, 6)
+      assertEquals(elm2.textContent, "dabc1e")
+    }
+
+    // accepts symbol as key - doesn't apply to Scala.js
+
+    vnode0.test("reverses elements") { vnode0 =>
+      val vnode1 =
+        h("span", Array("1", "2", "3", "4", "5", "6", "7", "8").map(spanNum))
+      val vnode2 =
+        h("span", Array("8", "7", "6", "5", "4", "3", "2", "1").map(spanNum))
+      val elm = patch(vnode0, vnode1).elm.get
+      assertEquals(elm.asInstanceOf[dom.Element].children.length, 8)
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(elm2.asInstanceOf[dom.Element].children.length, 8)
+      assertEquals(
+        elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+        List("8", "7", "6", "5", "4", "3", "2", "1")
+      )
+    }
+
+    vnode0.test("something") { vnode0 =>
+      val vnode1 =
+        h("span", Array(0, 1, 2, 3, 4, 5).map(spanNum))
+      val vnode2 =
+        h("span", Array(4, 3, 2, 1, 5, 0).map(spanNum))
+      val elm = patch(vnode0, vnode1).elm.get
+      assertEquals(elm.asInstanceOf[dom.Element].children.length, 6)
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(elm2.asInstanceOf[dom.Element].children.length, 6)
+      assertEquals(
+        elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+        List("4", "3", "2", "1", "5", "0")
+      )
+    }
+
+    def spanNumWithOpacity(n: Int, o: String) = {
+      h(
+        "span",
+        VNodeData.builder.withKey(n.toString).withStyle("opacity" -> o).build,
+        n.toString
+      )
+    }
+
+    // it is odd that the orginal passes without using the styles module...
+    test("handles random shuffles") {
+      val elms = 14
+      val samples = 5
+      val arr = Array.tabulate(elms)(i => i)
+      val rng = new scala.util.Random
+
+      (0 until samples).foreach { _ =>
+        val vnode1 = h("span", arr.map(spanNumWithOpacity(_, "1")))
+        val shufArr = rng.shuffle(arr)
+        val elm = dom.document.createElement("div")
+        val elm1 = patch(elm, vnode1).elm.get.asInstanceOf[dom.HTMLSpanElement]
+        assertEquals(
+          elm1.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
+          arr.map(_.toString).toList
+        )
+        val opacities = Array.tabulate(elms)(_ => f"${rng.nextDouble()}%.5f")
+        val vnode2 =
+          h("span", arr.map(n => spanNumWithOpacity(shufArr(n), opacities(n))))
+        val elm2 =
+          patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLSpanElement]
+        (0 until elms).foreach { i =>
+          assertEquals(elm2.children(i).innerHTML, shufArr(i).toString)
+          val opacity =
+            elm2.children(i).asInstanceOf[dom.HTMLSpanElement].style.opacity
+          assertEquals(opacity.toDouble, opacities(i).toDouble)
+        }
+      }
+    }
+  }
+
+  group("updated children without keys") {
+    vnode0.test("appends elements") { vnode0 =>
+      val vnode1 = h("div", Array(h("span", "Hello")))
+      val vnode2 = h("div", Array(h("span", "Hello"), h("span", "World")))
+      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
+      assertEquals(elm1.children.toSeq.map(_.innerHTML), List("Hello"))
+      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
+      assertEquals(elm2.children.toSeq.map(_.innerHTML), List("Hello", "World"))
+    }
+
+    vnode0.test("handles unmoved text nodes") { vnode0 =>
+      val vnode1 = h("div", Array[VNode]("Text", h("span", "Span")))
+      val vnode2 = h("div", Array[VNode]("Text", h("span", "Span")))
+      val elm1 = patch(vnode0, vnode1).elm.get
+      assertEquals(elm1.childNodes(0).textContent, "Text")
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(elm2.childNodes(0).textContent, "Text")
+    }
+
+    vnode0.test("handles changing text children") { vnode0 =>
+      val vnode1 = h("div", Array[VNode]("Text", h("span", "Span")))
+      val vnode2 = h("div", Array[VNode]("Text2", h("span", "Span")))
+      val elm1 = patch(vnode0, vnode1).elm.get
+      assertEquals(elm1.childNodes(0).textContent, "Text")
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(elm2.childNodes(0).textContent, "Text2")
+    }
+
+    vnode0.test("handles unmoved comment nodes") { vnode0 =>
+      val vnode1 = h("div", Array[VNode](h("!", "Text"), h("span", "Span")))
+      val vnode2 = h("div", Array[VNode](h("!", "Text"), h("span", "Span")))
+      val elm1 = patch(vnode0, vnode1).elm.get
+      assertEquals(elm1.childNodes(0).textContent, "Text")
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(elm2.childNodes(0).textContent, "Text")
+    }
+
+    vnode0.test("handles changing comment text") { vnode0 =>
+      val vnode1 = h("div", Array[VNode](h("!", "Text"), h("span", "Span")))
+      val vnode2 = h("div", Array[VNode](h("!", "Text2"), h("span", "Span")))
+      val elm1 = patch(vnode0, vnode1).elm.get
+      assertEquals(elm1.childNodes(0).textContent, "Text")
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(elm2.childNodes(0).textContent, "Text2")
+    }
+
+    vnode0.test("handles changing empty comment") { vnode0 =>
+      val vnode1 = h("div", Array[VNode](h("!"), h("span", "Span")))
+      val vnode2 = h("div", Array[VNode](h("!", "Test"), h("span", "Span")))
+      val elm1 = patch(vnode0, vnode1).elm.get
+      assertEquals(elm1.childNodes(0).textContent, "")
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(elm2.childNodes(0).textContent, "Test")
+    }
+
+    vnode0.test("prepends element") { vnode0 =>
+      val vnode1 = h("div", Array(h("span", "World")))
+      val vnode2 = h("div", Array(h("span", "Hello"), h("span", "World")))
+      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
+      assertEquals(elm1.children.toSeq.map(_.innerHTML), List("World"))
+      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
+      assertEquals(elm2.children.toSeq.map(_.innerHTML), List("Hello", "World"))
+    }
+
+    vnode0.test("prepends element of different tag type") { vnode0 =>
+      val vnode1 = h("div", Array(h("span", "World")))
+      val vnode2 = h("div", Array(h("div", "Hello"), h("span", "World")))
+      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
+      assertEquals(elm1.children.toSeq.map(_.innerHTML), List("World"))
+      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
+      assertEquals(elm2.children.toSeq.map(_.innerHTML), List("Hello", "World"))
+      assertEquals(elm2.children.toSeq.map(_.tagName), List("DIV", "SPAN"))
+    }
+
+    vnode0.test("removes elements") { vnode0 =>
+      val vnode1 =
+        h("div", Array(h("span", "One"), h("span", "Two"), h("span", "Three")))
+      val vnode2 = h("div", Array(h("span", "One"), h("span", "Three")))
+      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
+      assertEquals(
+        elm1.children.toSeq.map(_.innerHTML),
+        List("One", "Two", "Three")
+      )
+      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
+      assertEquals(elm2.children.toSeq.map(_.innerHTML), List("One", "Three"))
+    }
+
+    vnode0.test("removes a single text node") { vnode0 =>
+      val vnode1 = h("div", "One")
+      val vnode2 = h("div")
+      val elm1 = patch(vnode0, vnode1).elm.get
+      assertEquals(elm1.textContent, "One")
+      val elm2 = patch(vnode1, vnode2).elm.get
+      assertEquals(elm2.textContent, "")
+    }
+
+    vnode0.test("removes a single text node when children are updated") {
+      vnode0 =>
+        val vnode1 = h("div", "One")
+        val vnode2 = h("div", Array(h("div", "Two"), h("span", "Three")))
+        val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
+        assertEquals(elm1.textContent, "One")
+        val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
+        assertEquals(
+          elm2.childNodes.toSeq.map(_.textContent),
+          List("Two", "Three")
+        )
+    }
+
+    vnode0.test("removes a text node among other elements") { vnode0 =>
+      val vnode1 = h("div", Array[VNode]("One", h("span", "Two")))
+      val vnode2 = h("div", Array(h("div", "Three")))
+      val elm1 = patch(vnode0, vnode1).elm.get
+      assertEquals(
+        elm1.childNodes.toSeq.map(_.textContent),
+        List("One", "Two")
+      )
+      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
+      assertEquals(elm2.childNodes.length, 1)
+      assertEquals(elm2.childNodes(0).asInstanceOf[dom.Element].tagName, "DIV")
+      assertEquals(elm2.childNodes(0).textContent, "Three")
+    }
+
+    vnode0.test("reorders elements") { vnode0 =>
+      val vnode1 =
+        h("div", Array(h("span", "One"), h("div", "Two"), h("b", "Three")))
+      val vnode2 =
+        h("div", Array(h("b", "Three"), h("span", "One"), h("div", "Two")))
+      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
+      assertEquals(
+        elm1.children.toSeq.map(_.innerHTML),
+        List("One", "Two", "Three")
+      )
+      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
+      assertEquals(elm2.children.toSeq.map(_.tagName), List("B", "SPAN", "DIV"))
+      assertEquals(
+        elm2.children.toSeq.map(_.innerHTML),
+        List("Three", "One", "Two")
+      )
     }
   }
 
