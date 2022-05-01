@@ -80,6 +80,11 @@ object VNodeData {
 
     def build: VNodeData = data
 
+    def withKey(key: String): Builder = {
+      data.key = Some(key)
+      this
+    }
+
     def withProps(props: (String, PropValue)*): Builder = {
       data.props = Some(props.toMap)
       this
@@ -107,6 +112,11 @@ object VNodeData {
 
     def withHook(hook: Hooks): Builder = {
       data.hook = Some(hook)
+      this
+    }
+
+    def withNs(ns: String): Builder = {
+      data.ns = Some(ns)
       this
     }
 

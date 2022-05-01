@@ -38,52 +38,10 @@
 
 package com.github.buntec.snabbdom
 
-import scala.collection.mutable.ArrayBuffer
+object fragment {
 
-class ShortCircuitingSuite extends BaseSuite {
-
-  vnode0.test("does not update strictly equal vnodes") { vnode0 =>
-    val result = ArrayBuffer[VNode]()
-    val cb: UpdateHook = (vnode, _) => {
-      result += vnode
-    }
-    val vnode1 = h(
-      "div",
-      Array(
-        h(
-          "span",
-          VNodeData.builder.withHook(Hooks(update = Some(cb))).build,
-          "Hello"
-        ),
-        h("span", "there")
-      )
-    )
-    patch(vnode0, vnode1)
-    patch(vnode1, vnode1)
-    assertEquals(result.length, 0)
-  }
-
-  vnode0.test("does not update strictly equal children") { vnode0 =>
-    val result = ArrayBuffer[VNode]()
-    val cb: UpdateHook = (vnode, _) => {
-      result += vnode
-    }
-    val vnode1 = h(
-      "div",
-      Array(
-        h(
-          "span",
-          VNodeData.builder.withHook(Hooks(update = Some(cb))).build,
-          "Hello"
-        ),
-        h("span", "there")
-      )
-    )
-    val vnode2 = h("div")
-    vnode2.children = vnode1.children
-    patch(vnode0, vnode1)
-    patch(vnode1, vnode2)
-    assertEquals(result.length, 0)
+  def apply(children: Array[VNode]): VNode = {
+    VNode.create(None, None, Some(children), None, None)
   }
 
 }

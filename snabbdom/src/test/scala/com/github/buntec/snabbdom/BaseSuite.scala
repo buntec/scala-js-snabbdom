@@ -38,23 +38,18 @@
 
 package com.github.buntec.snabbdom
 
-import com.github.buntec.snabbdom.modules._
-import org.scalajs.dom
-
 abstract class BaseSuite extends munit.FunSuite {
 
-  val vnode0 = FunFixture[dom.Element](
-    setup = { _ =>
-      dom.document.createElement("div")
-    },
-    teardown = { _ => () }
-  )
+  protected def group(name: String)(thunk: => Unit): Unit = {
+    val countBefore = munitTestsBuffer.size
+    val _ = thunk
+    val countAfter = munitTestsBuffer.size
+    val countRegistered = countAfter - countBefore
+    val registered = munitTestsBuffer.toList.drop(countBefore)
+    (0 until countRegistered).foreach(_ => munitTestsBuffer.remove(countBefore))
+    registered.foreach { t =>
+      munitTestsBuffer += t.withName(s"$name ${t.name}")
+    }
+  }
 
-  val patch = init(
-    Seq(
-      Classes.module,
-      Props.module,
-      EventListeners.module
-    )
-  )
 }

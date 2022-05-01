@@ -83,7 +83,7 @@ object init {
       val c = classes.map("." + _.split(" ").mkString(".")).getOrElse("")
 
       VNode.create(
-        Some(api.tagName(elm).toLowerCase() + id + c),
+        Some(api.tagName(elm).toLowerCase + id + c),
         None,
         None,
         None,
@@ -339,8 +339,9 @@ object init {
           if (oldKeyToIdx == null) {
             oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx)
           }
-          val idxInOld =
-            oldKeyToIdx.get(newStartVnode.key.asInstanceOf[String])
+          val idxInOld = newStartVnode.key.flatMap { key =>
+            oldKeyToIdx.get(key)
+          }
           idxInOld match {
             case None =>
               // New element
@@ -490,7 +491,7 @@ object init {
 
   private def sameVnode(vnode1: VNode, vnode2: VNode): Boolean = {
     vnode1.key == vnode2.key &&
-    vnode1.data.map(_.is) == vnode2.data.map(_.is) &&
+    vnode1.data.flatMap(_.is) == vnode2.data.flatMap(_.is) &&
     vnode1.sel == vnode2.sel
   }
 
