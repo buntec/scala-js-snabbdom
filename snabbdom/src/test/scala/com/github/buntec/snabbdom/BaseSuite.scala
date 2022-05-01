@@ -38,9 +38,6 @@
 
 package com.github.buntec.snabbdom
 
-import com.github.buntec.snabbdom.modules._
-import org.scalajs.dom
-
 abstract class BaseSuite extends munit.FunSuite {
 
   protected def group(name: String)(thunk: => Unit): Unit = {
@@ -55,18 +52,4 @@ abstract class BaseSuite extends munit.FunSuite {
     }
   }
 
-  val vnode0 = FunFixture[dom.Element](
-    setup = { _ =>
-      dom.document.createElement("div")
-    },
-    teardown = { _ => () }
-  )
-
-  val patch = init(
-    Seq(
-      Classes.module,
-      Props.module,
-      EventListeners.module
-    )
-  )
 }
