@@ -952,6 +952,44 @@ class SnabbdomSuite extends BaseSuite {
     }
   }
 
+  group("patching a fragment") {
+    vnode0.test("can patch on document fragments") { vnode0 =>
+      val vnode1 = fragment(
+        Array(
+          "I am",
+          h("span", Array(VNode.text(" a"), VNode.text(" fragment")))
+        )
+      )
+      val vnode2 = h("div", Array(VNode.text("I am an element")))
+      val vnode3 = fragment(Array("fragment ", "again"))
+
+      var elm = patch(vnode0, vnode1).elm.get
+      assertEquals(elm.nodeType, dom.Node.DOCUMENT_FRAGMENT_NODE)
+
+      elm = patch(vnode1, vnode2).elm.get
+      assertEquals(elm.asInstanceOf[dom.Element].tagName, "DIV")
+      assertEquals(elm.textContent, "I am an element")
+
+      elm = patch(vnode2, vnode3).elm.get
+      assertEquals(elm.nodeType, dom.Node.DOCUMENT_FRAGMENT_NODE)
+      assertEquals(elm.textContent, "fragment again")
+    }
+
+    test("allows a document fragment as a container") {
+      val vnode0 = dom.document.createDocumentFragment()
+      val vnode1 = fragment(
+        Array("I", "am", "a", h("span", Array(VNode.text("fragment"))))
+      )
+      val vnode2 = h("div", "I am an element")
+
+      var elm = patch(vnode0, vnode1).elm.get
+      assertEquals(elm.nodeType, dom.Node.DOCUMENT_FRAGMENT_NODE)
+
+      elm = patch(vnode1, vnode2).elm.get
+      assertEquals(elm.asInstanceOf[dom.Element].tagName, "DIV")
+    }
+  }
+
   group("element hooks") {
     vnode0.test(
       "calls `create` listener before inserted into parent but after children"
