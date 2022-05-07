@@ -70,6 +70,7 @@ class EventListenersSuite extends BaseSuite {
     assertEquals(result.result().length, 1)
   }
 
+  // wouldn't a better name be "detaches old listener when element is the same"
   vnode0.test("does not attach new listener") { vnode0 =>
     val result = List.newBuilder[Int]
     val vnode1 = h(
