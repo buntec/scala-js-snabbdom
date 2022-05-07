@@ -36,8 +36,6 @@
  * IN THE SOFTWARE.
  */
 
-package com.github.buntec
-
 import scala.collection.mutable
 
 package object snabbdom {
