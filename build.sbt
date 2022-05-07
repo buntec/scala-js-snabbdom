@@ -3,8 +3,9 @@ ThisBuild / tlBaseVersion := "0.0"
 val scala213 = "2.13.8"
 ThisBuild / scalaVersion := scala213
 ThisBuild / crossScalaVersions := Seq(scala213, "3.1.2")
-ThisBuild / organization := "com.github.buntec"
+ThisBuild / organization := "io.github.buntec"
 ThisBuild / organizationName := "buntec"
+ThisBuild / tlSonatypeUseLegacyHost := false
 
 ThisBuild / githubWorkflowBuildMatrixAdditions += "browser" -> List(
   "Chrome",
