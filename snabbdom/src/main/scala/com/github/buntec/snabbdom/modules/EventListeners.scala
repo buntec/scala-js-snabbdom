@@ -41,8 +41,6 @@ package com.github.buntec.snabbdom.modules
 import com.github.buntec.snabbdom._
 import org.scalajs.dom
 
-import scala.annotation.unused
-
 object EventListeners {
 
   val module: Module = Module().copy(
@@ -60,28 +58,8 @@ object EventListeners {
     })
   )
 
-  private def invokeHandler(
-      handler: dom.Event => Unit,
-      @unused vnode: VNode, // TODO
-      event: Option[dom.Event]
-  ): Unit = {
-    event.foreach(handler) // TODO:  compare with JS snabbdom
-  }
-
-  private def handleEvent(event: dom.Event, vnode: VNode) = {
-    val name = event.`type`
-    val on = vnode.data.flatMap(_.on)
-
-    on.foreach { on =>
-      on.get(name) match {
-        case Some(cb) => invokeHandler(cb, vnode, Some(event))
-        case None     => ()
-      }
-    }
-  }
-
-  private def createListener(vnode: VNode) = { (event: dom.Event) =>
-    handleEvent(event, vnode)
+  private def createListener(vnode: VNode) = {
+    new Listener(vnode)
   }
 
   private def updateEventListeners(
@@ -102,39 +80,46 @@ object EventListeners {
       case (Some(oldOn), Some(oldListener), Some(on)) =>
         oldOn.foreach { case (name, _) =>
           if (on.get(name).isEmpty) {
-            oldElm.foreach(_.removeEventListener(name, oldListener, false))
+            oldElm.foreach(
+              _.removeEventListener(name, oldListener.jsFun, false)
+            )
           }
         }
 
-        val listener = oldVnode.listener.getOrElse(createListener(vnode.get))
+        // repurpose old listener
+        val listener = oldListener
+        listener.vnode = vnode.get
         vnode.foreach(_.listener = Some(listener))
 
         on.foreach { case (name, _) =>
           if (!oldOn.contains(name)) {
-            elm.foreach(_.addEventListener(name, listener, false))
+            elm.foreach(_.addEventListener(name, listener.jsFun, false))
           }
         }
 
       case (Some(oldOn), None, Some(on)) =>
-        val listener = oldVnode.listener.getOrElse(createListener(vnode.get))
+        val listener = createListener(vnode.get)
         vnode.foreach(_.listener = Some(listener))
 
         on.foreach { case (name, _) =>
           if (!oldOn.contains(name)) {
-            elm.foreach(_.addEventListener(name, listener, false))
+            elm.foreach(_.addEventListener(name, listener.jsFun, false))
           }
         }
 
       case (Some(oldOn), Some(oldListener), None) =>
         oldOn.foreach { case (name, _) =>
-          oldElm.foreach(_.removeEventListener(name, oldListener, false))
+          oldElm.foreach { elm =>
+            elm.removeEventListener(name, oldListener.jsFun, false)
+          }
         }
 
       case (None, _, Some(on)) =>
         val listener = oldVnode.listener.getOrElse(createListener(vnode.get))
+        listener.vnode = vnode.get
         vnode.foreach(_.listener = Some(listener))
         on.foreach { case (name, _) =>
-          elm.foreach(_.addEventListener(name, listener, false))
+          elm.foreach(_.addEventListener(name, listener.jsFun, false))
         }
 
     }

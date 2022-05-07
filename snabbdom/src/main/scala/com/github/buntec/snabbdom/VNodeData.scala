@@ -38,15 +38,13 @@
 
 package com.github.buntec.snabbdom
 
-import org.scalajs.dom
-
 class VNodeData(
     var props: Option[Map[String, PropValue]],
     var attrs: Option[Map[String, AttrValue]],
     var classes: Option[Map[String, ClassValue]],
     var style: Option[Map[String, StyleValue]],
     var dataset: Option[Map[String, String]],
-    var on: Option[Map[String, dom.Event => Unit]],
+    var on: Option[Map[String, EventHandler]],
     var hook: Option[Hooks],
     var key: Option[String],
     var ns: Option[String], // for SVG
@@ -105,7 +103,7 @@ object VNodeData {
       this
     }
 
-    def withOn(on: (String, (dom.Event) => Unit)*): Builder = {
+    def withOn(on: (String, EventHandler)*): Builder = {
       data.on = Some(on.toMap)
       this
     }

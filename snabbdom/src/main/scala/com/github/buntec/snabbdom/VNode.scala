@@ -47,7 +47,7 @@ class VNode private (
     var elm: Option[dom.Node], // TODO: should this be `dom.Element`?
     var text: Option[String],
     var key: Option[KeyValue],
-    var listener: Option[dom.Event => Unit]
+    var listener: Option[Listener]
 )
 
 object VNode {
