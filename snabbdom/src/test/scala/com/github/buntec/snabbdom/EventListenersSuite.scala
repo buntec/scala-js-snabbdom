@@ -41,6 +41,7 @@ package com.github.buntec.snabbdom
 import com.github.buntec.snabbdom.modules._
 
 import org.scalajs.dom
+import scala.collection.mutable.ArrayBuffer
 
 class EventListenersSuite extends BaseSuite {
 
@@ -88,8 +89,27 @@ class EventListenersSuite extends BaseSuite {
     val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
     elm2.click()
     val result0 = result.result()
-    println(result0) // TODO: prints (1, 1)
     assertEquals(result0, List(1, 2))
+  }
+
+  vnode0.test("detach attached click event handler to element") { vnode0 =>
+    val result = ArrayBuffer[dom.Event]()
+    val clicked = (ev: dom.Event) => {
+      result += ev
+      ()
+    }
+    val vnode1 = h(
+      "div",
+      VNodeData.builder.withOn("click" -> clicked).build,
+      Array(h("a", "Click my parent"))
+    )
+    val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+    elm1.click()
+    assertEquals(1, result.length)
+    val vnode2 = h("div", VNodeData.empty, Array(h("a", "Click my parent")))
+    val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+    elm2.click()
+    assertEquals(1, result.length)
   }
 
 }

@@ -81,7 +81,7 @@ object EventListeners {
         oldOn.foreach { case (name, _) =>
           if (on.get(name).isEmpty) {
             oldElm.foreach(
-              _.removeEventListener(name, oldListener.handleEvent, false)
+              _.removeEventListener(name, oldListener.jsFun, false)
             )
           }
         }
@@ -93,7 +93,7 @@ object EventListeners {
 
         on.foreach { case (name, _) =>
           if (!oldOn.contains(name)) {
-            elm.foreach(_.addEventListener(name, listener.handleEvent, false))
+            elm.foreach(_.addEventListener(name, listener.jsFun, false))
           }
         }
 
@@ -103,15 +103,15 @@ object EventListeners {
 
         on.foreach { case (name, _) =>
           if (!oldOn.contains(name)) {
-            elm.foreach(_.addEventListener(name, listener.handleEvent, false))
+            elm.foreach(_.addEventListener(name, listener.jsFun, false))
           }
         }
 
       case (Some(oldOn), Some(oldListener), None) =>
         oldOn.foreach { case (name, _) =>
-          oldElm.foreach(
-            _.removeEventListener(name, oldListener.handleEvent, false)
-          )
+          oldElm.foreach { elm =>
+            elm.removeEventListener(name, oldListener.jsFun, false)
+          }
         }
 
       case (None, _, Some(on)) =>
@@ -119,7 +119,7 @@ object EventListeners {
         listener.vnode = vnode.get
         vnode.foreach(_.listener = Some(listener))
         on.foreach { case (name, _) =>
-          elm.foreach(_.addEventListener(name, listener.handleEvent, false))
+          elm.foreach(_.addEventListener(name, listener.jsFun, false))
         }
 
     }
