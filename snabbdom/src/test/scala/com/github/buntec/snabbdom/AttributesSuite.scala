@@ -38,8 +38,6 @@
 
 package com.github.buntec.snabbdom
 
-import com.github.buntec.snabbdom.modules._
-
 import org.scalajs.dom
 
 class Attributes extends BaseSuite {
@@ -51,7 +49,7 @@ class Attributes extends BaseSuite {
     teardown = { _ => () }
   )
 
-  val patch = init(Seq(Attributes.module))
+  val patch = init(Seq(modules.Attributes.module))
 
   group("attributes") {
 
