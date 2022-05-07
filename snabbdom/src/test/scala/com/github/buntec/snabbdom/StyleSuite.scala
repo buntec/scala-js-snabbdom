@@ -152,87 +152,84 @@ class StyleSuite extends BaseSuite {
     }
 
     vnode0.test("updates css variables") { vnode0 =>
-      if (hasCssVariables) {
+      assume(hasCssVariables)
 
-        val vnode1 =
-          h("div", VNodeData.builder.withStyle("--myVar" -> "1").build)
-        val vnode2 =
-          h("div", VNodeData.builder.withStyle("--myVar" -> "2").build)
-        val vnode3 =
-          h("div", VNodeData.builder.withStyle("--myVar" -> "3").build)
+      val vnode1 =
+        h("div", VNodeData.builder.withStyle("--myVar" -> "1").build)
+      val vnode2 =
+        h("div", VNodeData.builder.withStyle("--myVar" -> "2").build)
+      val vnode3 =
+        h("div", VNodeData.builder.withStyle("--myVar" -> "3").build)
 
-        val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
-        assertEquals(elm1.style.getPropertyValue("--myVar"), "1")
-        val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
-        assertEquals(elm2.style.getPropertyValue("--myVar"), "2")
-        val elm3 = patch(vnode2, vnode3).elm.get.asInstanceOf[dom.HTMLElement]
-        assertEquals(elm3.style.getPropertyValue("--myVar"), "3")
+      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+      assertEquals(elm1.style.getPropertyValue("--myVar"), "1")
+      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+      assertEquals(elm2.style.getPropertyValue("--myVar"), "2")
+      val elm3 = patch(vnode2, vnode3).elm.get.asInstanceOf[dom.HTMLElement]
+      assertEquals(elm3.style.getPropertyValue("--myVar"), "3")
 
-      }
     }
 
     vnode0.test("explicitly removes css variables") { vnode0 =>
-      if (hasCssVariables) {
+      assume(hasCssVariables)
 
-        val vnode1 =
-          h("i", VNodeData.builder.withStyle("--myVar" -> "1").build)
-        val vnode2 =
-          h("i", VNodeData.builder.withStyle("--myVar" -> "").build)
-        val vnode3 =
-          h("i", VNodeData.builder.withStyle("--myVar" -> "3").build)
+      val vnode1 =
+        h("i", VNodeData.builder.withStyle("--myVar" -> "1").build)
+      val vnode2 =
+        h("i", VNodeData.builder.withStyle("--myVar" -> "").build)
+      val vnode3 =
+        h("i", VNodeData.builder.withStyle("--myVar" -> "3").build)
 
-        val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
-        assertEquals(elm1.style.getPropertyValue("--myVar"), "1")
-        val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
-        assertEquals(elm2.style.getPropertyValue("--myVar"), "")
-        val elm3 = patch(vnode2, vnode3).elm.get.asInstanceOf[dom.HTMLElement]
-        assertEquals(elm3.style.getPropertyValue("--myVar"), "3")
+      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+      assertEquals(elm1.style.getPropertyValue("--myVar"), "1")
+      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+      assertEquals(elm2.style.getPropertyValue("--myVar"), "")
+      val elm3 = patch(vnode2, vnode3).elm.get.asInstanceOf[dom.HTMLElement]
+      assertEquals(elm3.style.getPropertyValue("--myVar"), "3")
 
-      }
     }
 
     vnode0.test("implicitly removes css variables") { vnode0 =>
-      if (hasCssVariables) {
+      assume(hasCssVariables)
 
-        val vnode1 =
-          h(
-            "div",
-            Array(h("i", VNodeData.builder.withStyle("--myVar" -> "1").build))
-          )
-        val vnode2 =
-          h("div", Array(h("i", VNodeData.empty)))
-        val vnode3 =
-          h(
-            "div",
-            Array(h("i", VNodeData.builder.withStyle("--myVar" -> "3").build))
-          )
-
-        val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
-        assertEquals(
-          elm1.firstChild
-            .asInstanceOf[dom.HTMLElement]
-            .style
-            .getPropertyValue("--myVar"),
-          "1"
+      val vnode1 =
+        h(
+          "div",
+          Array(h("i", VNodeData.builder.withStyle("--myVar" -> "1").build))
         )
-        val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
-        assertEquals(
-          elm2.firstChild
-            .asInstanceOf[dom.HTMLElement]
-            .style
-            .getPropertyValue("--myVar"),
-          ""
-        )
-        val elm3 = patch(vnode2, vnode3).elm.get.asInstanceOf[dom.HTMLElement]
-        assertEquals(
-          elm3.firstChild
-            .asInstanceOf[dom.HTMLElement]
-            .style
-            .getPropertyValue("--myVar"),
-          "3"
+      val vnode2 =
+        h("div", Array(h("i", VNodeData.empty)))
+      val vnode3 =
+        h(
+          "div",
+          Array(h("i", VNodeData.builder.withStyle("--myVar" -> "3").build))
         )
 
-      }
+      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+      assertEquals(
+        elm1.firstChild
+          .asInstanceOf[dom.HTMLElement]
+          .style
+          .getPropertyValue("--myVar"),
+        "1"
+      )
+      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+      assertEquals(
+        elm2.firstChild
+          .asInstanceOf[dom.HTMLElement]
+          .style
+          .getPropertyValue("--myVar"),
+        ""
+      )
+      val elm3 = patch(vnode2, vnode3).elm.get.asInstanceOf[dom.HTMLElement]
+      assertEquals(
+        elm3.firstChild
+          .asInstanceOf[dom.HTMLElement]
+          .style
+          .getPropertyValue("--myVar"),
+        "3"
+      )
+
     }
 
   }
