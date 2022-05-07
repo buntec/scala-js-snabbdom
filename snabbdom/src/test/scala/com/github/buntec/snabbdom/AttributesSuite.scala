@@ -40,7 +40,7 @@ package com.github.buntec.snabbdom
 
 import org.scalajs.dom
 
-class Attributes extends BaseSuite {
+class AttributesSuite extends BaseSuite {
 
   val vnode0 = FunFixture[dom.Element](
     setup = { _ =>
