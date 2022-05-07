@@ -7,8 +7,12 @@ class Listener(var vnode: VNode) {
 
   def handleEvent(event: dom.Event): Unit = {
     val name = event.`type`
-    val on = vnode.data.flatMap(_.on)
-    on.flatMap(_.get(name)).foreach { cb => cb(event) }
+    vnode.data.flatMap(_.on).flatMap(_.get(name)).foreach {
+      case EventHandler.Single(cb)          => cb(event)
+      case EventHandler.SingleWithVNode(cb) => cb(event, vnode)
+      case EventHandler.Multi(cbs)          => cbs.foreach(_(event))
+      case EventHandler.MultiWithVNode(cbs) => cbs.foreach(_(event, vnode))
+    }
   }
 
   /* This is required because calls to `removeEventListener`
