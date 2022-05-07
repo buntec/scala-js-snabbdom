@@ -36,6 +36,6 @@ class Listener(var vnode: VNode) {
    * listener and using `handleEvent` directly would result
    * in a new implicit conversion to `js.Function1` every time.
    */
-  val jsFun: js.Function1[dom.Event, Unit] = handleEvent
+  val jsFun: js.Function1[dom.Event, Unit] = handleEvent _
 
 }
