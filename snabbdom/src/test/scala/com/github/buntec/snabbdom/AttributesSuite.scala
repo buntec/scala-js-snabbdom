@@ -1,4 +1,3 @@
-package com.github.buntec.snabbdom
 /*
  * Copyright 2022 buntec
  *
@@ -36,6 +35,8 @@ package com.github.buntec.snabbdom
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+
+package com.github.buntec.snabbdom
 
 import com.github.buntec.snabbdom.modules._
 
