@@ -36,12 +36,12 @@
  * IN THE SOFTWARE.
  */
 
-package com.github.buntec.snabbdom
+package snabbdom
 
 import org.scalajs.dom
 import scala.collection.mutable
 
-import com.github.buntec.snabbdom.modules._
+import snabbdom.modules._
 
 object init {
 

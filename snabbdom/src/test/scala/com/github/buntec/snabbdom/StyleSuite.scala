@@ -36,9 +36,9 @@
  * IN THE SOFTWARE.
  */
 
-package com.github.buntec.snabbdom
+package snabbdom
 
-import com.github.buntec.snabbdom.modules._
+import snabbdom.modules._
 
 import org.scalajs.dom
 

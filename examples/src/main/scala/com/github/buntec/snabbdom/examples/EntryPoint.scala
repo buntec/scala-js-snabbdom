@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.buntec.snabbdom.examples
+package snabbdom.examples
 
 object EntryPoint {
 

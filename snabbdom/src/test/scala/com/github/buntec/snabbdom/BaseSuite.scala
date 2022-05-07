@@ -36,7 +36,7 @@
  * IN THE SOFTWARE.
  */
 
-package com.github.buntec.snabbdom
+package snabbdom
 
 abstract class BaseSuite extends munit.FunSuite {
 

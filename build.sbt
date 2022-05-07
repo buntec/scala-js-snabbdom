@@ -56,7 +56,7 @@ lazy val examples = (project
       _.withModuleKind(ModuleKind.ESModule)
         .withModuleSplitStyle(
           ModuleSplitStyle.SmallModulesFor(
-            List("com.github.buntec.snabbdom.examples")
+            List("snabbdom.examples")
           )
         )
     }

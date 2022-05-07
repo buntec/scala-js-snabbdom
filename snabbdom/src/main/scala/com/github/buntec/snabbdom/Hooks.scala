@@ -36,7 +36,7 @@
  * IN THE SOFTWARE.
  */
 
-package com.github.buntec.snabbdom
+package snabbdom
 
 final case class Hooks(
     pre: Option[PreHook] = None,

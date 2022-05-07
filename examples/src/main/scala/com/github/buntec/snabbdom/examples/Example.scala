@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.github.buntec.snabbdom.examples
+package snabbdom.examples
 
 import org.scalajs.dom
 
-import com.github.buntec.snabbdom._
-import com.github.buntec.snabbdom.modules._
+import snabbdom._
+import snabbdom.modules._
 
 object Example {
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.buntec.snabbdom
+package snabbdom
 
 import org.scalajs.dom
 
