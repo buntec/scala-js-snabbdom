@@ -23,11 +23,8 @@ class Listener(var vnode: VNode) {
 
   def handleEvent(event: dom.Event): Unit = {
     val name = event.`type`
-    vnode.data.flatMap(_.on).flatMap(_.get(name)).foreach {
-      case EventHandler.Single(cb)          => cb(event)
-      case EventHandler.SingleWithVNode(cb) => cb(event, vnode)
-      case EventHandler.Multi(cbs)          => cbs.foreach(_(event))
-      case EventHandler.MultiWithVNode(cbs) => cbs.foreach(_(event, vnode))
+    vnode.data.flatMap(_.on).flatMap(_.get(name)).foreach { handler =>
+      handler.cbs.foreach(cb => cb(event, vnode))
     }
   }
 

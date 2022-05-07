@@ -107,11 +107,11 @@ class EventListenersSuite extends BaseSuite {
     )
     val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
     elm1.click()
-    assertEquals(1, result.length)
+    assertEquals(result.length, 1)
     val vnode2 = h("div", VNodeData.empty, Array(h("a", "Click my parent")))
     val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
     elm2.click()
-    assertEquals(1, result.length)
+    assertEquals(result.length, 1)
   }
 
   vnode0.test("multiple event handlers for same event on same element") {
