@@ -40,6 +40,8 @@ package snabbdom.modules
 
 import snabbdom._
 import org.scalajs.dom
+import scalajs.js
+import scala.annotation.nowarn
 
 object Dataset {
 
@@ -63,6 +65,7 @@ object Dataset {
     val dataset = vnode.data.flatMap(_.dataset)
     val d = elm.dataset
 
+    @nowarn("msg=unrelated") // apparently, `d` can be undefined
     def update(
         oldDataset: Map[String, String],
         dataset: Map[String, String]
@@ -71,7 +74,7 @@ object Dataset {
       oldDataset.foreach { case (key, _) =>
         dataset.get(key) match {
           case None =>
-            if (d != null) { // TODO: does this make sense?
+            if (d != js.undefined) { // TODO: does this make sense?
               d -= key
             } else {
               elm.removeAttribute(
@@ -84,7 +87,7 @@ object Dataset {
 
       dataset.foreach { case (key, value) =>
         if (oldDataset.get(key).forall(_ != value)) {
-          if (d != null) { // TODO: does this make sense?
+          if (d != js.undefined) { // TODO: does this make sense?
             d += (key -> value)
           } else {
             elm.setAttribute(
