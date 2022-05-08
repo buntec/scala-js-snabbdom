@@ -44,21 +44,23 @@ object thunk {
       sel: String,
       fn: Seq[Any] => VNode,
       args: Seq[Any]
-  ): VNode = {
-    val data = VNodeData.empty
-    data.fn = Some(fn)
-    data.args = Some(args)
-    h(sel, data)
-  }
+  ): VNode = apply(sel, None, fn, args)
 
   def apply(
       sel: String,
       key: String,
       fn: Seq[Any] => VNode,
       args: Seq[Any]
+  ): VNode = apply(sel, Some(key), fn, args)
+
+  private def apply(
+      sel: String,
+      key: Option[String],
+      fn: Seq[Any] => VNode,
+      args: Seq[Any]
   ): VNode = {
     val data = VNodeData.empty
-    data.key = Some(key)
+    data.key = key
     data.fn = Some(fn)
     data.args = Some(args)
     data.hook = Some(
