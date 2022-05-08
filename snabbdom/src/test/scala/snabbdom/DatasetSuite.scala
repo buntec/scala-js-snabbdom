@@ -52,14 +52,7 @@ class DatasetSuite extends BaseSuite {
 
   val patch = init(Seq(Dataset.module))
 
-  // TODO: does this make sense?
-  val datasetIsSupported = {
-    val div = dom.document.createElement("div")
-    div.hasOwnProperty("dataset")
-  }
-
   vnode0.test("is set on initial element creation") { vnode0 =>
-    assume(datasetIsSupported)
     val elm = patch(
       vnode0,
       h("div", VNodeData.builder.withDataset("foo" -> "foo").build)

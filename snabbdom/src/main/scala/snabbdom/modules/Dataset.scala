@@ -60,7 +60,7 @@ object Dataset {
 
   private def updateDataset(oldVnode: VNode, vnode: VNode): Unit = {
 
-    val elm = vnode.asInstanceOf[dom.HTMLElement]
+    val elm = vnode.elm.get.asInstanceOf[dom.HTMLElement]
     val oldDataset = oldVnode.data.flatMap(_.dataset)
     val dataset = vnode.data.flatMap(_.dataset)
     val d = elm.dataset
