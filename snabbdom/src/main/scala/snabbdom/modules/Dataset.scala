@@ -65,7 +65,6 @@ object Dataset {
     val dataset = vnode.data.flatMap(_.dataset)
     val d = elm.dataset
 
-    @nowarn("msg=unrelated") // apparently, `d` can be undefined
     def update(
         oldDataset: Map[String, String],
         dataset: Map[String, String]
@@ -74,7 +73,7 @@ object Dataset {
       oldDataset.foreach { case (key, _) =>
         dataset.get(key) match {
           case None =>
-            if (d != js.undefined) { // TODO: does this make sense?
+            if (js.isUndefined(d)) { // TODO: does this make sense?
               d -= key
             } else {
               elm.removeAttribute(
@@ -87,7 +86,7 @@ object Dataset {
 
       dataset.foreach { case (key, value) =>
         if (oldDataset.get(key).forall(_ != value)) {
-          if (d != js.undefined) { // TODO: does this make sense?
+          if (js.isUndefined(d)) { // TODO: does this make sense?
             d += (key -> value)
           } else {
             elm.setAttribute(
