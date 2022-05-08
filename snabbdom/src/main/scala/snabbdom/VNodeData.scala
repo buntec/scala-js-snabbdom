@@ -103,6 +103,11 @@ object VNodeData {
       this
     }
 
+    def withDataset(dataset: (String, String)*): Builder = {
+      data.dataset = Some(dataset.toMap)
+      this
+    }
+
     def withOn(on: (String, EventHandler)*): Builder = {
       data.on = Some(on.toMap)
       this

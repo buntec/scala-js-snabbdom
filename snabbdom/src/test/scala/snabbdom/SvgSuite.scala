@@ -38,71 +38,59 @@
 
 package snabbdom
 
-object thunk {
+import org.scalajs.dom
+import snabbdom.modules.Attributes
 
-  def apply(
-      sel: String,
-      fn: Seq[Any] => VNode,
-      args: Seq[Any]
-  ): VNode = apply(sel, None, fn, args)
+class SvgSuite extends BaseSuite {
 
-  def apply(
-      sel: String,
-      key: String,
-      fn: Seq[Any] => VNode,
-      args: Seq[Any]
-  ): VNode = apply(sel, Some(key), fn, args)
+  val vnode0 = FunFixture[dom.Element](
+    setup = { _ =>
+      dom.document.createElement("div")
+    },
+    teardown = { _ => () }
+  )
 
-  private def apply(
-      sel: String,
-      key: Option[String],
-      fn: Seq[Any] => VNode,
-      args: Seq[Any]
-  ): VNode = {
-    val data = VNodeData.empty
-    data.key = key
-    data.fn = Some(fn)
-    data.args = Some(args)
-    data.hook = Some(
-      Hooks().copy(
-        init = Some((vNode: VNode) => init0(vNode)),
-        prepatch =
-          Some((oldVNode: VNode, vNode: VNode) => prepatch0(oldVNode, vNode))
+  val patch = init(Seq(Attributes.module))
+
+  vnode0.test("removes child svg elements") { vnode0 =>
+    val a = h("svg", VNodeData.empty, Array(h("g"), h("g")))
+    val b = h("svg", VNodeData.empty, Array(h("g")))
+    val result = patch(patch(vnode0, a), b).elm.get.asInstanceOf[dom.SVGElement]
+    assertEquals(result.childNodes.length, 1)
+  }
+
+  vnode0.test("adds correctly xlink namespaced attribute") { vnode0 =>
+    val xlinkNS = "http://www.w3.org/1999/xlink"
+    val testUrl = "/test"
+    val a = h(
+      "svg",
+      VNodeData.empty,
+      Array(
+        h(
+          "use",
+          VNodeData.builder.withAttrs("xlink:href" -> testUrl).build,
+          Array[VNode]()
+        )
       )
     )
-    h(sel, data)
+    val result = patch(vnode0, a).elm.get.asInstanceOf[dom.SVGElement]
+    assertEquals(result.childNodes.length, 1)
+    val child = result.childNodes(0).asInstanceOf[dom.SVGUseElement]
+    assertEquals(child.getAttribute("xlink:href"), testUrl)
+    assertEquals(child.getAttributeNS(xlinkNS, "href"), testUrl)
   }
 
-  private def init0(thunk: VNode): Unit = {
-    val data = thunk.data.get
-    val fn = data.fn.get
-    val args = data.args.get
-    copyToThunk(fn(args), thunk)
-  }
-
-  private def prepatch0(oldVnode: VNode, thunk: VNode): Unit = {
-    val old = oldVnode.data
-    val cur = thunk.data
-    val oldArgs = old.flatMap(_.args)
-    val args = cur.flatMap(_.args)
-    val oldFn = old.flatMap(_.fn)
-    val curFn = cur.flatMap(_.fn)
-    if (oldFn != curFn || oldArgs != args) {
-      copyToThunk(curFn.get(args.get), thunk)
-    } else {
-      copyToThunk(oldVnode, thunk)
-    }
-  }
-
-  private def copyToThunk(vnode: VNode, thunk: VNode): Unit = {
-    val ns = thunk.data.flatMap(_.ns)
-    vnode.data.foreach(_.fn = thunk.data.flatMap(_.fn))
-    vnode.data.foreach(_.args = thunk.data.flatMap(_.args))
-    thunk.data = vnode.data
-    thunk.children = vnode.children
-    thunk.text = vnode.text
-    thunk.elm = vnode.elm
-    ns.foreach(_ => h.addNS(thunk.data.get, thunk.children, thunk.sel))
+  vnode0.test("add correctly xml namespaced attribute") { vnode0 =>
+    val xmlNS = "http://www.w3.org/XML/1998/namespace"
+    val testAttrValue = "und"
+    val a = h(
+      "svg",
+      VNodeData.builder.withAttrs("xml:lang" -> testAttrValue).build,
+      Array[VNode]()
+    )
+    val result = patch(vnode0, a).elm.get.asInstanceOf[dom.SVGElement]
+    assertEquals(result.getAttributeNS(xmlNS, "lang"), testAttrValue)
+    assertEquals(result.getAttribute("xml:lang"), testAttrValue)
   }
 
 }

@@ -40,6 +40,7 @@ package snabbdom.modules
 
 import snabbdom._
 import org.scalajs.dom
+import scalajs.js
 
 object Dataset {
 
@@ -58,7 +59,7 @@ object Dataset {
 
   private def updateDataset(oldVnode: VNode, vnode: VNode): Unit = {
 
-    val elm = vnode.asInstanceOf[dom.HTMLElement]
+    val elm = vnode.elm.get.asInstanceOf[dom.HTMLElement]
     val oldDataset = oldVnode.data.flatMap(_.dataset)
     val dataset = vnode.data.flatMap(_.dataset)
     val d = elm.dataset
@@ -71,7 +72,7 @@ object Dataset {
       oldDataset.foreach { case (key, _) =>
         dataset.get(key) match {
           case None =>
-            if (d != null) { // TODO: does this make sense?
+            if (!js.isUndefined(d)) { // TODO: does this make sense?
               d -= key
             } else {
               elm.removeAttribute(
@@ -84,7 +85,7 @@ object Dataset {
 
       dataset.foreach { case (key, value) =>
         if (oldDataset.get(key).forall(_ != value)) {
-          if (d != null) { // TODO: does this make sense?
+          if (!js.isUndefined(d)) { // TODO: does this make sense?
             d += (key -> value)
           } else {
             elm.setAttribute(
