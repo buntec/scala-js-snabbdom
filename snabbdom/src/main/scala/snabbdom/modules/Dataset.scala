@@ -41,7 +41,6 @@ package snabbdom.modules
 import snabbdom._
 import org.scalajs.dom
 import scalajs.js
-import scala.annotation.nowarn
 
 object Dataset {
 
