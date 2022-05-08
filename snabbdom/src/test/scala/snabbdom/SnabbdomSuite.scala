@@ -483,7 +483,7 @@ class SnabbdomSuite extends BaseSuite {
 
   group("using `toVNode`") {
 
-    vnode0.test("can remove previous children of the root element") { vnode0 =>
+    test("can remove previous children of the root element") {
       val h2 = dom.document.createElement("h2")
       h2.textContent = "Hello"
       val prevElm =
@@ -493,7 +493,8 @@ class SnabbdomSuite extends BaseSuite {
       prevElm.appendChild(h2)
       val nextVNode = h("div#id.class", Array(h("span", "Hi")))
       val elm =
-        patch(toVNode(prevElm), nextVNode).elm.get.asInstanceOf[dom.HTMLElement]
+        patch(toVNode(prevElm), nextVNode).elm.get
+          .asInstanceOf[dom.HTMLElement]
       assertEquals(elm, prevElm)
       assertEquals(elm.tagName, "DIV")
       assertEquals(elm.id, "id")
@@ -504,7 +505,7 @@ class SnabbdomSuite extends BaseSuite {
         "SPAN"
       )
       assertEquals(
-        elm.childNodes(1).asInstanceOf[dom.HTMLElement].tagName,
+        elm.childNodes(0).textContent,
         "Hi"
       )
     }
@@ -552,7 +553,7 @@ class SnabbdomSuite extends BaseSuite {
           .asInstanceOf[dom.HTMLElement]
           .childNodes(0)
           .asInstanceOf[dom.HTMLElement]
-          .tagName,
+          .textContent,
         "Hi"
       )
     }
@@ -566,6 +567,7 @@ class SnabbdomSuite extends BaseSuite {
       prevElm.className = "class"
       val text = dom.document.createTextNode("Foobar")
       val reference = js.Object()
+      // ensure that we don't recreate the Text node
       text.asInstanceOf[js.Dictionary[Any]]("testProperty") = reference
       prevElm.appendChild(text)
       prevElm.appendChild(h2)
@@ -577,11 +579,11 @@ class SnabbdomSuite extends BaseSuite {
       assertEquals(elm.id, "id")
       assertEquals(elm.className, "class")
       assertEquals(elm.childNodes.length, 1)
-      assertEquals(elm.childNodes(0).nodeType, 1)
+      assertEquals(elm.childNodes(0).nodeType, 3)
       assertEquals(elm.childNodes(0).asInstanceOf[dom.Text].wholeText, "Foobar")
       assertEquals(
         elm.childNodes(0).asInstanceOf[js.Dictionary[Any]]("testProperty"),
-        "Foobar"
+        reference
       )
     }
 

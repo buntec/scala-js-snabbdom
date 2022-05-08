@@ -50,7 +50,7 @@ object toVNode {
 
     if (api.isElement(node)) {
       val elm = node.asInstanceOf[dom.Element]
-      val id = elm.id
+      val id = Option(elm.id).filter(_.nonEmpty).fold("")("#" + _)
       val cn = Option(elm.getAttribute("class")).getOrElse("")
       val c = if (cn != "") "." + cn.split(" ").mkString(".") else ""
       val sel = api.tagName(elm).toLowerCase + id + c
