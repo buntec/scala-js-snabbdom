@@ -44,7 +44,7 @@ import scala.collection.mutable
 
 object toVNode {
 
-  def apply(node: dom.Node, domApi: Option[DomApi]): VNode = {
+  def apply(node: dom.Node, domApi: Option[DomApi] = None): VNode = {
 
     val api = domApi.getOrElse(DomApi.apply)
 
