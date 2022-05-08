@@ -481,6 +481,179 @@ class SnabbdomSuite extends BaseSuite {
     }
   }
 
+  group("using `toVNode`") {
+
+    test("can remove previous children of the root element") {
+      val h2 = dom.document.createElement("h2")
+      h2.textContent = "Hello"
+      val prevElm =
+        dom.document.createElement("div").asInstanceOf[dom.HTMLElement]
+      prevElm.id = "id"
+      prevElm.className = "class"
+      prevElm.appendChild(h2)
+      val nextVNode = h("div#id.class", Array(h("span", "Hi")))
+      val elm =
+        patch(toVNode(prevElm), nextVNode).elm.get
+          .asInstanceOf[dom.HTMLElement]
+      assertEquals(elm, prevElm)
+      assertEquals(elm.tagName, "DIV")
+      assertEquals(elm.id, "id")
+      assertEquals(elm.className, "class")
+      assertEquals(elm.childNodes.length, 1)
+      assertEquals(
+        elm.childNodes(0).asInstanceOf[dom.HTMLElement].tagName,
+        "SPAN"
+      )
+      assertEquals(
+        elm.childNodes(0).textContent,
+        "Hi"
+      )
+    }
+
+    test("can support patching in a DocumentFragment") {
+      val prevElm = dom.document.createDocumentFragment()
+      val nextVNode = VNode.create(
+        Some(""),
+        None,
+        Some(Array(h("div#id.class", Array(h("span", "Hi"))))),
+        None,
+        Some(prevElm)
+      )
+      val elm =
+        patch(toVNode(prevElm), nextVNode).elm.get
+          .asInstanceOf[dom.DocumentFragment]
+      assertEquals(elm, prevElm)
+      assertEquals(elm.nodeType, 11)
+      assertEquals(elm.childNodes.length, 1)
+      assertEquals(
+        elm.childNodes(0).asInstanceOf[dom.HTMLElement].tagName,
+        "DIV"
+      )
+      assertEquals(elm.childNodes(0).asInstanceOf[dom.HTMLElement].id, "id")
+      assertEquals(
+        elm.childNodes(0).asInstanceOf[dom.HTMLElement].className,
+        "class"
+      )
+      assertEquals(
+        elm.childNodes(0).asInstanceOf[dom.HTMLElement].childNodes.length,
+        1
+      )
+      assertEquals(
+        elm
+          .childNodes(0)
+          .asInstanceOf[dom.HTMLElement]
+          .childNodes(0)
+          .asInstanceOf[dom.HTMLElement]
+          .tagName,
+        "SPAN"
+      )
+      assertEquals(
+        elm
+          .childNodes(0)
+          .asInstanceOf[dom.HTMLElement]
+          .childNodes(0)
+          .asInstanceOf[dom.HTMLElement]
+          .textContent,
+        "Hi"
+      )
+    }
+
+    test("can remove some children of the root element") {
+      val h2 = dom.document.createElement("h2")
+      h2.textContent = "Hello"
+      val prevElm =
+        dom.document.createElement("div").asInstanceOf[dom.HTMLElement]
+      prevElm.id = "id"
+      prevElm.className = "class"
+      val text = dom.document.createTextNode("Foobar")
+      val reference = js.Object()
+      // ensure that we don't recreate the Text node
+      text.asInstanceOf[js.Dictionary[Any]]("testProperty") = reference
+      prevElm.appendChild(text)
+      prevElm.appendChild(h2)
+      val nextVNode = h("div#id.class", Array[VNode]("Foobar"))
+      val elm =
+        patch(toVNode(prevElm), nextVNode).elm.get.asInstanceOf[dom.HTMLElement]
+      assertEquals(elm, prevElm)
+      assertEquals(elm.tagName, "DIV")
+      assertEquals(elm.id, "id")
+      assertEquals(elm.className, "class")
+      assertEquals(elm.childNodes.length, 1)
+      assertEquals(elm.childNodes(0).nodeType, 3)
+      assertEquals(elm.childNodes(0).asInstanceOf[dom.Text].wholeText, "Foobar")
+      assertEquals(
+        elm.childNodes(0).asInstanceOf[js.Dictionary[Any]]("testProperty"),
+        reference
+      )
+    }
+
+    test("can remove text elements") {
+
+      val h2 = dom.document.createElement("h2")
+      h2.textContent = "Hello"
+      val prevElm =
+        dom.document.createElement("div").asInstanceOf[dom.HTMLElement]
+      prevElm.id = "id"
+      prevElm.className = "class"
+      val text = dom.document.createTextNode("Foobar")
+      prevElm.appendChild(text)
+      prevElm.appendChild(h2)
+      val nextVNode = h("div#id.class", Array(h("h2", "Hello")))
+      val elm =
+        patch(toVNode(prevElm), nextVNode).elm.get.asInstanceOf[dom.HTMLElement]
+
+      assertEquals(elm, prevElm)
+      assertEquals(elm.tagName, "DIV")
+      assertEquals(elm.id, "id")
+      assertEquals(elm.className, "class")
+      assertEquals(elm.childNodes.length, 1)
+      assertEquals(elm.childNodes(0).nodeType, 1)
+      assertEquals(elm.childNodes(0).textContent, "Hello")
+
+    }
+
+    test("can work with DomApi") {
+      // TODO
+    }
+
+    test("can parse datasets and attrs") {
+
+      val onlyAttrs = dom.document.createElement("div")
+      onlyAttrs.setAttribute("foo", "bar")
+      assertEquals(
+        toVNode(onlyAttrs).data.flatMap(_.attrs).flatMap(_.get("foo")),
+        Some("bar")
+      )
+
+      val onlyDatasets = dom.document.createElement("div")
+      onlyDatasets.setAttribute("data-foo", "bar")
+      assertEquals(
+        toVNode(onlyDatasets).data.flatMap(_.dataset).flatMap(_.get("foo")),
+        Some("bar")
+      )
+
+      val onlyDatasets2 =
+        dom.document.createElement("div").asInstanceOf[dom.HTMLElement]
+      onlyDatasets2.dataset("foo") = "bar"
+      assertEquals(
+        toVNode(onlyDatasets).data.flatMap(_.dataset).flatMap(_.get("foo")),
+        Some("bar")
+      )
+
+      val bothAttrsAndDatasets =
+        dom.document.createElement("div").asInstanceOf[dom.HTMLElement]
+      bothAttrsAndDatasets.setAttribute("foo", "bar")
+      bothAttrsAndDatasets.setAttribute("data-foo", "bar")
+      bothAttrsAndDatasets.dataset("again") = "again"
+      val data = toVNode(bothAttrsAndDatasets).data.get
+      assertEquals(data.attrs.flatMap(_.get("foo")), Some("bar"))
+      assertEquals(data.dataset.flatMap(_.get("foo")), Some("bar"))
+      assertEquals(data.dataset.flatMap(_.get("again")), Some("again"))
+
+    }
+
+  }
+
   group("addition of elements") {
 
     vnode0.test("appends elements") { vnode0 =>
