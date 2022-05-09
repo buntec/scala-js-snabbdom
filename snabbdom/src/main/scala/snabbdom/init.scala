@@ -419,18 +419,18 @@ object init {
                   updateChildren(elm, oldCh, ch, insertedVNodeQueue)
                 }
               case (None, Some(ch)) =>
-                oldVnode.text.foreach(_ => api.setTextContext(elm, Some("")))
+                oldVnode.text.foreach(_ => api.setTextContent(elm, Some("")))
                 addVnodes(elm, None, ch, 0, ch.length - 1, insertedVNodeQueue)
               case (Some(oldCh), None) =>
                 removeVnodes(elm, oldCh, 0, oldCh.length - 1)
               case (None, None) =>
-                oldVnode.text.foreach(_ => api.setTextContext(elm, Some("")))
+                oldVnode.text.foreach(_ => api.setTextContent(elm, Some("")))
             }
           case Some(text) if oldVnode.text.forall(_ != text) =>
             oldCh.foreach(oldChildren =>
               removeVnodes(elm, oldChildren, 0, oldChildren.length - 1)
             )
-            api.setTextContext(elm, Some(text))
+            api.setTextContent(elm, Some(text))
           case Some(_) => ()
         }
 
