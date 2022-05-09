@@ -44,7 +44,9 @@ class VNode private (
     var sel: Option[String],
     var data: Option[VNodeData],
     var children: Option[Array[VNode]],
-    var elm: Option[dom.Node], // TODO: should this be `dom.Element`?
+    var elm: Option[
+      dom.Node
+    ], // can't be `dom.Element` unfortunately b/c of fragments
     var text: Option[String],
     var key: Option[KeyValue],
     var listener: Option[Listener]

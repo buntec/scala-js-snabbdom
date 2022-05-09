@@ -94,10 +94,10 @@ object toVNode {
       )
 
     } else if (api.isText(node)) {
-      val text = api.getTextContext(node).getOrElse("")
+      val text = api.getTextContent(node).getOrElse("")
       VNode.create(None, None, None, Some(text), Some(node))
     } else if (api.isComment(node)) {
-      val text = api.getTextContext(node).getOrElse("")
+      val text = api.getTextContent(node).getOrElse("")
       VNode.create(Some("!"), None, None, Some(text), Some(node))
     } else {
       VNode.create(Some(""), None, None, None, Some(node))

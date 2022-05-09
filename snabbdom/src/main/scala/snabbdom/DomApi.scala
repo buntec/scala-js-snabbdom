@@ -73,9 +73,9 @@ trait DomApi {
 
   def tagName(elm: dom.Element): String
 
-  def setTextContext(node: dom.Node, text: Option[String]): Unit
+  def setTextContent(node: dom.Node, text: Option[String]): Unit
 
-  def getTextContext(node: dom.Node): Option[String]
+  def getTextContent(node: dom.Node): Option[String]
 
   def isElement(node: dom.Node): Boolean // type guard
 
@@ -137,11 +137,11 @@ object DomApi {
 
     override def tagName(elm: dom.Element): String = elm.tagName
 
-    override def setTextContext(node: dom.Node, text: Option[String]): Unit = {
+    override def setTextContent(node: dom.Node, text: Option[String]): Unit = {
       node.textContent = text.getOrElse(null)
     }
 
-    override def getTextContext(node: dom.Node): Option[String] =
+    override def getTextContent(node: dom.Node): Option[String] =
       Option(node.textContent)
 
     override def isElement(node: dom.Node): Boolean =
