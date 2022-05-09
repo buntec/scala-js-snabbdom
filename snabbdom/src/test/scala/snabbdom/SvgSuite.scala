@@ -68,7 +68,7 @@ class SvgSuite extends BaseSuite {
       Array(
         h(
           "use",
-          VNodeData.builder.withAttrs("xlink:href" -> testUrl).build,
+          VNodeData.builder.withAttrs("xlink:href" -> AttrValue(testUrl)).build,
           Array[VNode]()
         )
       )
@@ -85,7 +85,7 @@ class SvgSuite extends BaseSuite {
     val testAttrValue = "und"
     val a = h(
       "svg",
-      VNodeData.builder.withAttrs("xml:lang" -> testAttrValue).build,
+      VNodeData.builder.withAttrs("xml:lang" -> AttrValue(testAttrValue)).build,
       Array[VNode]()
     )
     val result = patch(vnode0, a).elm.get.asInstanceOf[dom.SVGElement]

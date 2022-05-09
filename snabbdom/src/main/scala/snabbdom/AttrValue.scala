@@ -36,15 +36,16 @@
  * IN THE SOFTWARE.
  */
 
-import scala.collection.mutable
+package snabbdom
 
-package object snabbdom {
+sealed trait AttrValue
 
-  type VNodeQueue = mutable.ArrayBuffer[VNode]
+object AttrValue {
 
-  type PropValue = Any
-  type ClassValue = Boolean
-  type StyleValue = String
-  type KeyValue = String
+  def apply(s: String): AttrValue = StringAttrValue(s)
+  def apply(b: Boolean): AttrValue = BooleanAttrValue(b)
+
+  case class StringAttrValue(value: String) extends AttrValue
+  case class BooleanAttrValue(value: Boolean) extends AttrValue
 
 }

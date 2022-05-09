@@ -58,10 +58,10 @@ class AttributesSuite extends BaseSuite {
         "div",
         VNodeData.builder
           .withAttrs(
-            "href" -> "/foo",
-            "minlength" -> 1,
-            "selected" -> true,
-            "disabled" -> false
+            "href" -> AttrValue("/foo"),
+            "minlength" -> AttrValue("1"),
+            "selected" -> AttrValue(true),
+            "disabled" -> AttrValue(false)
           )
           .build
       )
@@ -75,7 +75,11 @@ class AttributesSuite extends BaseSuite {
 
     vnode0.test("can be memoized") { vnode0 =>
       val cachedAttrs = VNodeData.builder
-        .withAttrs("href" -> "/foo", "minlength" -> 1, "selected" -> true)
+        .withAttrs(
+          "href" -> AttrValue("/foo"),
+          "minlength" -> AttrValue("1"),
+          "selected" -> AttrValue(true)
+        )
         .build
       val vnode1 = h("div", cachedAttrs)
       val vnode2 = h("div", cachedAttrs)
@@ -96,10 +100,10 @@ class AttributesSuite extends BaseSuite {
           "div",
           VNodeData.builder
             .withAttrs(
-              "href" -> None,
-              "minlength" -> 0,
-              "value" -> "",
-              "title" -> "undefined"
+              "href" -> AttrValue(""),
+              "minlength" -> AttrValue("0"),
+              "value" -> AttrValue(""),
+              "title" -> AttrValue("undefined")
             )
             .build
         )
@@ -112,7 +116,10 @@ class AttributesSuite extends BaseSuite {
 
     vnode0.test("are set correctly when namespaced") { vnode0 =>
       val vnode1 =
-        h("div", VNodeData.builder.withAttrs("xlink:href" -> "#foo").build)
+        h(
+          "div",
+          VNodeData.builder.withAttrs("xlink:href" -> AttrValue("#foo")).build
+        )
       val elm = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
       assertEquals(
         elm.getAttributeNS("http://www.w3.org/1999/xlink", "href"),
@@ -147,9 +154,9 @@ class AttributesSuite extends BaseSuite {
           "div",
           VNodeData.builder
             .withAttrs(
-              "required" -> true,
-              "readonly" -> 1,
-              "noresize" -> "truthy"
+              "required" -> AttrValue(true),
+              "readonly" -> AttrValue("1"),
+              "noresize" -> AttrValue("truthy")
             )
             .build
         )
@@ -164,7 +171,10 @@ class AttributesSuite extends BaseSuite {
 
     vnode0.test("is omitted if the value is false") { vnode0 =>
       val vnode1 =
-        h("div", VNodeData.builder.withAttrs("required" -> false).build)
+        h(
+          "div",
+          VNodeData.builder.withAttrs("required" -> AttrValue(false)).build
+        )
       val elm = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
       assertEquals(elm.hasAttribute("required"), false)
       assertEquals(elm.getAttribute("required"), null)
@@ -174,7 +184,12 @@ class AttributesSuite extends BaseSuite {
       val vnode1 =
         h(
           "div",
-          VNodeData.builder.withAttrs("readonly" -> 0, "noresize" -> "").build
+          VNodeData.builder
+            .withAttrs(
+              "readonly" -> AttrValue("0"),
+              "noresize" -> AttrValue("")
+            )
+            .build
         )
       val elm = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
       assertEquals(elm.hasAttribute("readonly"), true)
@@ -190,12 +205,18 @@ class AttributesSuite extends BaseSuite {
       "is not considered as a boolean attribute and shouldn't be omitted"
     ) { vnode0 =>
       val vnode1 =
-        h("div", VNodeData.builder.withAttrs("constructor" -> true).build)
+        h(
+          "div",
+          VNodeData.builder.withAttrs("constructor" -> AttrValue(true)).build
+        )
       val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
       assertEquals(elm1.hasAttribute("constructor"), true)
       assertEquals(elm1.getAttribute("constructor"), "")
       val vnode2 =
-        h("div", VNodeData.builder.withAttrs("constructor" -> false).build)
+        h(
+          "div",
+          VNodeData.builder.withAttrs("constructor" -> AttrValue(false)).build
+        )
       val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
       assertEquals(elm2.hasAttribute("constructor"), false)
 

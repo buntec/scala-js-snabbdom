@@ -622,7 +622,7 @@ class SnabbdomSuite extends BaseSuite {
       onlyAttrs.setAttribute("foo", "bar")
       assertEquals(
         toVNode(onlyAttrs).data.flatMap(_.attrs).flatMap(_.get("foo")),
-        Some("bar")
+        Some(AttrValue("bar"))
       )
 
       val onlyDatasets = dom.document.createElement("div")
@@ -646,7 +646,7 @@ class SnabbdomSuite extends BaseSuite {
       bothAttrsAndDatasets.setAttribute("data-foo", "bar")
       bothAttrsAndDatasets.dataset("again") = "again"
       val data = toVNode(bothAttrsAndDatasets).data.get
-      assertEquals(data.attrs.flatMap(_.get("foo")), Some("bar"))
+      assertEquals(data.attrs.flatMap(_.get("foo")), Some(AttrValue("bar")))
       assertEquals(data.dataset.flatMap(_.get("foo")), Some("bar"))
       assertEquals(data.dataset.flatMap(_.get("again")), Some("again"))
 

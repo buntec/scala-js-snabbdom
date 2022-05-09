@@ -74,7 +74,11 @@ object toVNode {
         children.append(toVNode(childNode, domApi))
       }
 
-      if (attrs.nonEmpty) { data.attrs = Some(attrs.toMap) }
+      if (attrs.nonEmpty) {
+        data.attrs = Some(attrs.map { case (key, value) =>
+          key -> AttrValue(value)
+        }.toMap)
+      }
       if (datasets.nonEmpty) { data.dataset = Some(datasets.toMap) }
 
       if (

@@ -40,6 +40,8 @@ package snabbdom.modules
 
 import snabbdom._
 import org.scalajs.dom
+import snabbdom.AttrValue.BooleanAttrValue
+import snabbdom.AttrValue.StringAttrValue
 
 object Attributes {
 
@@ -68,20 +70,23 @@ object Attributes {
       attrs.foreach { case (key, cur) =>
         val old = oldAttrs.get(key)
         if (old.forall(_ != cur)) {
-          if (cur == true) {
-            elm.setAttribute(key, "")
-          } else if (cur == false) {
-            elm.removeAttribute(key)
-          } else {
-            if (key.charAt(0) != 'x') {
-              elm.setAttribute(key, cur.toString)
-            } else if (key.length > 3 && key.charAt(3) == ':') {
-              elm.setAttributeNS(xmlNS, key, cur.toString)
-            } else if (key.length > 5 && key.charAt(5) == ':') {
-              elm.setAttributeNS(xlinkNS, key, cur.toString)
-            } else {
-              elm.setAttribute(key, cur.toString)
-            }
+          cur match {
+            case BooleanAttrValue(value) =>
+              if (value) {
+                elm.setAttribute(key, "")
+              } else {
+                elm.removeAttribute(key)
+              }
+            case StringAttrValue(value) =>
+              if (key.charAt(0) != 'x') {
+                elm.setAttribute(key, value)
+              } else if (key.length > 3 && key.charAt(3) == ':') {
+                elm.setAttributeNS(xmlNS, key, value)
+              } else if (key.length > 5 && key.charAt(5) == ':') {
+                elm.setAttributeNS(xlinkNS, key, value)
+              } else {
+                elm.setAttribute(key, value)
+              }
           }
         }
       }
