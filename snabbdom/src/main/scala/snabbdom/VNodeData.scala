@@ -73,52 +73,51 @@ object VNodeData {
 
   def builder = new Builder()
 
-  class Builder() {
-    private val data = empty
+  class Builder(private val data: VNodeData = empty) extends AnyVal {
 
-    def build: VNodeData = data
+    @inline def build: VNodeData = data
 
-    def withKey(key: String): Builder = {
+    @inline def withKey(key: String): Builder = {
       data.key = Some(key)
       this
     }
 
-    def withProps(props: (String, PropValue)*): Builder = {
+    @inline def withProps(props: (String, PropValue)*): Builder = {
       data.props = Some(props.toMap)
       this
     }
 
-    def withAttrs(attrs: (String, AttrValue)*): Builder = {
+    @inline def withAttrs(attrs: (String, AttrValue)*): Builder = {
       data.attrs = Some(attrs.toMap)
       this
     }
 
-    def withClasses(classes: (String, ClassValue)*): Builder = {
+    @inline def withClasses(classes: (String, ClassValue)*): Builder = {
       data.classes = Some(classes.toMap)
       this
     }
 
-    def withStyle(style: (String, StyleValue)*): Builder = {
+    @inline def withStyle(style: (String, StyleValue)*): Builder = {
       data.style = Some(style.toMap)
       this
     }
 
-    def withDataset(dataset: (String, String)*): Builder = {
+    @inline def withDataset(dataset: (String, String)*): Builder = {
       data.dataset = Some(dataset.toMap)
       this
     }
 
-    def withOn(on: (String, EventHandler)*): Builder = {
+    @inline def withOn(on: (String, EventHandler)*): Builder = {
       data.on = Some(on.toMap)
       this
     }
 
-    def withHook(hook: Hooks): Builder = {
+    @inline def withHook(hook: Hooks): Builder = {
       data.hook = Some(hook)
       this
     }
 
-    def withNs(ns: String): Builder = {
+    @inline def withNs(ns: String): Builder = {
       data.ns = Some(ns)
       this
     }
