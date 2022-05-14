@@ -48,4 +48,10 @@ object AttrValue {
   case class StringAttrValue(value: String) extends AttrValue
   case class BooleanAttrValue(value: Boolean) extends AttrValue
 
+  implicit def stringToAttrValue(value: String): AttrValue =
+    StringAttrValue(value)
+
+  implicit def booleanToAttrValue(value: Boolean): AttrValue =
+    BooleanAttrValue(value)
+
 }
