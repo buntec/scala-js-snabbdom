@@ -23,7 +23,7 @@ class Listener(var vnode: VNode) {
 
   def handleEvent(event: dom.Event): Unit = {
     val name = event.`type`
-    vnode.data.flatMap(_.on).flatMap(_.get(name)).foreach { handler =>
+    vnode.data.on.get(name).foreach { handler =>
       handler.cbs.foreach(cb => cb(event, vnode))
     }
   }
@@ -33,6 +33,6 @@ class Listener(var vnode: VNode) {
    * listener and using `handleEvent` directly would result
    * in a new implicit conversion to `js.Function1` every time.
    */
-  val jsFun: js.Function1[dom.Event, Unit] = handleEvent _
+  private[snabbdom] val jsFun: js.Function1[dom.Event, Unit] = handleEvent _
 
 }

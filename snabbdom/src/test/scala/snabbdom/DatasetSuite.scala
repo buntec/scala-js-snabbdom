@@ -55,7 +55,7 @@ class DatasetSuite extends BaseSuite {
   vnode0.test("is set on initial element creation") { vnode0 =>
     val elm = patch(
       vnode0,
-      h("div", VNodeData.builder.withDataset("foo" -> "foo").build)
+      h("div", VNodeData(dataset = Map("foo" -> "foo")))
     ).elm.get.asInstanceOf[dom.HTMLElement]
     assertEquals(elm.dataset("foo"), "foo")
   }

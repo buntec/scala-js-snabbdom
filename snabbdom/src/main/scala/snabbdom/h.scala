@@ -74,28 +74,28 @@ object h {
       children: Option[Array[VNode]],
       text: Option[String]
   ): VNode = {
-    val data0 = data.getOrElse(VNodeData.empty)
+    val vnode =
+      VNode.create(
+        Some(sel),
+        data.getOrElse(VNodeData.empty),
+        children,
+        text,
+        None
+      )
     if (
-      sel(0) == 's' && sel(1) == 'v' && sel(2) == 'g' &&
+      sel.startsWith("svg") &&
       (sel.length == 3 || sel(3) == '.' || sel(3) == '#')
     ) {
-      addNS(data0, children, Some(sel))
+      addNS(vnode)
     }
-    VNode.create(Some(sel), Some(data0), children, text, None)
+    vnode
   }
 
-  private[snabbdom] def addNS(
-      data: VNodeData,
-      children: Option[Array[VNode]],
-      sel: Option[String]
-  ): Unit = {
-    data.ns = Some("http://www.w3.org/2000/svg")
-    if (sel.forall(_ != "foreignObject")) {
-      children.foreach {
-        _.map { child =>
-          child.data.foreach(data => addNS(data, child.children, child.sel))
-        }
-      }
+  private[snabbdom] def addNS(vnode: VNode): Unit = {
+    val ns = "http://www.w3.org/2000/svg"
+    vnode.data = vnode.data.copy(ns = Some(ns))
+    if (vnode.sel.forall(_ != "foreignObject")) {
+      vnode.children.foreach(_.map(addNS))
     }
   }
 

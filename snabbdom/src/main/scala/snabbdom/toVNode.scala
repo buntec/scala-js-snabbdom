@@ -56,7 +56,6 @@ object toVNode {
       val sel = api.tagName(elm).toLowerCase + id + c
       val attrs = mutable.Map.empty[String, String]
       val datasets = mutable.Map.empty[String, String]
-      val data = VNodeData.empty
 
       val children = new mutable.ArrayBuffer[VNode]
       val elmAttrs = elm.attributes
@@ -74,33 +73,38 @@ object toVNode {
         children.append(toVNode(childNode, domApi))
       }
 
-      if (attrs.nonEmpty) { data.attrs = Some(attrs.toMap) }
-      if (datasets.nonEmpty) { data.dataset = Some(datasets.toMap) }
+      val data =
+        VNodeData(
+          attrs = if (attrs.nonEmpty) attrs.toMap else Map.empty,
+          dataset = if (datasets.nonEmpty) datasets.toMap else Map.empty
+        )
+
+      val vnode = VNode.create(
+        Some(sel),
+        data,
+        Some(children.toArray),
+        None,
+        Some(node)
+      )
 
       if (
         sel.startsWith("svg") && (sel.length == 3 || sel(3) == '.' || sel(
           3
         ) == '#')
       ) {
-        h.addNS(data, Some(children.toArray), Some(sel))
+        h.addNS(vnode)
       }
 
-      VNode.create(
-        Some(sel),
-        Some(data),
-        Some(children.toArray),
-        None,
-        Some(node)
-      )
+      vnode
 
     } else if (api.isText(node)) {
       val text = api.getTextContent(node).getOrElse("")
-      VNode.create(None, None, None, Some(text), Some(node))
+      VNode.create(None, VNodeData.empty, None, Some(text), Some(node))
     } else if (api.isComment(node)) {
       val text = api.getTextContent(node).getOrElse("")
-      VNode.create(Some("!"), None, None, Some(text), Some(node))
+      VNode.create(Some("!"), VNodeData.empty, None, Some(text), Some(node))
     } else {
-      VNode.create(Some(""), None, None, None, Some(node))
+      VNode.create(Some(""), VNodeData.empty, None, None, Some(node))
     }
 
   }

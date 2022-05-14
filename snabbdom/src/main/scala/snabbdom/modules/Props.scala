@@ -56,8 +56,8 @@ object Props {
 
   private def updateProps(oldVnode: VNode, vnode: VNode): Unit = {
     val elm = vnode.elm.get
-    val oldProps = oldVnode.data.flatMap(_.props)
-    val props = vnode.data.flatMap(_.props)
+    val oldProps = oldVnode.data.props
+    val props = vnode.data.props
 
     def update(
         oldProps: Map[String, PropValue],
@@ -73,11 +73,8 @@ object Props {
       }
     }
 
-    (oldProps, props) match {
-      case (Some(oldProps), Some(props)) if oldProps != props =>
-        update(oldProps, props)
-      case (None, Some(props)) => update(Map.empty, props)
-      case _                   => ()
+    if (oldProps != props) {
+      update(oldProps, props) // TODO: remove old props
     }
 
   }

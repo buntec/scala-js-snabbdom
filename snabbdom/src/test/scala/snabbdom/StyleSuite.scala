@@ -69,15 +69,14 @@ class StyleSuite extends BaseSuite {
     vnode0.test("is being styled") { vnode0 =>
       val elm = patch(
         vnode0,
-        h("div", VNodeData.builder.withStyle("fontSize" -> "12px").build)
+        h("div", VNodeData(style = Map("fontSize" -> "12px")))
       ).elm.get.asInstanceOf[dom.HTMLElement]
       assertEquals(elm.style.fontSize, "12px")
     }
 
     vnode0.test("can be memoized") { vnode0 =>
-      val cachedStyles = VNodeData.builder
-        .withStyle("fontSize" -> "14px", "display" -> "inline")
-        .build
+      val cachedStyles =
+        VNodeData(style = Map("fontSize" -> "14px", "display" -> "inline"))
       val vnode1 = h("i", cachedStyles)
       val vnode2 = h("i", cachedStyles)
       val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
@@ -91,23 +90,17 @@ class StyleSuite extends BaseSuite {
     vnode0.test("updates styles") { vnode0 =>
       val vnode1 = h(
         "i",
-        VNodeData.builder
-          .withStyle("fontSize" -> "14px", "display" -> "inline")
-          .build
+        VNodeData(style = Map("fontSize" -> "14px", "display" -> "inline"))
       )
 
       val vnode2 = h(
         "i",
-        VNodeData.builder
-          .withStyle("fontSize" -> "12px", "display" -> "block")
-          .build
+        VNodeData(style = Map("fontSize" -> "12px", "display" -> "block"))
       )
 
       val vnode3 = h(
         "i",
-        VNodeData.builder
-          .withStyle("fontSize" -> "10px", "display" -> "block")
-          .build
+        VNodeData(style = Map("fontSize" -> "10px", "display" -> "block"))
       )
 
       val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
@@ -124,11 +117,11 @@ class StyleSuite extends BaseSuite {
 
     vnode0.test("explicitly removes styles") { vnode0 =>
       val vnode1 =
-        h("i", VNodeData.builder.withStyle("fontSize" -> "14px").build)
+        h("i", VNodeData(style = Map("fontSize" -> "14px")))
       val vnode2 =
-        h("i", VNodeData.builder.withStyle("fontSize" -> "").build)
+        h("i", VNodeData(style = Map("fontSize" -> "")))
       val vnode3 =
-        h("i", VNodeData.builder.withStyle("fontSize" -> "10px").build)
+        h("i", VNodeData(style = Map("fontSize" -> "10px")))
       val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
       assertEquals(elm1.style.fontSize, "14px")
       val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
@@ -138,11 +131,9 @@ class StyleSuite extends BaseSuite {
     }
 
     vnode0.test("implicitly removes styles from element") { vnode0 =>
-      val vnode1 =
-        h("i", VNodeData.builder.withStyle("fontSize" -> "14px").build)
-      val vnode2 = h("i", VNodeData.empty)
-      val vnode3 =
-        h("i", VNodeData.builder.withStyle("fontSize" -> "10px").build)
+      val vnode1 = h("i", VNodeData(style = Map("fontSize" -> "14px")))
+      val vnode2 = h("i", VNodeData())
+      val vnode3 = h("i", VNodeData(style = Map("fontSize" -> "10px")))
       val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
       assertEquals(elm1.style.fontSize, "14px")
       val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
@@ -154,12 +145,9 @@ class StyleSuite extends BaseSuite {
     vnode0.test("updates css variables") { vnode0 =>
       assume(hasCssVariables)
 
-      val vnode1 =
-        h("div", VNodeData.builder.withStyle("--myVar" -> "1").build)
-      val vnode2 =
-        h("div", VNodeData.builder.withStyle("--myVar" -> "2").build)
-      val vnode3 =
-        h("div", VNodeData.builder.withStyle("--myVar" -> "3").build)
+      val vnode1 = h("div", VNodeData(style = Map("--myVar" -> "1")))
+      val vnode2 = h("div", VNodeData(style = Map("--myVar" -> "2")))
+      val vnode3 = h("div", VNodeData(style = Map("--myVar" -> "3")))
 
       val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
       assertEquals(elm1.style.getPropertyValue("--myVar"), "1")
@@ -173,12 +161,9 @@ class StyleSuite extends BaseSuite {
     vnode0.test("explicitly removes css variables") { vnode0 =>
       assume(hasCssVariables)
 
-      val vnode1 =
-        h("i", VNodeData.builder.withStyle("--myVar" -> "1").build)
-      val vnode2 =
-        h("i", VNodeData.builder.withStyle("--myVar" -> "").build)
-      val vnode3 =
-        h("i", VNodeData.builder.withStyle("--myVar" -> "3").build)
+      val vnode1 = h("i", VNodeData(style = Map("--myVar" -> "1")))
+      val vnode2 = h("i", VNodeData(style = Map("--myVar" -> "")))
+      val vnode3 = h("i", VNodeData(style = Map("--myVar" -> "3")))
 
       val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
       assertEquals(elm1.style.getPropertyValue("--myVar"), "1")
@@ -195,14 +180,14 @@ class StyleSuite extends BaseSuite {
       val vnode1 =
         h(
           "div",
-          Array(h("i", VNodeData.builder.withStyle("--myVar" -> "1").build))
+          Array(h("i", VNodeData(style = Map("--myVar" -> "1"))))
         )
       val vnode2 =
-        h("div", Array(h("i", VNodeData.empty)))
+        h("div", Array(h("i", VNodeData())))
       val vnode3 =
         h(
           "div",
-          Array(h("i", VNodeData.builder.withStyle("--myVar" -> "3").build))
+          Array(h("i", VNodeData(style = Map("--myVar" -> "3"))))
         )
 
       val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]

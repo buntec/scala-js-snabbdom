@@ -46,9 +46,9 @@ import scala.collection.mutable.ListBuffer
 
 class SnabbdomSuite extends BaseSuite {
 
-  def spanNum(s: String) = h("span", VNodeData.empty, s)
+  def spanNum(s: String) = h("span", VNodeData(), s)
   def spanNum(i: Int) =
-    h("span", VNodeData.builder.withKey(i.toString).build, i.toString)
+    h("span", VNodeData(key = Some(i.toString)), i.toString)
 
   val vnode0 = FunFixture[dom.Element](
     setup = { _ =>
@@ -88,7 +88,7 @@ class SnabbdomSuite extends BaseSuite {
     }
 
     test("can create vnode with props and one child vnode") {
-      val vnode = h("div", VNodeData.empty, h("span#hello"))
+      val vnode = h("div", VNodeData(), h("span#hello"))
       assertEquals(vnode.sel, Some("div"))
       val children = vnode.children
       assertEquals(children.flatMap(_(0).sel), Some("span#hello"))
@@ -106,7 +106,7 @@ class SnabbdomSuite extends BaseSuite {
     }
 
     test("can create vnode with props and text content in string") {
-      val vnode = h("a", VNodeData.empty, "I am a string")
+      val vnode = h("a", VNodeData(), "I am a string")
       assertEquals(vnode.text, Some("I am a string"))
     }
 
@@ -116,7 +116,7 @@ class SnabbdomSuite extends BaseSuite {
     }
 
     test("can create vnode with props and String obj content") {
-      val vnode = h("a", VNodeData.empty, new String("b"))
+      val vnode = h("a", VNodeData(), new String("b"))
       assertEquals(vnode.text, Some("b"))
     }
 
@@ -166,7 +166,7 @@ class SnabbdomSuite extends BaseSuite {
       val SVGNamespace = "http://www.w3.org/2000/svg";
       val XHTMLNamespace = "http://www.w3.org/1999/xhtml";
 
-      val data = VNodeData.builder.withNs(SVGNamespace).build
+      val data = VNodeData(ns = Some(SVGNamespace))
 
       val elm1 = patch(vnode0, h("div", Array(h("div", data)))).elm.get
       assertEquals(elm1.firstChild.namespaceURI, SVGNamespace)
@@ -209,14 +209,14 @@ class SnabbdomSuite extends BaseSuite {
     }
 
     vnode0.test("receives classes in class property") { vnode0 =>
-      val data = VNodeData.builder
-        .withClasses(
+      val data = VNodeData(classes =
+        Map(
           "am" -> true,
           "a" -> true,
           "class" -> true,
           "not" -> false
         )
-        .build
+      )
       val elm = patch(vnode0, h("i", data)).elm.get
       assert(elm.asInstanceOf[dom.Element].classList.contains("am"))
       assert(elm.asInstanceOf[dom.Element].classList.contains("a"))
@@ -235,14 +235,14 @@ class SnabbdomSuite extends BaseSuite {
 
     vnode0.test("receives classes in class property when namespaced") {
       vnode0 =>
-        val data = VNodeData.builder
-          .withClasses(
+        val data = VNodeData(classes =
+          Map(
             "am" -> true,
             "a" -> true,
             "class" -> true,
             "not" -> false
           )
-          .build
+        )
         val elm = patch(vnode0, h("svg", Array(h("g", data)))).elm.get
         assert(
           elm.firstChild.asInstanceOf[dom.Element].classList.contains("am")
@@ -257,7 +257,7 @@ class SnabbdomSuite extends BaseSuite {
     }
 
     vnode0.test("handles classes from both selector and property") { vnode0 =>
-      val data = VNodeData.builder.withClasses("classes" -> true).build
+      val data = VNodeData(classes = Map("classes" -> true))
       val elm = patch(vnode0, h("div", Array(h("i.has", data)))).elm.get
       assert(elm.firstChild.asInstanceOf[dom.Element].classList.contains("has"))
       assert(
@@ -286,7 +286,7 @@ class SnabbdomSuite extends BaseSuite {
     }
 
     vnode0.test("can create elements with props") { vnode0 =>
-      val data = VNodeData.builder.withProps("src" -> "http://localhost/").build
+      val data = VNodeData(props = Map("src" -> "http://localhost/"))
       val elm = patch(vnode0, h("a", data)).elm.get
       assertEquals(
         elm.asInstanceOf[js.Dictionary[String]]("src"),
@@ -337,15 +337,11 @@ class SnabbdomSuite extends BaseSuite {
     vnode0.test("changes the elements classes") { vnode0 =>
       val vnode1 = h(
         "i",
-        VNodeData.builder
-          .withClasses("i" -> true, "am" -> true, "horse" -> true)
-          .build
+        VNodeData(classes = Map("i" -> true, "am" -> true, "horse" -> true))
       )
       val vnode2 = h(
         "i",
-        VNodeData.builder
-          .withClasses("i" -> true, "am" -> true, "horse" -> false)
-          .build
+        VNodeData(classes = Map("i" -> true, "am" -> true, "horse" -> false))
       )
       patch(vnode0, vnode1)
       val elm = patch(vnode1, vnode2).elm.get
@@ -360,9 +356,7 @@ class SnabbdomSuite extends BaseSuite {
 
     vnode0.test("preserves memoized classes") { vnode0 =>
       val cachedClasses =
-        VNodeData.builder
-          .withClasses("i" -> true, "am" -> true, "horse" -> false)
-          .build
+        VNodeData(classes = Map("i" -> true, "am" -> true, "horse" -> false))
       val vnode1 = h("i", cachedClasses)
       val vnode2 = h("i", cachedClasses)
       val elm = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
@@ -378,15 +372,11 @@ class SnabbdomSuite extends BaseSuite {
     vnode0.test("removes missing classes") { vnode0 =>
       val vnode1 = h(
         "i",
-        VNodeData.builder
-          .withClasses("i" -> true, "am" -> true, "horse" -> true)
-          .build
+        VNodeData(classes = Map("i" -> true, "am" -> true, "horse" -> true))
       )
       val vnode2 = h(
         "i",
-        VNodeData.builder
-          .withClasses("i" -> true, "am" -> true)
-          .build
+        VNodeData(classes = Map("i" -> true, "am" -> true))
       )
       patch(vnode0, vnode1)
       val elm = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
@@ -397,9 +387,9 @@ class SnabbdomSuite extends BaseSuite {
 
     vnode0.test("changes an elements props") { vnode0 =>
       val vnode1 =
-        h("a", VNodeData.builder.withProps("src" -> "http://other/").build)
+        h("a", VNodeData(props = Map("src" -> "http://other/")))
       val vnode2 =
-        h("a", VNodeData.builder.withProps("src" -> "http://localhost/").build)
+        h("a", VNodeData(props = Map("src" -> "http://localhost/")))
       patch(vnode0, vnode1)
       val elm =
         patch(vnode1, vnode2).elm.get.asInstanceOf[js.Dictionary[String]]
@@ -407,8 +397,7 @@ class SnabbdomSuite extends BaseSuite {
     }
 
     vnode0.test("preserves memoized props") { vnode0 =>
-      val cachedProps =
-        VNodeData.builder.withProps("src" -> "http://other/").build
+      val cachedProps = VNodeData(props = Map("src" -> "http://other/"))
       val vnode1 = h("a", cachedProps)
       val vnode2 = h("a", cachedProps)
       val elm = patch(vnode0, vnode1).elm.get
@@ -425,14 +414,14 @@ class SnabbdomSuite extends BaseSuite {
 
     vnode0.test("can set prop value to empty string") { vnode0 =>
       val vnode1 =
-        h("p", VNodeData.builder.withProps("textContent" -> "foo").build)
+        h("p", VNodeData(props = Map("textContent" -> "foo")))
       val elm = patch(vnode0, vnode1).elm.get
       assertEquals(
         elm.asInstanceOf[dom.HTMLParagraphElement].textContent,
         "foo"
       )
       val vnode2 =
-        h("p", VNodeData.builder.withProps("textContent" -> "").build)
+        h("p", VNodeData(props = Map("textContent" -> "")))
       val elm2 = patch(vnode1, vnode2).elm.get
       assertEquals(elm2.asInstanceOf[dom.HTMLParagraphElement].textContent, "")
 
@@ -441,7 +430,7 @@ class SnabbdomSuite extends BaseSuite {
     // TODO: This appears to be a bug in the orignal: https://github.com/snabbdom/snabbdom/pull/1019
     vnode0.test("removes custom props".ignore) { vnode0 =>
       val vnode1 =
-        h("a", VNodeData.builder.withProps("src" -> "http://other/").build)
+        h("a", VNodeData(props = Map("src" -> "http://other/")))
       val vnode2 = h("a")
       patch(vnode0, vnode1)
       val elm = patch(vnode1, vnode2).elm.get
@@ -450,10 +439,7 @@ class SnabbdomSuite extends BaseSuite {
 
     vnode0.test("cannot remove native props") { vnode0 =>
       val vnode1 =
-        h(
-          "a",
-          VNodeData.builder.withProps("href" -> "http://example.com/").build
-        )
+        h("a", VNodeData(props = Map("href" -> "http://example.com/")))
       val vnode2 = h("a")
       val elm1 = patch(vnode0, vnode1).elm.get
       assert(elm1.isInstanceOf[dom.HTMLAnchorElement])
@@ -471,7 +457,7 @@ class SnabbdomSuite extends BaseSuite {
     }
 
     vnode0.test("does not delete custom props") { vnode0 =>
-      val vnode1 = h("p", VNodeData.builder.withProps("a" -> "foo").build)
+      val vnode1 = h("p", VNodeData(props = Map("a" -> "foo")))
       val vnode2 = h("p")
       val elm = patch(vnode0, vnode1).elm.get
       assert(elm.isInstanceOf[dom.HTMLParagraphElement])
@@ -514,7 +500,7 @@ class SnabbdomSuite extends BaseSuite {
       val prevElm = dom.document.createDocumentFragment()
       val nextVNode = VNode.create(
         Some(""),
-        None,
+        VNodeData.empty,
         Some(Array(h("div#id.class", Array(h("span", "Hi"))))),
         None,
         Some(prevElm)
@@ -621,14 +607,14 @@ class SnabbdomSuite extends BaseSuite {
       val onlyAttrs = dom.document.createElement("div")
       onlyAttrs.setAttribute("foo", "bar")
       assertEquals(
-        toVNode(onlyAttrs).data.flatMap(_.attrs).flatMap(_.get("foo")),
+        toVNode(onlyAttrs).data.attrs.get("foo"),
         Some("bar")
       )
 
       val onlyDatasets = dom.document.createElement("div")
       onlyDatasets.setAttribute("data-foo", "bar")
       assertEquals(
-        toVNode(onlyDatasets).data.flatMap(_.dataset).flatMap(_.get("foo")),
+        toVNode(onlyDatasets).data.dataset.get("foo"),
         Some("bar")
       )
 
@@ -636,7 +622,7 @@ class SnabbdomSuite extends BaseSuite {
         dom.document.createElement("div").asInstanceOf[dom.HTMLElement]
       onlyDatasets2.dataset("foo") = "bar"
       assertEquals(
-        toVNode(onlyDatasets).data.flatMap(_.dataset).flatMap(_.get("foo")),
+        toVNode(onlyDatasets).data.dataset.get("foo"),
         Some("bar")
       )
 
@@ -645,10 +631,10 @@ class SnabbdomSuite extends BaseSuite {
       bothAttrsAndDatasets.setAttribute("foo", "bar")
       bothAttrsAndDatasets.setAttribute("data-foo", "bar")
       bothAttrsAndDatasets.dataset("again") = "again"
-      val data = toVNode(bothAttrsAndDatasets).data.get
-      assertEquals(data.attrs.flatMap(_.get("foo")), Some("bar"))
-      assertEquals(data.dataset.flatMap(_.get("foo")), Some("bar"))
-      assertEquals(data.dataset.flatMap(_.get("again")), Some("again"))
+      val data = toVNode(bothAttrsAndDatasets).data
+      assertEquals(data.attrs.get("foo"), Some("bar"))
+      assertEquals(data.dataset.get("foo"), Some("bar"))
+      assertEquals(data.dataset.get("again"), Some("again"))
 
     }
 
@@ -704,10 +690,10 @@ class SnabbdomSuite extends BaseSuite {
     }
 
     vnode0.test("adds children to parent with no children") { vnode0 =>
-      val vnode1 = h("span", VNodeData.builder.withKey("span").build)
+      val vnode1 = h("span", VNodeData(key = Some("span")))
       val vnode2 = h(
         "span",
-        VNodeData.builder.withKey("span").build,
+        VNodeData(key = Some("span")),
         Array("1", "2", "3").map(spanNum)
       )
       val elm = patch(vnode0, vnode1).elm.get
@@ -722,10 +708,10 @@ class SnabbdomSuite extends BaseSuite {
     vnode0.test("removes all children to parent") { vnode0 =>
       val vnode1 = h(
         "span",
-        VNodeData.builder.withKey("span").build,
+        VNodeData(key = Some("span")),
         Array("1", "2", "3").map(spanNum)
       )
-      val vnode2 = h("span", VNodeData.builder.withKey("span").build)
+      val vnode2 = h("span", VNodeData(key = Some("span")))
       val elm = patch(vnode0, vnode1).elm.get
       assertEquals(
         elm.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
@@ -736,8 +722,8 @@ class SnabbdomSuite extends BaseSuite {
     }
 
     vnode0.test("update one child with same key but different sel") { vnode0 =>
-      val data = VNodeData.builder.withKey("span").build
-      val data2 = VNodeData.builder.withKey("2").build
+      val data = VNodeData(key = Some("span"))
+      val data2 = VNodeData(key = Some("2"))
       val vnode1 = h("span", data, Array("1", "2", "3").map(spanNum))
       val vnode2 =
         h("span", data, Array(spanNum("1"), h("i", data2, "2"), spanNum("3")))
@@ -947,7 +933,7 @@ class SnabbdomSuite extends BaseSuite {
     def spanNumWithOpacity(n: Int, o: String) = {
       h(
         "span",
-        VNodeData.builder.withKey(n.toString).withStyle("opacity" -> o).build,
+        VNodeData(key = Some(n.toString), style = Map("opacity" -> o)),
         n.toString
       )
     }
@@ -1180,7 +1166,7 @@ class SnabbdomSuite extends BaseSuite {
           h("span", "First sibling"),
           h(
             "div",
-            VNodeData.builder.withHook(Hooks(create = Some(cb))).build,
+            VNodeData(hook = Some(Hooks(create = Some(cb)))),
             Array(
               h("span", "Child 1"),
               h("span", "Child 2")
@@ -1212,7 +1198,7 @@ class SnabbdomSuite extends BaseSuite {
           h("span", "First sibling"),
           h(
             "div",
-            VNodeData.builder.withHook(Hooks(insert = Some(cb))).build,
+            VNodeData(hook = Some(Hooks(insert = Some(cb)))),
             Array(
               h("span", "Child 1"),
               h("span", "Child 2")
@@ -1238,7 +1224,7 @@ class SnabbdomSuite extends BaseSuite {
           h("span", "First sibling"),
           h(
             "div",
-            VNodeData.builder.withHook(Hooks(prepatch = Some(cb))).build,
+            VNodeData(hook = Some(Hooks(prepatch = Some(cb)))),
             Array(
               h("span", "Child 1"),
               h("span", "Child 2")
@@ -1252,7 +1238,7 @@ class SnabbdomSuite extends BaseSuite {
           h("span", "First sibling"),
           h(
             "div",
-            VNodeData.builder.withHook(Hooks(prepatch = Some(cb))).build,
+            VNodeData(hook = Some(Hooks(prepatch = Some(cb)))),
             Array(
               h("span", "Child 1"),
               h("span", "Child 2")
@@ -1281,14 +1267,14 @@ class SnabbdomSuite extends BaseSuite {
           h("span", "First sibling"),
           h(
             "div",
-            VNodeData.builder
-              .withHook(
+            VNodeData(hook =
+              Some(
                 Hooks(
                   prepatch = Some((_, _) => preCb()),
                   postpatch = Some((_, _) => postCb())
                 )
               )
-              .build,
+            ),
             Array(
               h("span", "Child 1"),
               h("span", "Child 2")
@@ -1302,14 +1288,14 @@ class SnabbdomSuite extends BaseSuite {
           h("span", "First sibling"),
           h(
             "div",
-            VNodeData.builder
-              .withHook(
+            VNodeData(hook =
+              Some(
                 Hooks(
                   prepatch = Some((_, _) => preCb()),
                   postpatch = Some((_, _) => postCb())
                 )
               )
-              .build,
+            ),
             Array(
               h("span", "Child 1"),
               h("span", "Child 2")
@@ -1338,16 +1324,12 @@ class SnabbdomSuite extends BaseSuite {
           h("span", "First sibling"),
           h(
             "div",
-            VNodeData.builder
-              .withHook(Hooks(update = Some(cb(result1, _, _))))
-              .build,
+            VNodeData(hook = Some(Hooks(update = Some(cb(result1, _, _))))),
             Array(
               h("span", "Child 1"),
               h(
                 "span",
-                VNodeData.builder
-                  .withHook(Hooks(update = Some(cb(result2, _, _))))
-                  .build,
+                VNodeData(hook = Some(Hooks(update = Some(cb(result2, _, _))))),
                 "Child 2"
               )
             )
@@ -1360,16 +1342,12 @@ class SnabbdomSuite extends BaseSuite {
           h("span", "First sibling"),
           h(
             "div",
-            VNodeData.builder
-              .withHook(Hooks(update = Some(cb(result1, _, _))))
-              .build,
+            VNodeData(hook = Some(Hooks(update = Some(cb(result1, _, _))))),
             Array(
               h("span", "Child 1"),
               h(
                 "span",
-                VNodeData.builder
-                  .withHook(Hooks(update = Some(cb(result2, _, _))))
-                  .build,
+                VNodeData(hook = Some(Hooks(update = Some(cb(result2, _, _))))),
                 "Child 2"
               )
             )
@@ -1399,7 +1377,7 @@ class SnabbdomSuite extends BaseSuite {
           h("span", "First sibling"),
           h(
             "div",
-            VNodeData.builder.withHook(Hooks(remove = Some(cb))).build,
+            VNodeData(hook = Some(Hooks(remove = Some(cb)))),
             Array(
               h("span", "Child 1"),
               h("span", "Child 2")
@@ -1425,7 +1403,7 @@ class SnabbdomSuite extends BaseSuite {
         Array(
           h(
             "div",
-            VNodeData.builder.withHook(Hooks(destroy = Some(_ => cb()))).build,
+            VNodeData(hook = Some(Hooks(destroy = Some(_ => cb())))),
             Array(h("span", "Child 1"))
           )
         )
@@ -1448,17 +1426,17 @@ class SnabbdomSuite extends BaseSuite {
       }
       lazy val vnode1 = h(
         "div",
-        VNodeData.builder
-          .withHook(Hooks(init = Some(init), prepatch = Some(prepatch)))
-          .build
+        VNodeData(hook =
+          Some(Hooks(init = Some(init), prepatch = Some(prepatch)))
+        )
       )
       patch(vnode0, vnode1)
       assertEquals(count, 1)
       lazy val vnode2 = h(
         "span",
-        VNodeData.builder
-          .withHook(Hooks(init = Some(init), prepatch = Some(prepatch)))
-          .build
+        VNodeData(hook =
+          Some(Hooks(init = Some(init), prepatch = Some(prepatch)))
+        )
       )
       patch(vnode1, vnode2)
       assertEquals(count, 2)
@@ -1478,9 +1456,7 @@ class SnabbdomSuite extends BaseSuite {
           Array(
             h(
               "a",
-              VNodeData.builder
-                .withHook(Hooks(remove = Some((_, rm) => rm3 = rm)))
-                .build
+              VNodeData(hook = Some(Hooks(remove = Some((_, rm) => rm3 = rm))))
             )
           )
         )
@@ -1508,7 +1484,7 @@ class SnabbdomSuite extends BaseSuite {
       }
       val vnode1 = h(
         "div",
-        VNodeData.builder.withHook(Hooks(remove = Some(cb))).build,
+        VNodeData(hook = Some(Hooks(remove = Some(cb)))),
         Array(
           h("b", "Child 1"),
           h("i", "Child 2")
@@ -1552,7 +1528,7 @@ class SnabbdomSuite extends BaseSuite {
               Array(
                 h(
                   "span",
-                  VNodeData.builder.withHook(Hooks(destroy = Some(cb))).build,
+                  VNodeData(hook = Some(Hooks(destroy = Some(cb)))),
                   "Child 1"
                 ),
                 h("span", "Child 2")
@@ -1672,7 +1648,7 @@ class SnabbdomSuite extends BaseSuite {
         Array(
           h(
             "span",
-            VNodeData.builder.withHook(Hooks(update = Some(cb))).build,
+            VNodeData(hook = Some(Hooks(update = Some(cb)))),
             "Hello"
           ),
           h("span", "there")
@@ -1693,7 +1669,7 @@ class SnabbdomSuite extends BaseSuite {
         Array(
           h(
             "span",
-            VNodeData.builder.withHook(Hooks(update = Some(cb))).build,
+            VNodeData(hook = Some(Hooks(update = Some(cb)))),
             "Hello"
           ),
           h("span", "there")

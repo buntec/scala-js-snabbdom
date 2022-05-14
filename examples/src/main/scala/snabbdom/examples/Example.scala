@@ -40,19 +40,17 @@ object Example {
 
     val vnode = h(
       "div",
-      VNodeData.builder
-        .withOn("click" -> ((_: dom.Event) => println("foo")))
-        .build,
+      VNodeData(on = Map("click" -> ((_: dom.Event) => println("foo")))),
       Array[VNode](
         h(
           "span",
-          VNodeData.builder.withStyle("fontWeight" -> "bold").build,
+          VNodeData(style = Map("fontWeight" -> "bold")),
           "This is bold"
         ),
         " and this is just normal text",
         h(
           "a",
-          VNodeData.builder.withProps("href" -> "/foo").build,
+          VNodeData(props = Map("href" -> "/foo")),
           "I'll take you places!"
         )
       )
@@ -62,21 +60,19 @@ object Example {
 
     val newVnode = h(
       "div#container.two.classes",
-      VNodeData.builder
-        .withOn("click" -> ((_: dom.Event) => println("bar")))
-        .build,
+      VNodeData(on = Map("click" -> ((_: dom.Event) => println("bar")))),
       Array[VNode](
         h(
           "span",
-          VNodeData.builder
-            .withStyle("fontWeight" -> "normal", "fontStyle" -> "italic")
-            .build,
+          VNodeData(style =
+            Map("fontWeight" -> "normal", "fontStyle" -> "italic")
+          ),
           "This is now italic type"
         ),
         " and this is still just normal text",
         h(
           "a",
-          VNodeData.builder.withProps("href" -> "/foo").build,
+          VNodeData(props = Map("href" -> "/foo")),
           "I'll take you places!"
         )
       )

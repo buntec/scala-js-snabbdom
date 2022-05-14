@@ -60,8 +60,8 @@ object Dataset {
   private def updateDataset(oldVnode: VNode, vnode: VNode): Unit = {
 
     val elm = vnode.elm.get.asInstanceOf[dom.HTMLElement]
-    val oldDataset = oldVnode.data.flatMap(_.dataset)
-    val dataset = vnode.data.flatMap(_.dataset)
+    val oldDataset = oldVnode.data.dataset
+    val dataset = vnode.data.dataset
     val d = elm.dataset
 
     def update(
@@ -95,16 +95,10 @@ object Dataset {
           }
         }
       }
-
     }
 
-    (oldDataset, dataset) match {
-      case (Some(oldDataset), Some(dataset)) if oldDataset != dataset =>
-        update(oldDataset, dataset)
-      case (Some(oldDataset), None) =>
-        update(oldDataset, Map.empty)
-      case (None, Some(dataset)) => update(Map.empty, dataset)
-      case _                     => ()
+    if (oldDataset != dataset) {
+      update(oldDataset, dataset)
     }
 
   }
