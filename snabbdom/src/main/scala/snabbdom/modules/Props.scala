@@ -56,8 +56,8 @@ object Props {
 
   private def updateProps(oldVnode: VNode, vnode: VNode): Unit = {
     val elm = vnode.elm.get
-    val oldProps = oldVnode.data.flatMap(_.props)
-    val props = vnode.data.flatMap(_.props)
+    val oldProps = oldVnode.data.map(_.props)
+    val props = vnode.data.map(_.props)
 
     def update(
         oldProps: Map[String, PropValue],

@@ -48,8 +48,8 @@ class VNode private (
       dom.Node
     ], // can't be `dom.Element` unfortunately b/c of fragments
     var text: Option[String],
-    var key: Option[KeyValue],
-    var listener: Option[Listener]
+    val key: Option[KeyValue],
+    private[snabbdom] var listener: Option[Listener]
 )
 
 object VNode {

@@ -93,8 +93,8 @@ object Attributes {
       }
     }
 
-    val oldAttrs = oldVnode.data.flatMap(_.attrs)
-    val attrs = vnode.data.flatMap(_.attrs)
+    val oldAttrs = oldVnode.data.map(_.attrs)
+    val attrs = vnode.data.map(_.attrs)
 
     (oldAttrs, attrs) match {
       case (Some(oldAttrs), Some(attrs)) if (oldAttrs != attrs) =>

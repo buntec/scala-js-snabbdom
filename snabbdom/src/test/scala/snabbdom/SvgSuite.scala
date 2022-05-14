@@ -53,8 +53,8 @@ class SvgSuite extends BaseSuite {
   val patch = init(Seq(Attributes.module))
 
   vnode0.test("removes child svg elements") { vnode0 =>
-    val a = h("svg", VNodeData.empty, Array(h("g"), h("g")))
-    val b = h("svg", VNodeData.empty, Array(h("g")))
+    val a = h("svg", VNodeData(), Array(h("g"), h("g")))
+    val b = h("svg", VNodeData(), Array(h("g")))
     val result = patch(patch(vnode0, a), b).elm.get.asInstanceOf[dom.SVGElement]
     assertEquals(result.childNodes.length, 1)
   }
@@ -64,11 +64,11 @@ class SvgSuite extends BaseSuite {
     val testUrl = "/test"
     val a = h(
       "svg",
-      VNodeData.empty,
+      VNodeData(),
       Array(
         h(
           "use",
-          VNodeData.builder.withAttrs("xlink:href" -> testUrl).build,
+          VNodeData(attrs = Map("xlink:href" -> testUrl)),
           Array[VNode]()
         )
       )
@@ -85,7 +85,7 @@ class SvgSuite extends BaseSuite {
     val testAttrValue = "und"
     val a = h(
       "svg",
-      VNodeData.builder.withAttrs("xml:lang" -> testAttrValue).build,
+      VNodeData(attrs = Map("xml:lang" -> testAttrValue)),
       Array[VNode]()
     )
     val result = patch(vnode0, a).elm.get.asInstanceOf[dom.SVGElement]

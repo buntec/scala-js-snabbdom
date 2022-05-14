@@ -67,10 +67,10 @@ object EventListeners {
       vnode: Option[VNode]
   ): Unit = {
 
-    val oldOn = oldVnode.data.flatMap(_.on)
+    val oldOn = oldVnode.data.map(_.on)
     val oldListener = oldVnode.listener
     val oldElm = oldVnode.elm.map(_.asInstanceOf[dom.Element])
-    val on = vnode.flatMap(_.data).flatMap(_.on)
+    val on = vnode.flatMap(_.data).map(_.on)
     val elm = vnode.flatMap(_.elm).map(_.asInstanceOf[dom.Element])
 
     (oldOn, oldListener, on) match {

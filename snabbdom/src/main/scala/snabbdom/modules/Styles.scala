@@ -100,7 +100,7 @@ object Styles {
 
     }
 
-    (oldVnode.data.flatMap(_.style), vnode.data.flatMap(_.style)) match {
+    (oldVnode.data.map(_.style), vnode.data.map(_.style)) match {
       case (Some(oldStyle), Some(style)) if oldStyle != style =>
         update(oldStyle, style)
       case (Some(oldStyle), None) => update(oldStyle, Map.empty)

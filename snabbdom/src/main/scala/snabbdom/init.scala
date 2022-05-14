@@ -63,6 +63,8 @@ object init {
       domApi: Option[DomApi] = None
   ): Patch = {
 
+    type VNodeQueue = mutable.ArrayBuffer[VNode]
+
     val api = domApi.getOrElse(DomApi.apply)
 
     val cbs: ModuleHooks = modules.foldLeft(ModuleHooks.empty) {

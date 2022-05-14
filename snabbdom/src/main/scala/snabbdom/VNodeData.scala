@@ -38,90 +38,23 @@
 
 package snabbdom
 
-class VNodeData(
-    var props: Option[Map[String, PropValue]],
-    var attrs: Option[Map[String, AttrValue]],
-    var classes: Option[Map[String, ClassValue]],
-    var style: Option[Map[String, StyleValue]],
-    var dataset: Option[Map[String, String]],
-    var on: Option[Map[String, EventHandler]],
-    var hook: Option[Hooks],
-    var key: Option[String],
-    var ns: Option[String], // for SVG
-    var fn: Option[Seq[Any] => VNode], // for thunks
-    var args: Option[Seq[Any]], // for thunks
-    var is: Option[String]
+case class VNodeData(
+    val props: Map[String, PropValue] = Map.empty,
+    val attrs: Map[String, AttrValue] = Map.empty,
+    val classes: Map[String, ClassValue] = Map.empty,
+    val style: Map[String, StyleValue] = Map.empty,
+    val dataset: Map[String, String] = Map.empty,
+    val on: Map[String, EventHandler] = Map.empty,
+    val hook: Option[Hooks] = None,
+    val key: Option[String] = None,
+    val ns: Option[String] = None, // for SVG
+    val fn: Option[Seq[Any] => VNode] = None, // for thunks
+    val args: Option[Seq[Any]] = None, // for thunks
+    val is: Option[String] = None
 )
 
 object VNodeData {
 
-  def empty =
-    new VNodeData(
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None
-    )
-
-  def builder = new Builder()
-
-  class Builder(private val data: VNodeData = empty) extends AnyVal {
-
-    @inline def build: VNodeData = data
-
-    @inline def withKey(key: String): Builder = {
-      data.key = Some(key)
-      this
-    }
-
-    @inline def withProps(props: (String, PropValue)*): Builder = {
-      data.props = Some(props.toMap)
-      this
-    }
-
-    @inline def withAttrs(attrs: (String, AttrValue)*): Builder = {
-      data.attrs = Some(attrs.toMap)
-      this
-    }
-
-    @inline def withClasses(classes: (String, ClassValue)*): Builder = {
-      data.classes = Some(classes.toMap)
-      this
-    }
-
-    @inline def withStyle(style: (String, StyleValue)*): Builder = {
-      data.style = Some(style.toMap)
-      this
-    }
-
-    @inline def withDataset(dataset: (String, String)*): Builder = {
-      data.dataset = Some(dataset.toMap)
-      this
-    }
-
-    @inline def withOn(on: (String, EventHandler)*): Builder = {
-      data.on = Some(on.toMap)
-      this
-    }
-
-    @inline def withHook(hook: Hooks): Builder = {
-      data.hook = Some(hook)
-      this
-    }
-
-    @inline def withNs(ns: String): Builder = {
-      data.ns = Some(ns)
-      this
-    }
-
-  }
+  val empty = VNodeData()
 
 }

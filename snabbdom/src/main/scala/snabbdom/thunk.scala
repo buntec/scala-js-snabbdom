@@ -59,17 +59,13 @@ object thunk {
       fn: Seq[Any] => VNode,
       args: Seq[Any]
   ): VNode = {
-    val data = VNodeData.empty
-    data.key = key
-    data.fn = Some(fn)
-    data.args = Some(args)
-    data.hook = Some(
-      Hooks().copy(
-        init = Some((vNode: VNode) => init0(vNode)),
-        prepatch =
-          Some((oldVNode: VNode, vNode: VNode) => prepatch0(oldVNode, vNode))
-      )
+    val hook = Hooks().copy(
+      init = Some((vNode: VNode) => init0(vNode)),
+      prepatch =
+        Some((oldVNode: VNode, vNode: VNode) => prepatch0(oldVNode, vNode))
     )
+    val data =
+      VNodeData(key = key, fn = Some(fn), args = Some(args), hook = Some(hook))
     h(sel, data)
   }
 
@@ -96,13 +92,17 @@ object thunk {
 
   private def copyToThunk(vnode: VNode, thunk: VNode): Unit = {
     val ns = thunk.data.flatMap(_.ns)
-    vnode.data.foreach(_.fn = thunk.data.flatMap(_.fn))
-    vnode.data.foreach(_.args = thunk.data.flatMap(_.args))
+    val fn = thunk.data.flatMap(_.fn)
+    val args = thunk.data.flatMap(_.args)
+    val data0 = vnode.data.fold(VNodeData(fn = fn, args = args))(
+      _.copy(fn = fn, args = args)
+    )
+    vnode.data = Some(data0)
     thunk.data = vnode.data
     thunk.children = vnode.children
     thunk.text = vnode.text
     thunk.elm = vnode.elm
-    ns.foreach(_ => h.addNS(thunk.data.get, thunk.children, thunk.sel))
+    ns.foreach(_ => h.addNS(thunk))
   }
 
 }

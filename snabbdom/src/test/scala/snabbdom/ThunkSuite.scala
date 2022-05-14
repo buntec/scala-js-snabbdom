@@ -69,7 +69,7 @@ class ThunkSuite extends BaseSuite {
     val numberInSpan = (arr: Seq[Any]) => {
       called += 1
       val n = arr(0).asInstanceOf[Int]
-      h("span", VNodeData.builder.withKey("num").build, s"Number is ${n}")
+      h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
     val vnode1 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
     val vnode2 = h("div", Array(thunk("span", "num", numberInSpan, Seq(2))))
@@ -86,7 +86,7 @@ class ThunkSuite extends BaseSuite {
       val numberInSpan = (arr: Seq[Any]) => {
         called += 1
         val n = arr(0).asInstanceOf[Int]
-        h("span", VNodeData.builder.withKey("num").build, s"Number is ${n}")
+        h("span", VNodeData(key = Some("num")), s"Number is ${n}")
       }
       val vnode1 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
       val vnode2 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
@@ -101,7 +101,7 @@ class ThunkSuite extends BaseSuite {
     val numberInSpan = (arr: Seq[Any]) => {
       called += 1
       val n = arr(0).asInstanceOf[Int]
-      h("span", VNodeData.builder.withKey("num").build, s"Number is ${n}")
+      h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
     val vnode1 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
     val vnode2 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1, 2))))
@@ -116,12 +116,12 @@ class ThunkSuite extends BaseSuite {
     val numberInSpan = (arr: Seq[Any]) => {
       called += 1
       val n = arr(0).asInstanceOf[Int]
-      h("span", VNodeData.builder.withKey("num").build, s"Number is ${n}")
+      h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
     val numberInSpan2 = (arr: Seq[Any]) => {
       called += 1
       val n = arr(0).asInstanceOf[Int]
-      h("span", VNodeData.builder.withKey("num").build, s"Number is ${n}")
+      h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
     val vnode1 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
     val vnode2 = h("div", Array(thunk("span", "num", numberInSpan2, Seq(1))))
@@ -136,7 +136,7 @@ class ThunkSuite extends BaseSuite {
     val numberInSpan = (arr: Seq[Any]) => {
       called += 1
       val n = arr(0).asInstanceOf[Int]
-      h("span", VNodeData.builder.withKey("num").build, s"Number is ${n}")
+      h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
     val vnode1 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
     val vnode2 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
@@ -188,7 +188,7 @@ class ThunkSuite extends BaseSuite {
     val numberInSpan = (arr: Seq[Any]) => {
       called += 1
       val n = arr(0).asInstanceOf[Int]
-      h("span", VNodeData.builder.withKey("num").build, s"Number is ${n}")
+      h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
     val vnode1 = thunk("span", "num", numberInSpan, Seq(1))
     val vnode2 = thunk("span", "num", numberInSpan, Seq(1))
@@ -214,12 +214,12 @@ class ThunkSuite extends BaseSuite {
   vnode0.test("can be replaced and removed") { vnode0 =>
     val numberInSpan = (arr: Seq[Any]) => {
       val n = arr(0).asInstanceOf[Int]
-      h("span", VNodeData.builder.withKey("num").build, s"Number is ${n}")
+      h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
     val oddEven = (arr: Seq[Any]) => {
       val n = arr(0).asInstanceOf[Int]
       val prefix = if (n % 2 == 0) "Even" else "Odd"
-      h("span", VNodeData.builder.withKey("foo").build, s"${prefix}: ${n}")
+      h("span", VNodeData(key = Some("foo")), s"${prefix}: ${n}")
     }
 
     val vnode1 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
@@ -250,13 +250,13 @@ class ThunkSuite extends BaseSuite {
   vnode0.test("can be replaced and removed when root") { vnode0 =>
     val numberInSpan = (arr: Seq[Any]) => {
       val n = arr(0).asInstanceOf[Int]
-      h("span", VNodeData.builder.withKey("num").build, s"Number is ${n}")
+      h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
 
     val oddEven = (arr: Seq[Any]) => {
       val n = arr(0).asInstanceOf[Int]
       val prefix = if (n % 2 == 0) "Even" else "Odd"
-      h("span", VNodeData.builder.withKey("foo").build, s"${prefix}: ${n}")
+      h("span", VNodeData(key = Some("foo")), s"${prefix}: ${n}")
     }
 
     val vnode1 = thunk("span", "num", numberInSpan, Seq(1))
@@ -279,10 +279,10 @@ class ThunkSuite extends BaseSuite {
       val n = arr(0).asInstanceOf[Int]
       h(
         "span",
-        VNodeData.builder
-          .withKey("num")
-          .withHook(Hooks(destroy = Some(destroyHook)))
-          .build,
+        VNodeData(
+          key = Some("num"),
+          hook = Some(Hooks(destroy = Some(destroyHook)))
+        ),
         s"Number is ${n}"
       )
     }
@@ -308,10 +308,10 @@ class ThunkSuite extends BaseSuite {
       val n = arr(0).asInstanceOf[Int]
       h(
         "span",
-        VNodeData.builder
-          .withKey("num")
-          .withHook(Hooks(remove = Some(destroyHook)))
-          .build,
+        VNodeData(
+          key = Some("num"),
+          hook = Some(Hooks(remove = Some(destroyHook)))
+        ),
         s"Number is ${n}"
       )
     }
