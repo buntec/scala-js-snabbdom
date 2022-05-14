@@ -39,18 +39,18 @@
 package snabbdom
 
 case class VNodeData(
-    val props: Map[String, PropValue] = Map.empty,
-    val attrs: Map[String, AttrValue] = Map.empty,
-    val classes: Map[String, ClassValue] = Map.empty,
-    val style: Map[String, StyleValue] = Map.empty,
-    val dataset: Map[String, String] = Map.empty,
-    val on: Map[String, EventHandler] = Map.empty,
-    val hook: Option[Hooks] = None,
-    val key: Option[String] = None,
-    val ns: Option[String] = None, // for SVG
-    val fn: Option[Seq[Any] => VNode] = None, // for thunks
-    val args: Option[Seq[Any]] = None, // for thunks
-    val is: Option[String] = None
+    props: Map[String, PropValue] = Map.empty,
+    attrs: Map[String, AttrValue] = Map.empty,
+    classes: Map[String, ClassValue] = Map.empty,
+    style: Map[String, StyleValue] = Map.empty,
+    dataset: Map[String, String] = Map.empty,
+    on: Map[String, EventHandler] = Map.empty,
+    hook: Option[Hooks] = None,
+    key: Option[String] = None,
+    ns: Option[String] = None, // for SVG
+    fn: Option[Seq[Any] => VNode] = None, // for thunks
+    args: Option[Seq[Any]] = None, // for thunks
+    is: Option[String] = None
 )
 
 object VNodeData {
