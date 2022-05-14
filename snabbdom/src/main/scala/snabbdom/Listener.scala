@@ -23,7 +23,7 @@ class Listener(var vnode: VNode) {
 
   def handleEvent(event: dom.Event): Unit = {
     val name = event.`type`
-    vnode.data.map(_.on).flatMap(_.get(name)).foreach { handler =>
+    vnode.data.on.get(name).foreach { handler =>
       handler.cbs.foreach(cb => cb(event, vnode))
     }
   }

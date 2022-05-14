@@ -42,7 +42,7 @@ import org.scalajs.dom
 
 class VNode private (
     var sel: Option[String],
-    var data: Option[VNodeData],
+    var data: VNodeData,
     var children: Option[Array[VNode]],
     var elm: Option[
       dom.Node
@@ -50,20 +50,28 @@ class VNode private (
     var text: Option[String],
     val key: Option[KeyValue],
     private[snabbdom] var listener: Option[Listener]
-)
+) {
+
+  override def toString: String =
+    s"sel=$sel, data=$data, text=$text, key=$key, children=$children, elm=$elm"
+
+  private[snabbdom] def isTextNode: Boolean =
+    sel.isEmpty && children.isEmpty && text.isDefined
+
+}
 
 object VNode {
 
   def create(
       sel: Option[String],
-      data: Option[VNodeData],
+      data: VNodeData,
       children: Option[Array[VNode]],
       text: Option[String],
       elm: Option[dom.Node]
-  ) = new VNode(sel, data, children, elm, text, data.flatMap(_.key), None)
+  ) = new VNode(sel, data, children, elm, text, data.key, None)
 
   def text(text: String) =
-    new VNode(None, None, None, None, Some(text), None, None)
+    new VNode(None, VNodeData.empty, None, None, Some(text), None, None)
 
   implicit def fromString(s: String): VNode = text(s)
 

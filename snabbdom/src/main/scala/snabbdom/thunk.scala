@@ -70,7 +70,7 @@ object thunk {
   }
 
   private def init0(thunk: VNode): Unit = {
-    val data = thunk.data.get
+    val data = thunk.data
     val fn = data.fn.get
     val args = data.args.get
     copyToThunk(fn(args), thunk)
@@ -79,10 +79,10 @@ object thunk {
   private def prepatch0(oldVnode: VNode, thunk: VNode): Unit = {
     val old = oldVnode.data
     val cur = thunk.data
-    val oldArgs = old.flatMap(_.args)
-    val args = cur.flatMap(_.args)
-    val oldFn = old.flatMap(_.fn)
-    val curFn = cur.flatMap(_.fn)
+    val oldArgs = old.args
+    val args = cur.args
+    val oldFn = old.fn
+    val curFn = cur.fn
     if (oldFn != curFn || oldArgs != args) {
       copyToThunk(curFn.get(args.get), thunk)
     } else {
@@ -91,13 +91,10 @@ object thunk {
   }
 
   private def copyToThunk(vnode: VNode, thunk: VNode): Unit = {
-    val ns = thunk.data.flatMap(_.ns)
-    val fn = thunk.data.flatMap(_.fn)
-    val args = thunk.data.flatMap(_.args)
-    val data0 = vnode.data.fold(VNodeData(fn = fn, args = args))(
-      _.copy(fn = fn, args = args)
-    )
-    vnode.data = Some(data0)
+    val ns = thunk.data.ns
+    val fn = thunk.data.fn
+    val args = thunk.data.args
+    vnode.data = vnode.data.copy(fn = fn, args = args)
     thunk.data = vnode.data
     thunk.children = vnode.children
     thunk.text = vnode.text

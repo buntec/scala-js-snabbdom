@@ -86,7 +86,7 @@ object init {
 
       VNode.create(
         Some(api.tagName(elm).toLowerCase + id + c),
-        None,
+        VNodeData.empty,
         None,
         None,
         Some(elm)
@@ -95,7 +95,7 @@ object init {
     }
 
     def emptyDocumentFragmentAt(frag: dom.DocumentFragment): VNode = {
-      VNode.create(None, None, None, None, Some(frag))
+      VNode.create(None, VNodeData.empty, None, None, Some(frag))
     }
 
     def createRmCb(childElm: dom.Node, listeners: Int): () => Unit = {
@@ -114,8 +114,7 @@ object init {
       var data = vnode.data
 
       for {
-        d <- data
-        h <- d.hook
+        h <- data.hook
         init0 <- h.init
       } yield {
         init0(vnode)
@@ -138,9 +137,9 @@ object init {
           } else {
             sel
           }
-          val elm = if (data.isDefined && data.exists(_.ns.isDefined)) {
+          val elm = if (data.ns.isDefined) {
             api.createElementNS(
-              data.flatMap(_.ns).get,
+              data.ns.get,
               tag
             ) // TODO what about data?
           } else {
@@ -169,7 +168,7 @@ object init {
                 }
               }
           }
-          vnode.data.flatMap(_.hook).map { hooks =>
+          vnode.data.hook.map { hooks =>
             hooks.create.foreach(hook => hook(emptyNode, vnode))
             hooks.insert.foreach { _ => insertedVNodeQueue.append(vnode) }
           }
@@ -216,8 +215,8 @@ object init {
     }
 
     def invokeDestroyHook(vnode: VNode): Unit = {
-      vnode.data.foreach { data =>
-        data.hook.flatMap(_.destroy).foreach(hook => hook(vnode))
+      if (!vnode.isTextNode) { // detroy hooks should not be called on text nodes
+        vnode.data.hook.flatMap(_.destroy).foreach(hook => hook(vnode))
         cbs.destroy.foreach(hook => hook(vnode))
         vnode.children.foreach {
           _.foreach { child =>
@@ -246,8 +245,7 @@ object init {
               val listeners = cbs.remove.length + 1
               val rm = createRmCb(ch.elm.get, listeners)
               cbs.remove.foreach(hook => hook(ch, rm))
-              ch.data
-                .flatMap(_.hook)
+              ch.data.hook
                 .flatMap(_.remove)
                 .fold(rm()) { hook => hook(ch, rm); () }
             case None => // text node
@@ -396,7 +394,7 @@ object init {
         vnode: VNode,
         insertedVNodeQueue: VNodeQueue
     ): Unit = {
-      val hook = vnode.data.flatMap(_.hook)
+      val hook = vnode.data.hook
       hook.flatMap(_.prepatch).foreach(hook => hook(oldVnode, vnode))
       val elm = oldVnode.elm.get
       vnode.elm = Some(elm)
@@ -405,13 +403,10 @@ object init {
 
       if (oldVnode != vnode) {
 
-        vnode.data.foreach { _ =>
-          cbs.update.foreach(hook => hook(oldVnode, vnode))
-          vnode.data
-            .flatMap(_.hook)
-            .flatMap(_.update)
-            .foreach(hook => hook(oldVnode, vnode))
-        }
+        cbs.update.foreach(hook => hook(oldVnode, vnode))
+        vnode.data.hook
+          .flatMap(_.update)
+          .foreach(hook => hook(oldVnode, vnode))
 
         vnode.text match {
           case None =>
@@ -461,8 +456,7 @@ object init {
       }
 
       insertedVNodeQueue.foreach(vnode =>
-        vnode.data
-          .flatMap(_.hook)
+        vnode.data.hook
           .flatMap(_.insert)
           .foreach(hook => hook(vnode))
       )
@@ -488,11 +482,12 @@ object init {
 
   }
 
-  private val emptyNode = VNode.create(Some(""), None, None, None, None)
+  private val emptyNode =
+    VNode.create(Some(""), VNodeData.empty, None, None, None)
 
   private def sameVnode(vnode1: VNode, vnode2: VNode): Boolean = {
     vnode1.key == vnode2.key &&
-    vnode1.data.flatMap(_.is) == vnode2.data.flatMap(_.is) &&
+    vnode1.data.is == vnode2.data.is &&
     vnode1.sel == vnode2.sel
   }
 

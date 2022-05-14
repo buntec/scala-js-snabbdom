@@ -100,12 +100,11 @@ object Styles {
 
     }
 
-    (oldVnode.data.map(_.style), vnode.data.map(_.style)) match {
-      case (Some(oldStyle), Some(style)) if oldStyle != style =>
-        update(oldStyle, style)
-      case (Some(oldStyle), None) => update(oldStyle, Map.empty)
-      case (None, Some(style))    => update(Map.empty, style)
-      case _                      => ()
+    val oldStyle = oldVnode.data.style
+    val style = vnode.data.style
+
+    if (oldStyle != style) {
+      update(oldStyle, style)
     }
 
   }

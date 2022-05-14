@@ -41,7 +41,7 @@ package snabbdom
 object fragment {
 
   def apply(children: Array[VNode]): VNode = {
-    VNode.create(None, None, Some(children), None, None)
+    VNode.create(None, VNodeData.empty, Some(children), None, None)
   }
 
 }

@@ -77,7 +77,7 @@ object h {
     val vnode =
       VNode.create(
         Some(sel),
-        Some(data.getOrElse(VNodeData())),
+        data.getOrElse(VNodeData.empty),
         children,
         text,
         None
@@ -93,9 +93,7 @@ object h {
 
   private[snabbdom] def addNS(vnode: VNode): Unit = {
     val ns = "http://www.w3.org/2000/svg"
-    vnode.data = Some(
-      vnode.data.fold(VNodeData(ns = Some(ns)))(_.copy(ns = Some(ns)))
-    )
+    vnode.data = vnode.data.copy(ns = Some(ns))
     if (vnode.sel.forall(_ != "foreignObject")) {
       vnode.children.foreach(_.map(addNS))
     }

@@ -59,8 +59,8 @@ class ThunkSuite extends BaseSuite {
     }
     val vnode = thunk("span", "num", numberInSpan, Seq(22))
     assertEquals(vnode.sel, Some("span"))
-    assertEquals(vnode.data.flatMap(_.key), Some("num"))
-    assertEquals(vnode.data.flatMap(_.args), Some(Seq(22)))
+    assertEquals(vnode.data.key, Some("num"))
+    assertEquals(vnode.data.args, Some(Seq(22)))
 
   }
 

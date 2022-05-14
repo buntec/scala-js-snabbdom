@@ -78,12 +78,11 @@ object Classes {
       }
     }
 
-    (oldVnode.data.map(_.classes), vnode.data.map(_.classes)) match {
-      case (Some(oldClass), Some(klass)) if oldClass != klass =>
-        update(oldClass, klass)
-      case (Some(oldClass), None) => update(oldClass, Map.empty)
-      case (None, Some(klass))    => update(Map.empty, klass)
-      case _                      => ()
+    val oldClasses = oldVnode.data.classes
+    val classes = vnode.data.classes
+
+    if (oldClasses != classes) {
+      update(oldClasses, classes)
     }
 
   }

@@ -500,7 +500,7 @@ class SnabbdomSuite extends BaseSuite {
       val prevElm = dom.document.createDocumentFragment()
       val nextVNode = VNode.create(
         Some(""),
-        None,
+        VNodeData.empty,
         Some(Array(h("div#id.class", Array(h("span", "Hi"))))),
         None,
         Some(prevElm)
@@ -607,14 +607,14 @@ class SnabbdomSuite extends BaseSuite {
       val onlyAttrs = dom.document.createElement("div")
       onlyAttrs.setAttribute("foo", "bar")
       assertEquals(
-        toVNode(onlyAttrs).data.map(_.attrs).flatMap(_.get("foo")),
+        toVNode(onlyAttrs).data.attrs.get("foo"),
         Some("bar")
       )
 
       val onlyDatasets = dom.document.createElement("div")
       onlyDatasets.setAttribute("data-foo", "bar")
       assertEquals(
-        toVNode(onlyDatasets).data.map(_.dataset).flatMap(_.get("foo")),
+        toVNode(onlyDatasets).data.dataset.get("foo"),
         Some("bar")
       )
 
@@ -622,7 +622,7 @@ class SnabbdomSuite extends BaseSuite {
         dom.document.createElement("div").asInstanceOf[dom.HTMLElement]
       onlyDatasets2.dataset("foo") = "bar"
       assertEquals(
-        toVNode(onlyDatasets).data.map(_.dataset).flatMap(_.get("foo")),
+        toVNode(onlyDatasets).data.dataset.get("foo"),
         Some("bar")
       )
 
@@ -631,7 +631,7 @@ class SnabbdomSuite extends BaseSuite {
       bothAttrsAndDatasets.setAttribute("foo", "bar")
       bothAttrsAndDatasets.setAttribute("data-foo", "bar")
       bothAttrsAndDatasets.dataset("again") = "again"
-      val data = toVNode(bothAttrsAndDatasets).data.get
+      val data = toVNode(bothAttrsAndDatasets).data
       assertEquals(data.attrs.get("foo"), Some("bar"))
       assertEquals(data.dataset.get("foo"), Some("bar"))
       assertEquals(data.dataset.get("again"), Some("again"))

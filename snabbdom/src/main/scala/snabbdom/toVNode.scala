@@ -81,7 +81,7 @@ object toVNode {
 
       val vnode = VNode.create(
         Some(sel),
-        Some(data),
+        data,
         Some(children.toArray),
         None,
         Some(node)
@@ -99,12 +99,12 @@ object toVNode {
 
     } else if (api.isText(node)) {
       val text = api.getTextContent(node).getOrElse("")
-      VNode.create(None, None, None, Some(text), Some(node))
+      VNode.create(None, VNodeData.empty, None, Some(text), Some(node))
     } else if (api.isComment(node)) {
       val text = api.getTextContent(node).getOrElse("")
-      VNode.create(Some("!"), None, None, Some(text), Some(node))
+      VNode.create(Some("!"), VNodeData.empty, None, Some(text), Some(node))
     } else {
-      VNode.create(Some(""), None, None, None, Some(node))
+      VNode.create(Some(""), VNodeData.empty, None, None, Some(node))
     }
 
   }
