@@ -404,9 +404,11 @@ object init {
       if (oldVnode != vnode) {
 
         cbs.update.foreach(hook => hook(oldVnode, vnode))
-        vnode.data.hook
-          .flatMap(_.update)
-          .foreach(hook => hook(oldVnode, vnode))
+
+        if (vnode.text.isEmpty || vnode.text != oldVnode.text)
+          vnode.data.hook
+            .flatMap(_.update)
+            .foreach(hook => hook(oldVnode, vnode))
 
         vnode.text match {
           case None =>
