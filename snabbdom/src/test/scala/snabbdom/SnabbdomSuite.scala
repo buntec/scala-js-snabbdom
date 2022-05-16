@@ -1357,7 +1357,7 @@ class SnabbdomSuite extends BaseSuite {
       patch(vnode0, vnode1)
       patch(vnode1, vnode2)
       assertEquals(result1.length, 1)
-      assertEquals(result2.length, 1)
+      assertEquals(result2.length, 0)
     }
 
     vnode0.test("calls `remove` listener") { vnode0 =>
