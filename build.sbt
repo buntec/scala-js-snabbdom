@@ -7,6 +7,12 @@ ThisBuild / organization := "io.github.buntec"
 ThisBuild / organizationName := "buntec"
 ThisBuild / tlSonatypeUseLegacyHost := false
 
+ThisBuild / developers := List(
+  tlGitHubDev("buntec", "Christoph Bunte"),
+  tlGitHubDev("armanbilge", "Arman Bilge"),
+  tlGitHubDev("davesmith00000", "Dave Smith")
+)
+
 ThisBuild / githubWorkflowBuildMatrixAdditions += "browser" -> List(
   "Chrome",
   "Firefox"
