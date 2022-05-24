@@ -163,9 +163,7 @@ object init {
               }
             case Some(children) =>
               children.foreach { child =>
-                if (child != null) { // TODO: is this necessary
-                  api.appendChild(elm, createElm(child, insertedVNodeQueue))
-                }
+                api.appendChild(elm, createElm(child, insertedVNodeQueue))
               }
           }
           vnode.data.hook.map { hooks =>
@@ -182,12 +180,11 @@ object init {
               vnode.elm = Some(elm)
               cbs.create.foreach(hook => hook(emptyNode, vnode))
               children.foreach { child =>
-                if (child != null) {
-                  api.appendChild(
-                    elm,
-                    createElm(child, insertedVNodeQueue)
-                  )
-                }
+                api.appendChild(
+                  elm,
+                  createElm(child, insertedVNodeQueue)
+                )
+
               }
           }
 
@@ -208,9 +205,7 @@ object init {
       var i = startIdx
       while (i <= endIdx) {
         val ch = vnodes(i)
-        if (ch != null) { // TODO: is this necessary?
-          api.insertBefore(parentElm, createElm(ch, insertedVNodeQueue), before)
-        }
+        api.insertBefore(parentElm, createElm(ch, insertedVNodeQueue), before)
         i += 1
       }
     }
@@ -221,9 +216,7 @@ object init {
         cbs.destroy.foreach(hook => hook(vnode))
         vnode.children.foreach {
           _.foreach { child =>
-            if (child != null) { // TODO: is this necessary?
-              invokeDestroyHook(child)
-            }
+            invokeDestroyHook(child)
           }
         }
       }
@@ -239,20 +232,17 @@ object init {
       var i = startIdx
       while (i <= endIdx) {
         val ch = vnodes(i)
-        if (ch != null) { // TODO: is this necessary?
-          ch.sel match {
-            case Some(_) =>
-              invokeDestroyHook(ch)
-              val listeners = cbs.remove.length + 1
-              val rm = createRmCb(ch.elm.get, listeners)
-              cbs.remove.foreach(hook => hook(ch, rm))
-              ch.data.hook
-                .flatMap(_.remove)
-                .fold(rm()) { hook => hook(ch, rm); () }
-            case None => // text node
-              api.removeChild(parentElm, ch.elm.get)
-
-          }
+        ch.sel match {
+          case Some(_) =>
+            invokeDestroyHook(ch)
+            val listeners = cbs.remove.length + 1
+            val rm = createRmCb(ch.elm.get, listeners)
+            cbs.remove.foreach(hook => hook(ch, rm))
+            ch.data.hook
+              .flatMap(_.remove)
+              .fold(rm()) { hook => hook(ch, rm); () }
+          case None => // text node
+            api.removeChild(parentElm, ch.elm.get)
         }
         i += 1
       }
@@ -273,14 +263,17 @@ object init {
         insertedVnodeQueue: VNodeQueue
     ): Unit = {
 
+      assert(oldCh.nonEmpty)
+      assert(newCh.nonEmpty)
+
       var oldStartIdx = 0
       var newStartIdx = 0
       var oldEndIdx = oldCh.length - 1
-      var oldStartVnode = getOrNull(oldCh, 0)
-      var oldEndVnode = getOrNull(oldCh, oldEndIdx)
+      var oldStartVnode = oldCh(0)
+      var oldEndVnode = oldCh(oldEndIdx)
       var newEndIdx = newCh.length - 1
-      var newStartVnode = getOrNull(newCh, 0)
-      var newEndVnode = getOrNull(newCh, newEndIdx)
+      var newStartVnode = newCh(0)
+      var newEndVnode = newCh(newEndIdx)
 
       var oldKeyToIdx: Map[String, Int] = null
       var elmToMove: VNode = null

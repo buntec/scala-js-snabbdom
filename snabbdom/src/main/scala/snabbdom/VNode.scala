@@ -71,7 +71,8 @@ object VNode {
       children: Option[Array[VNode]],
       text: Option[String],
       elm: Option[dom.Node]
-  ) = new VNode(sel, data, children, elm, text, data.key, None)
+  ) =
+    new VNode(sel, data, children.filter(_.nonEmpty), elm, text, data.key, None)
 
   def text(text: String) =
     new VNode(None, VNodeData.empty, None, None, Some(text), None, None)
