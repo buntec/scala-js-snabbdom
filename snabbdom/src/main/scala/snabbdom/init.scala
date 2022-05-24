@@ -175,7 +175,8 @@ object init {
 
         case None =>
           vnode.children match {
-            case None => vnode.elm = Some(api.createTextNode(vnode.text.get))
+            case None =>
+              vnode.elm = Some(api.createTextNode(vnode.text.getOrElse("")))
             case Some(children) =>
               val elm = api.createDocumentFragment
               vnode.elm = Some(elm)

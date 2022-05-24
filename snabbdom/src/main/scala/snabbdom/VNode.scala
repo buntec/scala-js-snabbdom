@@ -62,6 +62,9 @@ class VNode private (
 
 object VNode {
 
+  val empty =
+    new VNode(None, VNodeData.empty, None, None, Some(""), None, None)
+
   def create(
       sel: Option[String],
       data: VNodeData,
