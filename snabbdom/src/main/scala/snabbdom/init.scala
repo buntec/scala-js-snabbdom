@@ -248,14 +248,6 @@ object init {
       }
     }
 
-    def getOrNull(vnodes: Array[VNode], idx: Int): VNode = {
-      if (idx >= 0 && idx < vnodes.length) {
-        vnodes(idx)
-      } else {
-        null
-      }
-    }
-
     def updateChildren(
         parentElm: dom.Node,
         oldCh: Array[VNode],
@@ -276,34 +268,33 @@ object init {
       var newEndVnode = newCh(newEndIdx)
 
       var oldKeyToIdx: Map[String, Int] = null
-      var elmToMove: VNode = null
 
       while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
         if (oldStartVnode == null) {
           oldStartIdx += 1
-          oldStartVnode =
-            getOrNull(oldCh, oldStartIdx) // Vnode might have been moved left
+          // Vnode might have been moved left
+          if (oldStartIdx <= oldEndIdx)
+            oldStartVnode = oldCh(oldStartIdx)
         } else if (oldEndVnode == null) {
           oldEndIdx -= 1
-          oldEndVnode = getOrNull(oldCh, oldEndIdx)
-        } else if (newStartVnode == null) {
-          newStartIdx += 1
-          newStartVnode = getOrNull(newCh, newStartIdx)
-        } else if (newEndVnode == null) {
-          newEndIdx -= 1
-          newEndVnode = getOrNull(newCh, newEndIdx)
+          if (oldStartIdx <= oldEndIdx)
+            oldEndVnode = oldCh(oldEndIdx)
         } else if (sameVnode(oldStartVnode, newStartVnode)) {
           patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue)
           oldStartIdx += 1
-          oldStartVnode = getOrNull(oldCh, oldStartIdx)
+          if (oldStartIdx <= oldEndIdx)
+            oldStartVnode = oldCh(oldStartIdx)
           newStartIdx += 1
-          newStartVnode = getOrNull(newCh, newStartIdx)
+          if (newStartIdx <= newEndIdx)
+            newStartVnode = newCh(newStartIdx)
         } else if (sameVnode(oldEndVnode, newEndVnode)) {
           patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue)
           oldEndIdx -= 1
-          oldEndVnode = getOrNull(oldCh, oldEndIdx)
+          if (oldStartIdx <= oldEndIdx)
+            oldEndVnode = oldCh(oldEndIdx)
           newEndIdx -= 1
-          newEndVnode = getOrNull(newCh, newEndIdx)
+          if (newStartIdx <= newEndIdx)
+            newEndVnode = newCh(newEndIdx)
         } else if (sameVnode(oldStartVnode, newEndVnode)) {
           // Vnode moved right
           patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue)
@@ -313,9 +304,11 @@ object init {
             api.nextSibling(oldEndVnode.elm.get)
           )
           oldStartIdx += 1
-          oldStartVnode = getOrNull(oldCh, oldStartIdx)
+          if (oldStartIdx <= oldEndIdx)
+            oldStartVnode = oldCh(oldStartIdx)
           newEndIdx -= 1
-          newEndVnode = newCh(newEndIdx)
+          if (newStartIdx <= newEndIdx)
+            newEndVnode = newCh(newEndIdx)
         } else if (sameVnode(oldEndVnode, newStartVnode)) {
           // Vnode moved left
           patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue)
@@ -325,9 +318,11 @@ object init {
             oldStartVnode.elm
           )
           oldEndIdx -= 1
-          oldEndVnode = getOrNull(oldCh, oldEndIdx)
+          if (oldStartIdx <= oldEndIdx)
+            oldEndVnode = oldCh(oldEndIdx)
           newStartIdx += 1
-          newStartVnode = getOrNull(newCh, newStartIdx)
+          if (newStartIdx <= newEndIdx)
+            newStartVnode = newCh(newStartIdx)
         } else {
           if (oldKeyToIdx == null) {
             oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx)
@@ -344,7 +339,7 @@ object init {
                 oldStartVnode.elm
               )
             case Some(idxInOld) =>
-              elmToMove = oldCh(idxInOld)
+              val elmToMove = oldCh(idxInOld)
               if (elmToMove.sel != newStartVnode.sel) {
                 api.insertBefore(
                   parentElm,
@@ -353,7 +348,7 @@ object init {
                 )
               } else {
                 patchVnode(elmToMove, newStartVnode, insertedVnodeQueue)
-                oldCh(idxInOld) = null // undefined as any
+                oldCh(idxInOld) = null
                 api.insertBefore(
                   parentElm,
                   elmToMove.elm.get,
@@ -362,12 +357,15 @@ object init {
               }
           }
           newStartIdx += 1
-          newStartVnode = getOrNull(newCh, newStartIdx)
+          if (newStartIdx <= newEndIdx)
+            newStartVnode = newCh(newStartIdx)
         }
       }
 
       if (newStartIdx <= newEndIdx) {
-        val before = Option(getOrNull(newCh, newEndIdx + 1)).flatMap(_.elm)
+        val before =
+          if (newCh.length > newEndIdx + 1) newCh(newEndIdx + 1).elm
+          else None
         addVnodes(
           parentElm,
           before,
