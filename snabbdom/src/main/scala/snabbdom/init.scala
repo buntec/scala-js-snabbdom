@@ -109,17 +109,10 @@ object init {
       }
     }
 
-    def createElm(vnode: VNode, insertedVNodeQueue: VNodeQueue): VNode = {
+    def createElm(vnode0: VNode, insertedVNodeQueue: VNodeQueue): VNode = {
 
-      var data = vnode.data
-
-      for {
-        h <- data.hook
-        init0 <- h.init
-      } yield {
-        init0(vnode)
-        data = vnode.data
-      }
+      val vnode =
+        vnode0.data.hook.flatMap(_.init).fold(vnode0)(hook => hook(vnode0))
 
       val sel = vnode.sel
       sel match {
@@ -140,9 +133,9 @@ object init {
           } else {
             sel
           }
-          val elm = if (data.ns.isDefined) {
+          val elm = if (vnode.data.ns.isDefined) {
             api.createElementNS(
-              data.ns.get,
+              vnode.data.ns.get,
               tag
             ) // TODO what about data?
           } else {
@@ -385,11 +378,12 @@ object init {
 
     def patchVnode(
         oldVnode: VNode,
-        vnode0: VNode,
+        vnode00: VNode,
         insertedVNodeQueue: VNodeQueue
     ): VNode = {
-      val hook = vnode0.data.hook
-      hook.flatMap(_.prepatch).foreach(hook => hook(oldVnode, vnode0))
+      val hook = vnode00.data.hook
+      val vnode0 =
+        hook.flatMap(_.prepatch).fold(vnode00)(hook => hook(oldVnode, vnode00))
       val elm = oldVnode.elm.get
       val oldCh = oldVnode.children
 

@@ -73,9 +73,9 @@ class ThunkSuite extends BaseSuite {
     }
     val vnode1 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
     val vnode2 = h("div", Array(thunk("span", "num", numberInSpan, Seq(2))))
-    patch(vnode0, vnode1)
+    val vnode1p = patch(vnode0, vnode1)
     assertEquals(called, 1)
-    patch(vnode1, vnode2)
+    patch(vnode1p, vnode2)
     assertEquals(called, 2)
   }
 
@@ -90,9 +90,9 @@ class ThunkSuite extends BaseSuite {
       }
       val vnode1 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
       val vnode2 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
-      patch(vnode0, vnode1)
+      val vnode1p = patch(vnode0, vnode1)
       assertEquals(called, 1)
-      patch(vnode1, vnode2)
+      patch(vnode1p, vnode2)
       assertEquals(called, 1)
   }
 
@@ -105,9 +105,9 @@ class ThunkSuite extends BaseSuite {
     }
     val vnode1 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
     val vnode2 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1, 2))))
-    patch(vnode0, vnode1)
+    val vnode1p = patch(vnode0, vnode1)
     assertEquals(called, 1)
-    patch(vnode1, vnode2)
+    patch(vnode1p, vnode2)
     assertEquals(called, 2)
   }
 
@@ -125,9 +125,9 @@ class ThunkSuite extends BaseSuite {
     }
     val vnode1 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
     val vnode2 = h("div", Array(thunk("span", "num", numberInSpan2, Seq(1))))
-    patch(vnode0, vnode1)
+    val vnode1p = patch(vnode0, vnode1)
     assertEquals(called, 1)
-    patch(vnode1, vnode2)
+    patch(vnode1p, vnode2)
     assertEquals(called, 2)
   }
 
@@ -141,7 +141,8 @@ class ThunkSuite extends BaseSuite {
     val vnode1 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
     val vnode2 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
     val vnode3 = h("div", Array(thunk("span", "num", numberInSpan, Seq(2))))
-    val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+    val vnode1p = patch(vnode0, vnode1)
+    val elm1 = vnode1p.elm.get.asInstanceOf[dom.HTMLElement]
     assertEquals(called, 1)
     assertEquals(
       elm1.firstChild.asInstanceOf[dom.HTMLElement].tagName.toLowerCase,
@@ -151,7 +152,8 @@ class ThunkSuite extends BaseSuite {
       elm1.firstChild.asInstanceOf[dom.HTMLElement].innerHTML,
       "Number is 1"
     )
-    val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+    val vnode2p = patch(vnode1p, vnode2)
+    val elm2 = vnode2p.elm.get.asInstanceOf[dom.HTMLElement]
     assertEquals(
       elm2.firstChild.asInstanceOf[dom.HTMLElement].tagName.toLowerCase,
       "span"
@@ -161,7 +163,8 @@ class ThunkSuite extends BaseSuite {
       "Number is 1"
     )
     assertEquals(called, 1)
-    val elm3 = patch(vnode2, vnode3).elm.get.asInstanceOf[dom.HTMLElement]
+    val vnode3p = patch(vnode2p, vnode3)
+    val elm3 = vnode3p.elm.get.asInstanceOf[dom.HTMLElement]
     assertEquals(
       elm3.firstChild.asInstanceOf[dom.HTMLElement].tagName.toLowerCase,
       "span"
@@ -194,17 +197,20 @@ class ThunkSuite extends BaseSuite {
     val vnode2 = thunk("span", "num", numberInSpan, Seq(1))
     val vnode3 = thunk("span", "num", numberInSpan, Seq(2))
 
-    val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+    val vnode1p = patch(vnode0, vnode1)
+    val elm1 = vnode1p.elm.get.asInstanceOf[dom.HTMLElement]
     assertEquals(called, 1)
     assertEquals(elm1.tagName.toLowerCase, "span")
     assertEquals(elm1.innerHTML, "Number is 1")
 
-    val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+    val vnode2p = patch(vnode1p, vnode2)
+    val elm2 = vnode2p.elm.get.asInstanceOf[dom.HTMLElement]
     assertEquals(elm2.tagName.toLowerCase, "span")
     assertEquals(elm2.innerHTML, "Number is 1")
     assertEquals(called, 1)
 
-    val elm3 = patch(vnode2, vnode3).elm.get.asInstanceOf[dom.HTMLElement]
+    val vnode3p = patch(vnode2p, vnode3)
+    val elm3 = vnode3p.elm.get.asInstanceOf[dom.HTMLElement]
     assertEquals(elm3.tagName.toLowerCase, "span")
     assertEquals(elm3.innerHTML, "Number is 2")
     assertEquals(called, 2)
@@ -225,7 +231,8 @@ class ThunkSuite extends BaseSuite {
     val vnode1 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
     val vnode2 = h("div", Array(thunk("div", "oddEven", oddEven, Seq(4))))
 
-    val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+    val vnode1p = patch(vnode0, vnode1)
+    val elm1 = vnode1p.elm.get.asInstanceOf[dom.HTMLElement]
     assertEquals(
       elm1.firstChild.asInstanceOf[dom.HTMLElement].tagName.toLowerCase,
       "span"
@@ -235,7 +242,9 @@ class ThunkSuite extends BaseSuite {
       "Number is 1"
     )
 
-    val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+    val vnode2p = patch(vnode1p, vnode2)
+    val elm2 = vnode2p.elm.get.asInstanceOf[dom.HTMLElement]
+    println(elm2.innerHTML)
     assertEquals(
       elm2.firstChild.asInstanceOf[dom.HTMLElement].tagName.toLowerCase,
       "div"
@@ -262,11 +271,12 @@ class ThunkSuite extends BaseSuite {
     val vnode1 = thunk("span", "num", numberInSpan, Seq(1))
     val vnode2 = thunk("div", "oddEven", oddEven, Seq(4))
 
-    val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+    val vnode1p = patch(vnode0, vnode1)
+    val elm1 = vnode1p.elm.get.asInstanceOf[dom.HTMLElement]
     assertEquals(elm1.tagName.toLowerCase, "span")
     assertEquals(elm1.innerHTML, "Number is 1")
 
-    val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+    val elm2 = patch(vnode1p, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
     assertEquals(elm2.tagName.toLowerCase, "div")
     assertEquals(elm2.innerHTML, "Even: 4")
 
@@ -296,8 +306,8 @@ class ThunkSuite extends BaseSuite {
       )
     )
     val vnode2 = h("div", Array(h("div", "Foo"), h("div", "Foo")))
-    patch(vnode0, vnode1)
-    patch(vnode1, vnode2)
+    val vnode1p = patch(vnode0, vnode1)
+    patch(vnode1p, vnode2)
     assertEquals(called, 1)
   }
 
@@ -325,8 +335,8 @@ class ThunkSuite extends BaseSuite {
       )
     )
     val vnode2 = h("div", Array(h("div", "Foo"), h("div", "Foo")))
-    patch(vnode0, vnode1)
-    patch(vnode1, vnode2)
+    val vnode1p = patch(vnode0, vnode1)
+    patch(vnode1p, vnode2)
     assertEquals(called, 1)
   }
 

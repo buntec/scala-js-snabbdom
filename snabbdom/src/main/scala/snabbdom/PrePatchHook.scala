@@ -40,6 +40,6 @@ package snabbdom
 
 trait PrePatchHook {
 
-  def apply(oldVNode: VNode, vNode: VNode): Unit
+  def apply(oldVNode: VNode, vNode: VNode): VNode
 
 }

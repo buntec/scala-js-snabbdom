@@ -70,10 +70,15 @@ object thunk {
   }
 
   private def init0(thunk: VNode): VNode = {
-    val data = thunk.data
-    val fn = data.fn.get
-    val args = data.args.get
-    fn(args)
+    val fn = thunk.data.fn.get
+    val args = thunk.data.args.get
+    val vnode = fn(args)
+    thunk.copy(
+      children = vnode.children,
+      data = vnode.data.copy(fn = Some(fn), args = Some(args)),
+      text = vnode.text,
+      elm = vnode.elm
+    )
   }
 
   private def prepatch0(oldVnode: VNode, thunk: VNode): VNode = {
@@ -84,7 +89,13 @@ object thunk {
     val oldFn = old.fn
     val curFn = cur.fn
     if (oldFn != curFn || oldArgs != args) {
-      curFn.get(args.get)
+      val vnode = curFn.get(args.get)
+      thunk.copy(
+        children = vnode.children,
+        data = vnode.data.copy(fn = curFn, args = args),
+        text = vnode.text,
+        elm = vnode.elm
+      )
     } else {
       oldVnode
     }

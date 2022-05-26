@@ -1271,6 +1271,7 @@ class SnabbdomSuite extends BaseSuite {
         assertEquals(vnode1.children.map(_(1)), Some(oldVnode))
         assertEquals(vnode2.children.map(_(1)), Some(vnode))
         result.addOne(vnode)
+        vnode
       }
       lazy val vnode1 = h(
         "div",
@@ -1324,8 +1325,8 @@ class SnabbdomSuite extends BaseSuite {
             VNodeData(hook =
               Some(
                 Hooks(
-                  prepatch = Some((_, _) => preCb()),
-                  postpatch = Some((_, _) => postCb())
+                  prepatch = Some((_, vnode) => { preCb(); vnode }),
+                  postpatch = Some((_, vnode) => { postCb(); vnode })
                 )
               )
             ),
@@ -1345,8 +1346,8 @@ class SnabbdomSuite extends BaseSuite {
             VNodeData(hook =
               Some(
                 Hooks(
-                  prepatch = Some((_, _) => preCb()),
-                  postpatch = Some((_, _) => postCb())
+                  prepatch = Some((_, vnode) => { preCb(); vnode }),
+                  postpatch = Some((_, vnode) => { postCb(); vnode })
                 )
               )
             ),
@@ -1476,10 +1477,12 @@ class SnabbdomSuite extends BaseSuite {
       val init: InitHook = (vnode) => {
         assertEquals(vnode, vnode2)
         count += 1
+        vnode
       }
       val prepatch: PrePatchHook = (_, vnode) => {
         assertEquals(vnode, vnode1)
         count += 1
+        vnode
       }
       vnode1 = h(
         "div",
