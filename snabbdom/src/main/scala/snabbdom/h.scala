@@ -79,8 +79,7 @@ object h {
         Some(sel),
         data.getOrElse(VNodeData.empty),
         children,
-        text,
-        None
+        text
       )
     if (
       sel.startsWith("svg") &&
@@ -90,6 +89,19 @@ object h {
     } else {
       vnode
     }
+  }
+
+  private[snabbdom] def addNS(vnode: PatchedVNode): PatchedVNode = {
+    val ns = "http://www.w3.org/2000/svg"
+    vnode.copy(
+      data = vnode.data.copy(ns = Some(ns)),
+      children =
+        if (vnode.sel.forall(_ != "foreignObject"))
+          vnode.children.map(children =>
+            children.map((child: PatchedVNode) => addNS(child))
+          )
+        else vnode.children
+    )
   }
 
   private[snabbdom] def addNS(vnode: VNode): VNode = {

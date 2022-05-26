@@ -142,7 +142,7 @@ class ThunkSuite extends BaseSuite {
     val vnode2 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
     val vnode3 = h("div", Array(thunk("span", "num", numberInSpan, Seq(2))))
     val vnode1p = patch(vnode0, vnode1)
-    val elm1 = vnode1p.elm.get.asInstanceOf[dom.HTMLElement]
+    val elm1 = vnode1p.elm.asInstanceOf[dom.HTMLElement]
     assertEquals(called, 1)
     assertEquals(
       elm1.firstChild.asInstanceOf[dom.HTMLElement].tagName.toLowerCase,
@@ -153,7 +153,7 @@ class ThunkSuite extends BaseSuite {
       "Number is 1"
     )
     val vnode2p = patch(vnode1p, vnode2)
-    val elm2 = vnode2p.elm.get.asInstanceOf[dom.HTMLElement]
+    val elm2 = vnode2p.elm.asInstanceOf[dom.HTMLElement]
     assertEquals(
       elm2.firstChild.asInstanceOf[dom.HTMLElement].tagName.toLowerCase,
       "span"
@@ -164,7 +164,7 @@ class ThunkSuite extends BaseSuite {
     )
     assertEquals(called, 1)
     val vnode3p = patch(vnode2p, vnode3)
-    val elm3 = vnode3p.elm.get.asInstanceOf[dom.HTMLElement]
+    val elm3 = vnode3p.elm.asInstanceOf[dom.HTMLElement]
     assertEquals(
       elm3.firstChild.asInstanceOf[dom.HTMLElement].tagName.toLowerCase,
       "span"
@@ -182,7 +182,7 @@ class ThunkSuite extends BaseSuite {
       h("span.number", s"Hello $s")
     }
     val vnode1 = thunk("span.number", vnodeFn, Seq("World!"))
-    val elm = patch(vnode0, vnode1).elm.get
+    val elm = patch(vnode0, vnode1).elm
     assertEquals(elm.innerText, "Hello World!")
   }
 
@@ -198,19 +198,19 @@ class ThunkSuite extends BaseSuite {
     val vnode3 = thunk("span", "num", numberInSpan, Seq(2))
 
     val vnode1p = patch(vnode0, vnode1)
-    val elm1 = vnode1p.elm.get.asInstanceOf[dom.HTMLElement]
+    val elm1 = vnode1p.elm.asInstanceOf[dom.HTMLElement]
     assertEquals(called, 1)
     assertEquals(elm1.tagName.toLowerCase, "span")
     assertEquals(elm1.innerHTML, "Number is 1")
 
     val vnode2p = patch(vnode1p, vnode2)
-    val elm2 = vnode2p.elm.get.asInstanceOf[dom.HTMLElement]
+    val elm2 = vnode2p.elm.asInstanceOf[dom.HTMLElement]
     assertEquals(elm2.tagName.toLowerCase, "span")
     assertEquals(elm2.innerHTML, "Number is 1")
     assertEquals(called, 1)
 
     val vnode3p = patch(vnode2p, vnode3)
-    val elm3 = vnode3p.elm.get.asInstanceOf[dom.HTMLElement]
+    val elm3 = vnode3p.elm.asInstanceOf[dom.HTMLElement]
     assertEquals(elm3.tagName.toLowerCase, "span")
     assertEquals(elm3.innerHTML, "Number is 2")
     assertEquals(called, 2)
@@ -232,7 +232,7 @@ class ThunkSuite extends BaseSuite {
     val vnode2 = h("div", Array(thunk("div", "oddEven", oddEven, Seq(4))))
 
     val vnode1p = patch(vnode0, vnode1)
-    val elm1 = vnode1p.elm.get.asInstanceOf[dom.HTMLElement]
+    val elm1 = vnode1p.elm.asInstanceOf[dom.HTMLElement]
     assertEquals(
       elm1.firstChild.asInstanceOf[dom.HTMLElement].tagName.toLowerCase,
       "span"
@@ -243,7 +243,7 @@ class ThunkSuite extends BaseSuite {
     )
 
     val vnode2p = patch(vnode1p, vnode2)
-    val elm2 = vnode2p.elm.get.asInstanceOf[dom.HTMLElement]
+    val elm2 = vnode2p.elm.asInstanceOf[dom.HTMLElement]
     println(elm2.innerHTML)
     assertEquals(
       elm2.firstChild.asInstanceOf[dom.HTMLElement].tagName.toLowerCase,
@@ -272,11 +272,11 @@ class ThunkSuite extends BaseSuite {
     val vnode2 = thunk("div", "oddEven", oddEven, Seq(4))
 
     val vnode1p = patch(vnode0, vnode1)
-    val elm1 = vnode1p.elm.get.asInstanceOf[dom.HTMLElement]
+    val elm1 = vnode1p.elm.asInstanceOf[dom.HTMLElement]
     assertEquals(elm1.tagName.toLowerCase, "span")
     assertEquals(elm1.innerHTML, "Number is 1")
 
-    val elm2 = patch(vnode1p, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+    val elm2 = patch(vnode1p, vnode2).elm.asInstanceOf[dom.HTMLElement]
     assertEquals(elm2.tagName.toLowerCase, "div")
     assertEquals(elm2.innerHTML, "Even: 4")
 
@@ -284,7 +284,7 @@ class ThunkSuite extends BaseSuite {
 
   vnode0.test("invokes destroy hook on thunks") { vnode0 =>
     var called = 0
-    val destroyHook: DestroyHook = (_: VNode) => { called += 1 }
+    val destroyHook: DestroyHook = (_: PatchedVNode) => { called += 1 }
     val numberInSpan = (arr: Seq[Any]) => {
       val n = arr(0).asInstanceOf[Int]
       h(
@@ -313,7 +313,9 @@ class ThunkSuite extends BaseSuite {
 
   vnode0.test("invokes remove hook on thunks") { vnode0 =>
     var called = 0
-    val destroyHook: RemoveHook = (_: VNode, _: () => Unit) => { called += 1 }
+    val destroyHook: RemoveHook = (_: PatchedVNode, _: () => Unit) => {
+      called += 1
+    }
     val numberInSpan = (arr: Seq[Any]) => {
       val n = arr(0).asInstanceOf[Int]
       h(

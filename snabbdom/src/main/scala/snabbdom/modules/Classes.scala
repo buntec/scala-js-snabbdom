@@ -45,20 +45,35 @@ object Classes {
 
   val module: Module = Module().copy(
     create = Some(new CreateHook {
-      override def apply(vNode: VNode): Unit =
-        updateClasses(None, vNode)
+      override def apply(vNode: PatchedVNode): Unit =
+        setClasses(vNode)
     }),
     update = Some(new UpdateHook {
-      override def apply(oldVNode: VNode, vNode: VNode): VNode = {
-        updateClasses(Some(oldVNode), vNode)
+      override def apply(oldVNode: PatchedVNode, vNode: VNode): VNode = {
+        updateClasses(oldVNode, vNode)
         vNode
       }
     })
   )
 
-  private def updateClasses(oldVnode: Option[VNode], vnode: VNode): Unit = {
+  private def setClasses(vnode: PatchedVNode): Unit = {
 
-    val elm = vnode.elm.get.asInstanceOf[dom.Element]
+    val elm = vnode.elm.asInstanceOf[dom.Element]
+    val classes = vnode.data.classes
+
+    classes.foreach { case (name, cur) =>
+      if (cur) {
+        elm.classList.add(name)
+      } else {
+        elm.classList.remove(name)
+      }
+    }
+
+  }
+
+  private def updateClasses(oldVnode: PatchedVNode, vnode: VNode): VNode = {
+
+    val elm = oldVnode.elm.asInstanceOf[dom.Element]
 
     def update(
         oldClass: Map[String, Boolean],
@@ -80,12 +95,13 @@ object Classes {
       }
     }
 
-    val oldClasses = oldVnode.map(_.data.classes).getOrElse(Map.empty)
+    val oldClasses = oldVnode.data.classes
     val classes = vnode.data.classes
 
     if (oldClasses != classes) {
       update(oldClasses, classes)
     }
+    vnode
 
   }
 

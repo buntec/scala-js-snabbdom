@@ -38,22 +38,16 @@
 
 package snabbdom
 
-import org.scalajs.dom
-
 case class VNode private (
     sel: Option[String],
     data: VNodeData,
     children: Option[Array[VNode]],
-    elm: Option[
-      dom.Node
-    ], // can't be `dom.Element` unfortunately b/c of fragments
     text: Option[String],
-    key: Option[KeyValue],
-    listener: Option[Listener]
+    key: Option[KeyValue]
 ) {
 
   override def toString: String =
-    s"sel=$sel, data=$data, text=$text, key=$key, children=$children, elm=$elm"
+    s"sel=$sel, data=$data, text=$text, key=$key, children=$children"
 
   private[snabbdom] def isTextNode: Boolean =
     sel.isEmpty && children.isEmpty && text.isDefined
@@ -62,20 +56,17 @@ case class VNode private (
 
 object VNode {
 
-  def empty() =
-    new VNode(None, VNodeData.empty, None, None, Some(""), None, None)
+  val empty = VNode(None, VNodeData.empty, None, Some(""), None)
 
   def create(
       sel: Option[String],
       data: VNodeData,
       children: Option[Array[VNode]],
-      text: Option[String],
-      elm: Option[dom.Node]
-  ) =
-    new VNode(sel, data, children.filter(_.nonEmpty), elm, text, data.key, None)
+      text: Option[String]
+  ) = new VNode(sel, data, children.filter(_.nonEmpty), text, data.key)
 
   def text(text: String) =
-    new VNode(None, VNodeData.empty, None, None, Some(text), None, None)
+    new VNode(None, VNodeData.empty, None, Some(text), None)
 
   implicit def fromString(s: String): VNode = text(s)
 

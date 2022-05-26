@@ -65,7 +65,7 @@ class AttributesSuite extends BaseSuite {
           )
         )
       )
-      val elm = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
+      val elm = patch(vnode0, vnode1).elm.asInstanceOf[dom.Element]
       assertEquals(elm.getAttribute("href"), "/foo")
       assertEquals(elm.getAttribute("minlength"), "1")
       assertEquals(elm.hasAttribute("selected"), true)
@@ -80,12 +80,12 @@ class AttributesSuite extends BaseSuite {
       val vnode1 = h("div", cachedAttrs)
       val vnode2 = h("div", cachedAttrs)
       val vnode1p = patch(vnode0, vnode1)
-      val elm1 = vnode1p.elm.get.asInstanceOf[dom.Element]
+      val elm1 = vnode1p.elm.asInstanceOf[dom.Element]
       assertEquals(elm1.getAttribute("href"), "/foo")
       assertEquals(elm1.getAttribute("minlength"), "1")
       assertEquals(elm1.hasAttribute("selected"), true)
 
-      val elm2 = patch(vnode1p, vnode2).elm.get.asInstanceOf[dom.Element]
+      val elm2 = patch(vnode1p, vnode2).elm.asInstanceOf[dom.Element]
       assertEquals(elm2.getAttribute("href"), "/foo")
       assertEquals(elm2.getAttribute("minlength"), "1")
       assertEquals(elm2.hasAttribute("selected"), true)
@@ -104,7 +104,7 @@ class AttributesSuite extends BaseSuite {
             )
           )
         )
-        val elm = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
+        val elm = patch(vnode0, vnode1).elm.asInstanceOf[dom.Element]
         assertEquals(elm.hasAttribute("href"), true)
         assertEquals(elm.hasAttribute("minlength"), true)
         assertEquals(elm.hasAttribute("value"), true)
@@ -114,7 +114,7 @@ class AttributesSuite extends BaseSuite {
     vnode0.test("are set correctly when namespaced") { vnode0 =>
       val vnode1 =
         h("div", VNodeData(attrs = Map("xlink:href" -> "#foo")))
-      val elm = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
+      val elm = patch(vnode0, vnode1).elm.asInstanceOf[dom.Element]
       assertEquals(
         elm.getAttributeNS("http://www.w3.org/1999/xlink", "href"),
         "#foo"
@@ -131,7 +131,7 @@ class AttributesSuite extends BaseSuite {
         VNodeData(),
         Array[VNode]("Hello")
       )
-      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+      val elm1 = patch(vnode0, vnode1).elm.asInstanceOf[dom.HTMLElement]
       assertEquals(elm1.tagName, "DIV")
       assertEquals(elm1.id, "myId")
       assertEquals(elm1.className, "myClass")
@@ -154,7 +154,7 @@ class AttributesSuite extends BaseSuite {
             )
           )
         )
-        val elm = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+        val elm = patch(vnode0, vnode1).elm.asInstanceOf[dom.HTMLElement]
         assertEquals(elm.hasAttribute("required"), true)
         assertEquals(elm.getAttribute("required"), "")
         assertEquals(elm.hasAttribute("readonly"), true)
@@ -165,7 +165,7 @@ class AttributesSuite extends BaseSuite {
 
     vnode0.test("is omitted if the value is false") { vnode0 =>
       val vnode1 = h("div", VNodeData(attrs = Map("required" -> false)))
-      val elm = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+      val elm = patch(vnode0, vnode1).elm.asInstanceOf[dom.HTMLElement]
       assertEquals(elm.hasAttribute("required"), false)
       assertEquals(elm.getAttribute("required"), null)
     }
@@ -176,7 +176,7 @@ class AttributesSuite extends BaseSuite {
           "div",
           VNodeData(attrs = Map("readonly" -> 0, "noresize" -> ""))
         )
-      val elm = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+      val elm = patch(vnode0, vnode1).elm.asInstanceOf[dom.HTMLElement]
       assertEquals(elm.hasAttribute("readonly"), true)
       assertEquals(elm.hasAttribute("noresize"), true)
     }
@@ -191,12 +191,12 @@ class AttributesSuite extends BaseSuite {
     ) { vnode0 =>
       val vnode1 = h("div", VNodeData(attrs = Map("constructor" -> true)))
       val vnode1p = patch(vnode0, vnode1)
-      val elm1 = vnode1p.elm.get.asInstanceOf[dom.Element]
+      val elm1 = vnode1p.elm.asInstanceOf[dom.Element]
       assertEquals(elm1.hasAttribute("constructor"), true)
       assertEquals(elm1.getAttribute("constructor"), "")
       val vnode2 =
         h("div", VNodeData(attrs = Map("constructor" -> false)))
-      val elm2 = patch(vnode1p, vnode2).elm.get.asInstanceOf[dom.Element]
+      val elm2 = patch(vnode1p, vnode2).elm.asInstanceOf[dom.Element]
       assertEquals(elm2.hasAttribute("constructor"), false)
 
     }

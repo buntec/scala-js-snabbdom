@@ -61,8 +61,9 @@ object thunk {
   ): VNode = {
     val hook = Hooks().copy(
       init = Some((vNode: VNode) => init0(vNode)),
-      prepatch =
-        Some((oldVNode: VNode, vNode: VNode) => prepatch0(oldVNode, vNode))
+      prepatch = Some((oldVNode: PatchedVNode, vNode: VNode) =>
+        prepatch0(oldVNode, vNode)
+      )
     )
     val data =
       VNodeData(key = key, fn = Some(fn), args = Some(args), hook = Some(hook))
@@ -76,12 +77,11 @@ object thunk {
     thunk.copy(
       children = vnode.children,
       data = vnode.data.copy(fn = Some(fn), args = Some(args)),
-      text = vnode.text,
-      elm = vnode.elm
+      text = vnode.text
     )
   }
 
-  private def prepatch0(oldVnode: VNode, thunk: VNode): VNode = {
+  private def prepatch0(oldVnode: PatchedVNode, thunk: VNode): VNode = {
     val old = oldVnode.data
     val cur = thunk.data
     val oldArgs = old.args
@@ -93,11 +93,10 @@ object thunk {
       thunk.copy(
         children = vnode.children,
         data = vnode.data.copy(fn = curFn, args = args),
-        text = vnode.text,
-        elm = vnode.elm
+        text = vnode.text
       )
     } else {
-      oldVnode
+      oldVnode.toVNode
     }
   }
 

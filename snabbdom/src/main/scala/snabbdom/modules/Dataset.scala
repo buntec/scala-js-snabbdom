@@ -46,12 +46,12 @@ object Dataset {
 
   val module: Module = Module().copy(
     create = Some(new CreateHook {
-      override def apply(vNode: VNode): Unit =
-        updateDataset(None, vNode)
+      override def apply(vNode: PatchedVNode): Unit =
+        setDataset(vNode)
     }),
     update = Some(new UpdateHook {
-      override def apply(oldVNode: VNode, vNode: VNode): VNode = {
-        updateDataset(Some(oldVNode), vNode)
+      override def apply(oldVNode: PatchedVNode, vNode: VNode): VNode = {
+        updateDataset(oldVNode, vNode)
         vNode
       }
     })
@@ -59,10 +59,30 @@ object Dataset {
 
   private val CAPS_REGEX = "[A-Z]"
 
-  private def updateDataset(oldVnode: Option[VNode], vnode: VNode): Unit = {
+  private def setDataset(vnode: PatchedVNode): Unit = {
 
-    val elm = vnode.elm.get.asInstanceOf[dom.HTMLElement]
-    val oldDataset = oldVnode.map(_.data.dataset).getOrElse(Map.empty)
+    val elm = vnode.elm.asInstanceOf[dom.HTMLElement]
+    val d = elm.dataset
+    val dataset = vnode.data.dataset
+
+    dataset.foreach { case (key, value) =>
+      if (!js.isUndefined(d)) { // TODO: does this make sense?
+        d += (key -> value)
+      } else {
+        elm.setAttribute(
+          "data-" + key.replaceAll(CAPS_REGEX, "-$&").toLowerCase(),
+          value
+        )
+      }
+
+    }
+
+  }
+
+  private def updateDataset(oldVnode: PatchedVNode, vnode: VNode): Unit = {
+
+    val elm = oldVnode.elm.asInstanceOf[dom.HTMLElement]
+    val oldDataset = oldVnode.data.dataset
     val dataset = vnode.data.dataset
     val d = elm.dataset
 

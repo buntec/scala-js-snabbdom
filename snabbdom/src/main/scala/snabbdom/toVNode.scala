@@ -44,7 +44,7 @@ import scala.collection.mutable
 
 object toVNode {
 
-  def apply(node: dom.Node, domApi: Option[DomApi] = None): VNode = {
+  def apply(node: dom.Node, domApi: Option[DomApi] = None): PatchedVNode = {
 
     val api = domApi.getOrElse(DomApi.apply)
 
@@ -57,7 +57,7 @@ object toVNode {
       val attrs = mutable.Map.empty[String, String]
       val datasets = mutable.Map.empty[String, String]
 
-      val children = new mutable.ArrayBuffer[VNode]
+      val children = new mutable.ArrayBuffer[PatchedVNode]
       val elmAttrs = elm.attributes
       val elmChildren = elm.childNodes
       elmAttrs.foreach { case (_, attr) =>
@@ -79,12 +79,14 @@ object toVNode {
           dataset = if (datasets.nonEmpty) datasets.toMap else Map.empty
         )
 
-      val vnode = VNode.create(
+      val vnode = PatchedVNode(
         Some(sel),
         data,
         Some(children.toArray),
         None,
-        Some(node)
+        None,
+        node,
+        None
       )
 
       if (
@@ -99,12 +101,20 @@ object toVNode {
 
     } else if (api.isText(node)) {
       val text = api.getTextContent(node).getOrElse("")
-      VNode.create(None, VNodeData.empty, None, Some(text), Some(node))
+      PatchedVNode(None, VNodeData.empty, None, Some(text), None, node, None)
     } else if (api.isComment(node)) {
       val text = api.getTextContent(node).getOrElse("")
-      VNode.create(Some("!"), VNodeData.empty, None, Some(text), Some(node))
+      PatchedVNode(
+        Some("!"),
+        VNodeData.empty,
+        None,
+        Some(text),
+        None,
+        node,
+        None
+      )
     } else {
-      VNode.create(Some(""), VNodeData.empty, None, None, Some(node))
+      PatchedVNode(Some(""), VNodeData.empty, None, None, None, node, None)
     }
 
   }

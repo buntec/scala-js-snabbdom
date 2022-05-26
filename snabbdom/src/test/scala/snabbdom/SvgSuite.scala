@@ -55,7 +55,7 @@ class SvgSuite extends BaseSuite {
   vnode0.test("removes child svg elements") { vnode0 =>
     val a = h("svg", VNodeData(), Array(h("g"), h("g")))
     val b = h("svg", VNodeData(), Array(h("g")))
-    val result = patch(patch(vnode0, a), b).elm.get.asInstanceOf[dom.SVGElement]
+    val result = patch(patch(vnode0, a), b).elm.asInstanceOf[dom.SVGElement]
     assertEquals(result.childNodes.length, 1)
   }
 
@@ -73,7 +73,7 @@ class SvgSuite extends BaseSuite {
         )
       )
     )
-    val result = patch(vnode0, a).elm.get.asInstanceOf[dom.SVGElement]
+    val result = patch(vnode0, a).elm.asInstanceOf[dom.SVGElement]
     assertEquals(result.childNodes.length, 1)
     val child = result.childNodes(0).asInstanceOf[dom.SVGUseElement]
     assertEquals(child.getAttribute("xlink:href"), testUrl)
@@ -88,7 +88,7 @@ class SvgSuite extends BaseSuite {
       VNodeData(attrs = Map("xml:lang" -> testAttrValue)),
       Array[VNode]()
     )
-    val result = patch(vnode0, a).elm.get.asInstanceOf[dom.SVGElement]
+    val result = patch(vnode0, a).elm.asInstanceOf[dom.SVGElement]
     assertEquals(result.getAttributeNS(xmlNS, "lang"), testAttrValue)
     assertEquals(result.getAttribute("xml:lang"), testAttrValue)
   }

@@ -56,7 +56,7 @@ object Example {
       )
     )
     // Patch into empty DOM element this modifies the DOM as a side effect
-    patch(container, vnode);
+    val vnodep = patch(container, vnode);
 
     val newVnode = h(
       "div#container.two.classes",
@@ -79,7 +79,7 @@ object Example {
     )
 
     // Second `patch` invocation
-    patch(vnode, newVnode)
+    patch(vnodep, newVnode)
 
     ()
 

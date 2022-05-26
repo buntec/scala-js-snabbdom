@@ -40,6 +40,6 @@ package snabbdom
 
 trait UpdateHook {
 
-  def apply(oldVNode: VNode, vNode: VNode): VNode
+  def apply(oldVNode: PatchedVNode, vNode: VNode): VNode
 
 }

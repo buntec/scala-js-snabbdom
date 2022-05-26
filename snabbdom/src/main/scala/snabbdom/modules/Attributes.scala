@@ -45,12 +45,14 @@ object Attributes {
 
   val module: Module = Module().copy(
     create = Some(new CreateHook {
-      override def apply(vNode: VNode): Unit =
-        updateAttrs(None, vNode)
+      override def apply(vNode: PatchedVNode): Unit = setAttrs(vNode)
     }),
     update = Some(new UpdateHook {
-      override def apply(oldVNode: VNode, vNode: VNode): VNode = {
-        updateAttrs(Some(oldVNode), vNode)
+      override def apply(
+          oldVNode: PatchedVNode,
+          vNode: VNode
+      ): VNode = {
+        updateAttrs(oldVNode, vNode)
         vNode
       }
     })
@@ -59,9 +61,37 @@ object Attributes {
   private val xlinkNS = "http://www.w3.org/1999/xlink"
   private val xmlNS = "http://www.w3.org/XML/1998/namespace"
 
-  private def updateAttrs(oldVnode: Option[VNode], vnode: VNode): Unit = {
+  private def setAttrs(vnode: PatchedVNode): Unit = {
 
-    val elm = vnode.elm.get.asInstanceOf[dom.Element]
+    val elm = vnode.elm.asInstanceOf[dom.Element]
+
+    val attrs = vnode.data.attrs
+    attrs.foreach { case (key, cur) =>
+      if (cur == true) {
+        elm.setAttribute(key, "")
+      } else if (cur == false) {
+        elm.removeAttribute(key)
+      } else {
+        if (key.charAt(0) != 'x') {
+          elm.setAttribute(key, cur.toString)
+        } else if (key.length > 3 && key.charAt(3) == ':') {
+          elm.setAttributeNS(xmlNS, key, cur.toString)
+        } else if (key.length > 5 && key.charAt(5) == ':') {
+          elm.setAttributeNS(xlinkNS, key, cur.toString)
+        } else {
+          elm.setAttribute(key, cur.toString)
+        }
+      }
+    }
+
+  }
+
+  private def updateAttrs(
+      oldVnode: PatchedVNode,
+      vnode: VNode
+  ): Unit = {
+
+    val elm = oldVnode.elm.asInstanceOf[dom.Element]
 
     def update(
         oldAttrs: Map[String, AttrValue],
@@ -95,7 +125,7 @@ object Attributes {
       }
     }
 
-    val oldAttrs = oldVnode.map(_.data.attrs).getOrElse(Map.empty)
+    val oldAttrs = oldVnode.data.attrs
     val attrs = vnode.data.attrs
 
     if (oldAttrs != attrs) {

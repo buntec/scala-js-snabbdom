@@ -45,20 +45,36 @@ object Props {
 
   val module: Module = Module().copy(
     create = Some(new CreateHook {
-      override def apply(vNode: VNode): Unit =
-        updateProps(None, vNode)
+      override def apply(vNode: PatchedVNode): Unit =
+        setProps(vNode)
     }),
     update = Some(new UpdateHook {
-      override def apply(oldVNode: VNode, vNode: VNode): VNode = {
-        updateProps(Some(oldVNode), vNode)
+      override def apply(oldVNode: PatchedVNode, vNode: VNode): VNode = {
+        updateProps(oldVNode, vNode)
         vNode
       }
     })
   )
 
-  private def updateProps(oldVnode: Option[VNode], vnode: VNode): Unit = {
-    val elm = vnode.elm.get
-    val oldProps = oldVnode.map(_.data.props).getOrElse(Map.empty)
+  private def setProps(vnode: PatchedVNode): Unit = {
+
+    val elm = vnode.elm
+    val props = vnode.data.props
+
+    props.foreach { case (key, cur) =>
+      if (
+        (key != "value" || elm
+          .asInstanceOf[js.Dictionary[Any]]
+          .get(key)
+          .forall(_ != cur))
+      ) { elm.asInstanceOf[js.Dictionary[Any]](key) = cur }
+    }
+
+  }
+
+  private def updateProps(oldVnode: PatchedVNode, vnode: VNode): Unit = {
+    val elm = oldVnode.elm
+    val oldProps = oldVnode.data.props
     val props = vnode.data.props
 
     def update(

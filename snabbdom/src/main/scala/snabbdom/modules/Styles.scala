@@ -47,20 +47,41 @@ object Styles {
 
   val module: Module = Module().copy(
     create = Some(new CreateHook {
-      override def apply(vNode: VNode): Unit =
-        updateStyle(None, vNode)
+      override def apply(vNode: PatchedVNode): Unit =
+        setStyle(vNode)
     }),
     update = Some(new UpdateHook {
-      override def apply(oldVNode: VNode, vNode: VNode): VNode = {
-        updateStyle(Some(oldVNode), vNode)
+      override def apply(oldVNode: PatchedVNode, vNode: VNode): VNode = {
+        updateStyle(oldVNode, vNode)
         vNode
       }
     })
   )
 
-  private def updateStyle(oldVnode: Option[VNode], vnode: VNode): Unit = {
+  private def setStyle(vnode: PatchedVNode): Unit = {
+    val elm = vnode.elm
+    val style = vnode.data.style
 
-    val elm = vnode.elm.get
+    style.foreach { case (name, cur) =>
+      if (name(0) == '-' && name(1) == '-') {
+
+        elm.asInstanceOf[dom.HTMLElement].style.setProperty(name, cur)
+
+      } else {
+
+        elm
+          .asInstanceOf[dom.HTMLElement]
+          .style
+          .asInstanceOf[js.Dictionary[String]](name) = cur
+
+      }
+    }
+
+  }
+
+  private def updateStyle(oldVnode: PatchedVNode, vnode: VNode): Unit = {
+
+    val elm = oldVnode.elm
 
     def update(
         oldStyle: Map[String, StyleValue],
@@ -102,7 +123,7 @@ object Styles {
 
     }
 
-    val oldStyle = oldVnode.map(_.data.style).getOrElse(Map.empty)
+    val oldStyle = oldVnode.data.style
     val style = vnode.data.style
 
     if (oldStyle != style) {

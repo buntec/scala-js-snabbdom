@@ -63,7 +63,7 @@ object init {
       domApi: Option[DomApi] = None
   ): Patch = {
 
-    type VNodeQueue = mutable.ArrayBuffer[VNode]
+    type VNodeQueue = mutable.ArrayBuffer[PatchedVNode]
 
     val api = domApi.getOrElse(DomApi.apply)
 
@@ -79,23 +79,25 @@ object init {
         )
     }
 
-    def emptyNodeAt(elm: dom.Element): VNode = {
+    def emptyNodeAt(elm: dom.Element): PatchedVNode = {
       val id = Option(elm.id).filter(_.nonEmpty).fold("")("#" + _)
       val classes = Option(elm.getAttribute("class"))
       val c = classes.map("." + _.split(" ").mkString(".")).getOrElse("")
 
-      VNode.create(
+      PatchedVNode(
         Some(api.tagName(elm).toLowerCase + id + c),
         VNodeData.empty,
         None,
         None,
-        Some(elm)
+        None,
+        elm,
+        None
       )
 
     }
 
-    def emptyDocumentFragmentAt(frag: dom.DocumentFragment): VNode = {
-      VNode.create(None, VNodeData.empty, None, None, Some(frag))
+    def emptyDocumentFragmentAt(frag: dom.DocumentFragment): PatchedVNode = {
+      PatchedVNode(None, VNodeData.empty, None, None, None, frag, None)
     }
 
     def createRmCb(childElm: dom.Node, listeners: Int): () => Unit = {
@@ -109,7 +111,10 @@ object init {
       }
     }
 
-    def createElm(vnode0: VNode, insertedVNodeQueue: VNodeQueue): VNode = {
+    def createElm(
+        vnode0: VNode,
+        insertedVNodeQueue: VNodeQueue
+    ): PatchedVNode = {
 
       val vnode =
         vnode0.data.hook.flatMap(_.init).fold(vnode0)(hook => hook(vnode0))
@@ -118,9 +123,15 @@ object init {
       sel match {
         case Some("!") =>
           val text = vnode.text.getOrElse("")
-          vnode.copy(
-            text = Some(text),
-            elm = Some(api.createComment(text))
+          val elm = api.createComment(text)
+          PatchedVNode(
+            vnode.sel,
+            vnode.data,
+            None, // comment nodes can't have children
+            Some(text),
+            vnode.key,
+            elm,
+            None
           )
 
         case Some(sel) =>
@@ -141,10 +152,16 @@ object init {
           } else {
             api.createElement(tag) // TODO what about data argument?
           }
-          val vnode0 = vnode.copy(
-            elm = Some(elm),
-            children =
-              vnode.children.map(_.map(ch => createElm(ch, insertedVNodeQueue)))
+          val vnode0 = PatchedVNode(
+            vnode.key,
+            vnode.data,
+            children = vnode.children.map(
+              _.map(ch => createElm(ch, insertedVNodeQueue))
+            ),
+            text = vnode.text,
+            key = vnode.key,
+            elm = elm,
+            None
           )
           if (hash < dot) elm.setAttribute("id", sel.slice(hash + 1, dot))
           if (dotIdx > 0) {
@@ -163,7 +180,7 @@ object init {
               }
             case Some(children) =>
               children.foreach { child =>
-                api.appendChild(elm, child.elm.get)
+                api.appendChild(elm, child.elm)
               }
           }
           vnode0.data.hook.map { hooks =>
@@ -175,22 +192,34 @@ object init {
         case None =>
           vnode.children match {
             case None =>
-              vnode.copy(elm =
-                Some(api.createTextNode(vnode.text.getOrElse("")))
+              PatchedVNode(
+                vnode.sel,
+                vnode.data,
+                None,
+                vnode.text,
+                vnode.key,
+                api.createTextNode(vnode.text.getOrElse("")),
+                None
               )
+
             case Some(children) =>
               val elm = api.createDocumentFragment
-              val vnode0 = vnode.copy(
-                elm = Some(elm),
+              val vnode0 = PatchedVNode(
+                vnode.sel,
+                vnode.data,
                 children =
-                  Some(children.map(ch => createElm(ch, insertedVNodeQueue)))
+                  Some(children.map(ch => createElm(ch, insertedVNodeQueue))),
+                text = vnode.text,
+                key = vnode.key,
+                elm = elm,
+                None
               )
               cbs.create.foreach(hook => hook(vnode0))
               vnode0.children.foreach { children =>
                 children.foreach(ch =>
                   api.appendChild(
                     elm,
-                    ch.elm.get
+                    ch.elm
                   )
                 )
               }
@@ -208,20 +237,19 @@ object init {
         startIdx: Int,
         endIdx: Int,
         insertedVNodeQueue: VNodeQueue
-    ): Unit = {
-      var i = startIdx
-      while (i <= endIdx) {
-        vnodes(i) = createElm(vnodes(i), insertedVNodeQueue)
+    ): Array[PatchedVNode] = {
+      vnodes.slice(startIdx, endIdx + 1).map { vnode =>
+        val pvnode = createElm(vnode, insertedVNodeQueue)
         api.insertBefore(
           parentElm,
-          vnodes(i).elm.get,
+          pvnode.elm,
           before
         )
-        i += 1
+        pvnode
       }
     }
 
-    def invokeDestroyHook(vnode: VNode): Unit = {
+    def invokeDestroyHook(vnode: PatchedVNode): Unit = {
       if (!vnode.isTextNode) { // detroy hooks should not be called on text nodes
         vnode.data.hook.flatMap(_.destroy).foreach(hook => hook(vnode))
         cbs.destroy.foreach(hook => hook(vnode))
@@ -235,7 +263,7 @@ object init {
 
     def removeVnodes(
         parentElm: dom.Node,
-        vnodes: Array[VNode],
+        vnodes: Array[PatchedVNode],
         startIdx: Int,
         endIdx: Int
     ): Unit = {
@@ -247,13 +275,13 @@ object init {
           case Some(_) =>
             invokeDestroyHook(ch)
             val listeners = cbs.remove.length + 1
-            val rm = createRmCb(ch.elm.get, listeners)
+            val rm = createRmCb(ch.elm, listeners)
             cbs.remove.foreach(hook => hook(ch, rm))
             ch.data.hook
               .flatMap(_.remove)
               .fold(rm()) { hook => hook(ch, rm); () }
           case None => // text node
-            api.removeChild(parentElm, ch.elm.get)
+            api.removeChild(parentElm, ch.elm)
         }
         i += 1
       }
@@ -261,13 +289,15 @@ object init {
 
     def updateChildren(
         parentElm: dom.Node,
-        oldCh: Array[VNode],
+        oldCh: Array[PatchedVNode],
         newCh: Array[VNode],
         insertedVnodeQueue: VNodeQueue
-    ): Unit = {
+    ): Array[PatchedVNode] = {
 
       assert(oldCh.nonEmpty)
       assert(newCh.nonEmpty)
+
+      val result = Array.ofDim[PatchedVNode](newCh.length)
 
       var oldStartIdx = 0
       var newStartIdx = 0
@@ -283,7 +313,7 @@ object init {
         } else if (oldCh(oldEndIdx) == null) {
           oldEndIdx -= 1
         } else if (sameVnode(oldCh(oldStartIdx), newCh(newStartIdx))) {
-          newCh(newStartIdx) = patchVnode(
+          result(newStartIdx) = patchVnode(
             oldCh(oldStartIdx),
             newCh(newStartIdx),
             insertedVnodeQueue
@@ -291,29 +321,29 @@ object init {
           oldStartIdx += 1
           newStartIdx += 1
         } else if (sameVnode(oldCh(oldEndIdx), newCh(newEndIdx))) {
-          newCh(newEndIdx) =
+          result(newEndIdx) =
             patchVnode(oldCh(oldEndIdx), newCh(newEndIdx), insertedVnodeQueue)
           oldEndIdx -= 1
           newEndIdx -= 1
         } else if (sameVnode(oldCh(oldStartIdx), newCh(newEndIdx))) {
           // Vnode moved right
-          newCh(newEndIdx) =
+          result(newEndIdx) =
             patchVnode(oldCh(oldStartIdx), newCh(newEndIdx), insertedVnodeQueue)
           api.insertBefore(
             parentElm,
-            oldCh(oldStartIdx).elm.get,
-            api.nextSibling(oldCh(oldEndIdx).elm.get)
+            oldCh(oldStartIdx).elm,
+            api.nextSibling(oldCh(oldEndIdx).elm)
           )
           oldStartIdx += 1
           newEndIdx -= 1
         } else if (sameVnode(oldCh(oldEndIdx), newCh(newStartIdx))) {
           // Vnode moved left
-          newCh(newStartIdx) =
+          result(newStartIdx) =
             patchVnode(oldCh(oldEndIdx), newCh(newStartIdx), insertedVnodeQueue)
           api.insertBefore(
             parentElm,
-            oldCh(oldEndIdx).elm.get,
-            oldCh(oldStartIdx).elm
+            oldCh(oldEndIdx).elm,
+            Some(oldCh(oldStartIdx).elm)
           )
           oldEndIdx -= 1
           newStartIdx += 1
@@ -329,27 +359,27 @@ object init {
               // New element
               api.insertBefore(
                 parentElm,
-                createElm(newCh(newStartIdx), insertedVnodeQueue).elm.get,
-                oldCh(oldStartIdx).elm
+                createElm(newCh(newStartIdx), insertedVnodeQueue).elm,
+                Some(oldCh(oldStartIdx).elm)
               )
             case Some(idxInOld) =>
               val elmToMove = oldCh(idxInOld)
               if (elmToMove.sel != newCh(newStartIdx).sel) {
-                newCh(newStartIdx) =
+                result(newStartIdx) =
                   createElm(newCh(newStartIdx), insertedVnodeQueue)
                 api.insertBefore(
                   parentElm,
-                  newCh(newStartIdx).elm.get,
-                  oldCh(oldStartIdx).elm
+                  result(newStartIdx).elm,
+                  Some(oldCh(oldStartIdx).elm)
                 )
               } else {
-                newCh(newStartIdx) =
+                result(newStartIdx) =
                   patchVnode(elmToMove, newCh(newStartIdx), insertedVnodeQueue)
                 oldCh(idxInOld) = null
                 api.insertBefore(
                   parentElm,
-                  elmToMove.elm.get,
-                  oldCh(oldStartIdx).elm
+                  elmToMove.elm,
+                  Some(oldCh(oldStartIdx).elm)
                 )
               }
           }
@@ -359,9 +389,9 @@ object init {
 
       if (newStartIdx <= newEndIdx) {
         val before =
-          if (newCh.length > newEndIdx + 1) newCh(newEndIdx + 1).elm
+          if (result.length > newEndIdx + 1) Some(result(newEndIdx + 1).elm)
           else None
-        addVnodes(
+        val patchedChildren = addVnodes(
           parentElm,
           before,
           newCh,
@@ -369,29 +399,36 @@ object init {
           newEndIdx,
           insertedVnodeQueue
         )
+        var i = newStartIdx
+        while (i <= newEndIdx) {
+          result(i) = patchedChildren(i - newStartIdx)
+          i += 1
+        }
       }
+
       if (oldStartIdx <= oldEndIdx) {
         removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx)
       }
 
+      result
+
     }
 
     def patchVnode(
-        oldVnode: VNode,
+        oldVnode: PatchedVNode,
         vnode00: VNode,
         insertedVNodeQueue: VNodeQueue
-    ): VNode = {
+    ): PatchedVNode = {
       val hook = vnode00.data.hook
       val vnode0 =
         hook.flatMap(_.prepatch).fold(vnode00)(hook => hook(oldVnode, vnode00))
-      val elm = oldVnode.elm.get
+      val elm = oldVnode.elm
       val oldCh = oldVnode.children
 
-      if (oldVnode != vnode0) {
+      if (oldVnode.toVNode != vnode0) {
 
-        val vnode = cbs.update.foldLeft(vnode0.copy(elm = Some(elm))) {
-          case (vnode, hook) =>
-            hook(oldVnode, vnode)
+        val vnode = cbs.update.foldLeft(vnode0) { case (vnode, hook) =>
+          hook(oldVnode, vnode)
         }
 
         vnode.data.hook
@@ -403,14 +440,30 @@ object init {
             (oldCh, vnode.children) match {
               case (Some(oldCh), Some(ch)) =>
                 if (oldCh != ch) {
-                  updateChildren(elm, oldCh, ch, insertedVNodeQueue)
-                  vnode
+                  PatchedVNode(
+                    vnode.sel,
+                    vnode.data,
+                    Some(updateChildren(elm, oldCh, ch, insertedVNodeQueue)),
+                    vnode.text,
+                    vnode.key,
+                    elm,
+                    None
+                  )
+
                 } else {
-                  vnode
+                  PatchedVNode(
+                    vnode.sel,
+                    vnode.data,
+                    Some(oldCh),
+                    vnode.text,
+                    vnode.key,
+                    elm,
+                    None
+                  )
                 }
               case (None, Some(ch)) =>
                 oldVnode.text.foreach(_ => api.setTextContent(elm, Some("")))
-                addVnodes(
+                val patchedChildren = addVnodes(
                   elm,
                   None,
                   ch,
@@ -418,22 +471,63 @@ object init {
                   ch.length - 1,
                   insertedVNodeQueue
                 )
-                vnode
+                PatchedVNode(
+                  vnode.sel,
+                  vnode.data,
+                  Some(patchedChildren),
+                  vnode.text,
+                  vnode.key,
+                  elm,
+                  None
+                )
 
               case (Some(oldCh), None) =>
                 removeVnodes(elm, oldCh, 0, oldCh.length - 1)
-                vnode
+                PatchedVNode(
+                  vnode.sel,
+                  vnode.data,
+                  None,
+                  vnode.text,
+                  vnode.key,
+                  elm,
+                  None
+                )
               case (None, None) =>
                 oldVnode.text.foreach(_ => api.setTextContent(elm, Some("")))
-                vnode
+                PatchedVNode(
+                  vnode.sel,
+                  vnode.data,
+                  None,
+                  vnode.text,
+                  vnode.key,
+                  elm,
+                  None
+                )
             }
           case Some(text) if oldVnode.text.forall(_ != text) =>
             oldCh.foreach(oldChildren =>
               removeVnodes(elm, oldChildren, 0, oldChildren.length - 1)
             )
             api.setTextContent(elm, Some(text))
-            vnode
-          case Some(_) => vnode
+            PatchedVNode(
+              vnode.sel,
+              vnode.data,
+              None,
+              vnode.text,
+              vnode.key,
+              elm,
+              None
+            )
+          case Some(_) =>
+            PatchedVNode(
+              vnode.sel,
+              vnode.data,
+              None,
+              vnode.text,
+              vnode.key,
+              elm,
+              None
+            )
         }
 
         hook.flatMap(_.postpatch).foreach(hook => hook(oldVnode, vnode1))
@@ -448,20 +542,21 @@ object init {
 
     }
 
-    def patch(oldVnode: VNode, vnode: VNode): VNode = {
+    def patch(oldVnode: PatchedVNode, vnode: VNode): PatchedVNode = {
 
-      val insertedVNodeQueue: VNodeQueue = mutable.ArrayBuffer.empty[VNode]
+      val insertedVNodeQueue: VNodeQueue =
+        mutable.ArrayBuffer.empty[PatchedVNode]
       cbs.pre.foreach(_())
 
       val vnode0 = if (sameVnode(oldVnode, vnode)) {
         patchVnode(oldVnode, vnode, insertedVNodeQueue)
       } else {
-        val elm = oldVnode.elm.get
+        val elm = oldVnode.elm
         val parent = api.parentNode(elm)
         val vnode1 = createElm(vnode, insertedVNodeQueue)
         parent match {
           case Some(parent) =>
-            api.insertBefore(parent, vnode1.elm.get, api.nextSibling(elm))
+            api.insertBefore(parent, vnode1.elm, api.nextSibling(elm))
             removeVnodes(parent, Array(oldVnode), 0, 0)
           case None => ()
         }
@@ -480,27 +575,30 @@ object init {
 
     new Patch {
 
-      override def apply(oldVnode: VNode, vnode: VNode): VNode =
+      override def apply(oldVnode: PatchedVNode, vnode: VNode): PatchedVNode =
         patch(oldVnode, vnode)
 
-      override def apply(elm: dom.Element, vnode: VNode): VNode =
+      override def apply(elm: dom.Element, vnode: VNode): PatchedVNode =
         patch(emptyNodeAt(elm), vnode)
 
-      override def apply(frag: dom.DocumentFragment, vnode: VNode): VNode =
+      override def apply(
+          frag: dom.DocumentFragment,
+          vnode: VNode
+      ): PatchedVNode =
         patch(emptyDocumentFragmentAt(frag), vnode)
 
     }
 
   }
 
-  private def sameVnode(vnode1: VNode, vnode2: VNode): Boolean = {
+  private def sameVnode(vnode1: PatchedVNode, vnode2: VNode): Boolean = {
     vnode1.key == vnode2.key &&
     vnode1.data.is == vnode2.data.is &&
     vnode1.sel == vnode2.sel
   }
 
   private def createKeyToOldIdx(
-      children: Array[VNode],
+      children: Array[PatchedVNode],
       beginIdx: Int,
       endIdx: Int
   ): Map[String, Int] = {
