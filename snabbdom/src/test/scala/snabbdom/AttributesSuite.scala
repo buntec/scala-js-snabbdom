@@ -79,12 +79,13 @@ class AttributesSuite extends BaseSuite {
       )
       val vnode1 = h("div", cachedAttrs)
       val vnode2 = h("div", cachedAttrs)
-      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
+      val vnode1p = patch(vnode0, vnode1)
+      val elm1 = vnode1p.elm.get.asInstanceOf[dom.Element]
       assertEquals(elm1.getAttribute("href"), "/foo")
       assertEquals(elm1.getAttribute("minlength"), "1")
       assertEquals(elm1.hasAttribute("selected"), true)
 
-      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
+      val elm2 = patch(vnode1p, vnode2).elm.get.asInstanceOf[dom.Element]
       assertEquals(elm2.getAttribute("href"), "/foo")
       assertEquals(elm2.getAttribute("minlength"), "1")
       assertEquals(elm2.hasAttribute("selected"), true)
@@ -189,12 +190,13 @@ class AttributesSuite extends BaseSuite {
       "is not considered as a boolean attribute and shouldn't be omitted"
     ) { vnode0 =>
       val vnode1 = h("div", VNodeData(attrs = Map("constructor" -> true)))
-      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.Element]
+      val vnode1p = patch(vnode0, vnode1)
+      val elm1 = vnode1p.elm.get.asInstanceOf[dom.Element]
       assertEquals(elm1.hasAttribute("constructor"), true)
       assertEquals(elm1.getAttribute("constructor"), "")
       val vnode2 =
         h("div", VNodeData(attrs = Map("constructor" -> false)))
-      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.Element]
+      val elm2 = patch(vnode1p, vnode2).elm.get.asInstanceOf[dom.Element]
       assertEquals(elm2.hasAttribute("constructor"), false)
 
     }

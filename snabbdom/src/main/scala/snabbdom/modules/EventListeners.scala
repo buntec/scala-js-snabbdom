@@ -103,7 +103,6 @@ object EventListeners {
         val vnode0 = vnode.get
 
         val listener = oldListener.getOrElse(createListener(vnode0))
-        listener.vnode = vnode0
 
         if (oldOn.isEmpty) {
           on.foreach { case (name, _) =>
@@ -117,10 +116,12 @@ object EventListeners {
           }
         }
 
-        Some(vnode0.copy(listener = Some(listener)))
+        val vnode1 = vnode0.copy(listener = Some(listener))
+        listener.vnode = vnode1
+        Some(vnode1)
 
       } else {
-        None
+        vnode
       }
 
     } else {
