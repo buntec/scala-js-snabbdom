@@ -45,19 +45,21 @@ object Attributes {
 
   val module: Module = Module().copy(
     create = Some(new CreateHook {
-      override def apply(emptyVNode: VNode, vNode: VNode): Any =
-        updateAttrs(emptyVNode, vNode)
+      override def apply(vNode: VNode): Unit =
+        updateAttrs(None, vNode)
     }),
     update = Some(new UpdateHook {
-      override def apply(oldVNode: VNode, vNode: VNode): Any =
-        updateAttrs(oldVNode, vNode)
+      override def apply(oldVNode: VNode, vNode: VNode): VNode = {
+        updateAttrs(Some(oldVNode), vNode)
+        vNode
+      }
     })
   )
 
   private val xlinkNS = "http://www.w3.org/1999/xlink"
   private val xmlNS = "http://www.w3.org/XML/1998/namespace"
 
-  private def updateAttrs(oldVnode: VNode, vnode: VNode): Unit = {
+  private def updateAttrs(oldVnode: Option[VNode], vnode: VNode): Unit = {
 
     val elm = vnode.elm.get.asInstanceOf[dom.Element]
 
@@ -93,7 +95,7 @@ object Attributes {
       }
     }
 
-    val oldAttrs = oldVnode.data.attrs
+    val oldAttrs = oldVnode.map(_.data.attrs).getOrElse(Map.empty)
     val attrs = vnode.data.attrs
 
     if (oldAttrs != attrs) {

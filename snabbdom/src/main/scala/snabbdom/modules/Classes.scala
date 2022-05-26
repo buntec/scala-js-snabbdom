@@ -45,16 +45,18 @@ object Classes {
 
   val module: Module = Module().copy(
     create = Some(new CreateHook {
-      override def apply(emptyVNode: VNode, vNode: VNode): Any =
-        updateClasses(emptyVNode, vNode)
+      override def apply(vNode: VNode): Unit =
+        updateClasses(None, vNode)
     }),
     update = Some(new UpdateHook {
-      override def apply(oldVNode: VNode, vNode: VNode): Any =
-        updateClasses(oldVNode, vNode)
+      override def apply(oldVNode: VNode, vNode: VNode): VNode = {
+        updateClasses(Some(oldVNode), vNode)
+        vNode
+      }
     })
   )
 
-  private def updateClasses(oldVnode: VNode, vnode: VNode): Unit = {
+  private def updateClasses(oldVnode: Option[VNode], vnode: VNode): Unit = {
 
     val elm = vnode.elm.get.asInstanceOf[dom.Element]
 
@@ -78,7 +80,7 @@ object Classes {
       }
     }
 
-    val oldClasses = oldVnode.data.classes
+    val oldClasses = oldVnode.map(_.data.classes).getOrElse(Map.empty)
     val classes = vnode.data.classes
 
     if (oldClasses != classes) {

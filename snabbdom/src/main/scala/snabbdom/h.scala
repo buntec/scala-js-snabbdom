@@ -87,16 +87,20 @@ object h {
       (sel.length == 3 || sel(3) == '.' || sel(3) == '#')
     ) {
       addNS(vnode)
+    } else {
+      vnode
     }
-    vnode
   }
 
-  private[snabbdom] def addNS(vnode: VNode): Unit = {
+  private[snabbdom] def addNS(vnode: VNode): VNode = {
     val ns = "http://www.w3.org/2000/svg"
-    vnode.data = vnode.data.copy(ns = Some(ns))
-    if (vnode.sel.forall(_ != "foreignObject")) {
-      vnode.children.foreach(_.map(addNS))
-    }
+    vnode.copy(
+      data = vnode.data.copy(ns = Some(ns)),
+      children =
+        if (vnode.sel.forall(_ != "foreignObject"))
+          vnode.children.map(_.map(addNS))
+        else vnode.children
+    )
   }
 
 }

@@ -93,9 +93,9 @@ object toVNode {
         ) == '#')
       ) {
         h.addNS(vnode)
+      } else {
+        vnode
       }
-
-      vnode
 
     } else if (api.isText(node)) {
       val text = api.getTextContent(node).getOrElse("")

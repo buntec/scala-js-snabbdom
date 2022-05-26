@@ -47,16 +47,18 @@ object Styles {
 
   val module: Module = Module().copy(
     create = Some(new CreateHook {
-      override def apply(emptyVNode: VNode, vNode: VNode): Any =
-        updateStyle(emptyVNode, vNode)
+      override def apply(vNode: VNode): Unit =
+        updateStyle(None, vNode)
     }),
     update = Some(new UpdateHook {
-      override def apply(oldVNode: VNode, vNode: VNode): Any =
-        updateStyle(oldVNode, vNode)
+      override def apply(oldVNode: VNode, vNode: VNode): VNode = {
+        updateStyle(Some(oldVNode), vNode)
+        vNode
+      }
     })
   )
 
-  private def updateStyle(oldVnode: VNode, vnode: VNode): Unit = {
+  private def updateStyle(oldVnode: Option[VNode], vnode: VNode): Unit = {
 
     val elm = vnode.elm.get
 
@@ -100,7 +102,7 @@ object Styles {
 
     }
 
-    val oldStyle = oldVnode.data.style
+    val oldStyle = oldVnode.map(_.data.style).getOrElse(Map.empty)
     val style = vnode.data.style
 
     if (oldStyle != style) {

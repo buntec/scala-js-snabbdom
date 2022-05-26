@@ -46,21 +46,23 @@ object Dataset {
 
   val module: Module = Module().copy(
     create = Some(new CreateHook {
-      override def apply(emptyVNode: VNode, vNode: VNode): Any =
-        updateDataset(emptyVNode, vNode)
+      override def apply(vNode: VNode): Unit =
+        updateDataset(None, vNode)
     }),
     update = Some(new UpdateHook {
-      override def apply(oldVNode: VNode, vNode: VNode): Any =
-        updateDataset(oldVNode, vNode)
+      override def apply(oldVNode: VNode, vNode: VNode): VNode = {
+        updateDataset(Some(oldVNode), vNode)
+        vNode
+      }
     })
   )
 
   private val CAPS_REGEX = "[A-Z]"
 
-  private def updateDataset(oldVnode: VNode, vnode: VNode): Unit = {
+  private def updateDataset(oldVnode: Option[VNode], vnode: VNode): Unit = {
 
     val elm = vnode.elm.get.asInstanceOf[dom.HTMLElement]
-    val oldDataset = oldVnode.data.dataset
+    val oldDataset = oldVnode.map(_.data.dataset).getOrElse(Map.empty)
     val dataset = vnode.data.dataset
     val d = elm.dataset
 

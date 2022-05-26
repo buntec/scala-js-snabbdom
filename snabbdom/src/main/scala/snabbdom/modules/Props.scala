@@ -45,18 +45,20 @@ object Props {
 
   val module: Module = Module().copy(
     create = Some(new CreateHook {
-      override def apply(emptyVNode: VNode, vNode: VNode): Any =
-        updateProps(emptyVNode, vNode)
+      override def apply(vNode: VNode): Unit =
+        updateProps(None, vNode)
     }),
     update = Some(new UpdateHook {
-      override def apply(oldVNode: VNode, vNode: VNode): Any =
-        updateProps(oldVNode, vNode)
+      override def apply(oldVNode: VNode, vNode: VNode): VNode = {
+        updateProps(Some(oldVNode), vNode)
+        vNode
+      }
     })
   )
 
-  private def updateProps(oldVnode: VNode, vnode: VNode): Unit = {
+  private def updateProps(oldVnode: Option[VNode], vnode: VNode): Unit = {
     val elm = vnode.elm.get
-    val oldProps = oldVnode.data.props
+    val oldProps = oldVnode.map(_.data.props).getOrElse(Map.empty)
     val props = vnode.data.props
 
     def update(

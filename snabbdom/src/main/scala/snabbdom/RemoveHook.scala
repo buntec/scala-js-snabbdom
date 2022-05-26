@@ -40,6 +40,6 @@ package snabbdom
 
 trait RemoveHook {
 
-  def apply(vNode: VNode, removeCallback: () => Unit): Any
+  def apply(vNode: VNode, removeCallback: () => Unit): Unit
 
 }

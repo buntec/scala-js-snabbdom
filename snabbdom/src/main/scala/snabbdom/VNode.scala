@@ -40,16 +40,16 @@ package snabbdom
 
 import org.scalajs.dom
 
-class VNode private (
-    var sel: Option[String],
-    var data: VNodeData,
-    var children: Option[Array[VNode]],
-    var elm: Option[
+case class VNode private (
+    sel: Option[String],
+    data: VNodeData,
+    children: Option[Array[VNode]],
+    elm: Option[
       dom.Node
     ], // can't be `dom.Element` unfortunately b/c of fragments
-    var text: Option[String],
-    val key: Option[KeyValue],
-    private[snabbdom] var listener: Option[Listener]
+    text: Option[String],
+    key: Option[KeyValue],
+    listener: Option[Listener]
 ) {
 
   override def toString: String =

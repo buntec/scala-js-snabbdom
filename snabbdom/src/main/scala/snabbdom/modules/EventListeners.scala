@@ -45,16 +45,20 @@ object EventListeners {
 
   val module: Module = Module().copy(
     create = Some(new CreateHook {
-      override def apply(emptyVNode: VNode, vNode: VNode): Any =
-        updateEventListeners(emptyVNode, Some(vNode))
+      override def apply(vNode: VNode): Unit = {
+        updateEventListeners(None, Some(vNode))
+        ()
+      }
     }),
     update = Some(new UpdateHook {
-      override def apply(oldVNode: VNode, vNode: VNode): Any =
-        updateEventListeners(oldVNode, Some(vNode))
+      override def apply(oldVNode: VNode, vNode: VNode): VNode =
+        updateEventListeners(Some(oldVNode), Some(vNode)).get
     }),
     destroy = Some(new DestroyHook {
-      override def apply(vnode: VNode): Any =
-        updateEventListeners(vnode, None)
+      override def apply(vnode: VNode): Unit = {
+        updateEventListeners(Some(vnode), None)
+        ()
+      }
     })
   )
 
@@ -63,13 +67,13 @@ object EventListeners {
   }
 
   private def updateEventListeners(
-      oldVnode: VNode,
+      oldVnode: Option[VNode],
       vnode: Option[VNode]
-  ): Unit = {
+  ): Option[VNode] = {
 
-    val oldOn = oldVnode.data.on
-    val oldListener = oldVnode.listener
-    val oldElm = oldVnode.elm.map(_.asInstanceOf[dom.Element])
+    val oldOn = oldVnode.map(_.data.on).getOrElse(Map.empty)
+    val oldListener = oldVnode.flatMap(_.listener)
+    val oldElm = oldVnode.flatMap(_.elm).map(_.asInstanceOf[dom.Element])
     val on = vnode.map(_.data.on).getOrElse(Map.empty)
     val elm = vnode.flatMap(_.elm).map(_.asInstanceOf[dom.Element])
 
@@ -96,9 +100,10 @@ object EventListeners {
 
       if (on.nonEmpty) {
 
-        val listener = oldListener.getOrElse(createListener(vnode.get))
-        listener.vnode = vnode.get
-        vnode.foreach(_.listener = Some(listener))
+        val vnode0 = vnode.get
+
+        val listener = oldListener.getOrElse(createListener(vnode0))
+        listener.vnode = vnode0
 
         if (oldOn.isEmpty) {
           on.foreach { case (name, _) =>
@@ -112,8 +117,14 @@ object EventListeners {
           }
         }
 
+        Some(vnode0.copy(listener = Some(listener)))
+
+      } else {
+        None
       }
 
+    } else {
+      vnode
     }
 
   }

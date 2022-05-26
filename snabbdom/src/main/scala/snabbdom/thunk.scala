@@ -69,14 +69,14 @@ object thunk {
     h(sel, data)
   }
 
-  private def init0(thunk: VNode): Unit = {
+  private def init0(thunk: VNode): VNode = {
     val data = thunk.data
     val fn = data.fn.get
     val args = data.args.get
-    copyToThunk(fn(args), thunk)
+    fn(args)
   }
 
-  private def prepatch0(oldVnode: VNode, thunk: VNode): Unit = {
+  private def prepatch0(oldVnode: VNode, thunk: VNode): VNode = {
     val old = oldVnode.data
     val cur = thunk.data
     val oldArgs = old.args
@@ -84,22 +84,10 @@ object thunk {
     val oldFn = old.fn
     val curFn = cur.fn
     if (oldFn != curFn || oldArgs != args) {
-      copyToThunk(curFn.get(args.get), thunk)
+      curFn.get(args.get)
     } else {
-      copyToThunk(oldVnode, thunk)
+      oldVnode
     }
-  }
-
-  private def copyToThunk(vnode: VNode, thunk: VNode): Unit = {
-    val ns = thunk.data.ns
-    val fn = thunk.data.fn
-    val args = thunk.data.args
-    vnode.data = vnode.data.copy(fn = fn, args = args)
-    thunk.data = vnode.data
-    thunk.children = vnode.children
-    thunk.text = vnode.text
-    thunk.elm = vnode.elm
-    ns.foreach(_ => h.addNS(thunk))
   }
 
 }

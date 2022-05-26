@@ -40,6 +40,6 @@ package snabbdom
 
 trait PreHook {
 
-  def apply(): Any
+  def apply(): Unit
 
 }

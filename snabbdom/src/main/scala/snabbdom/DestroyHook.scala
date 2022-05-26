@@ -40,6 +40,6 @@ package snabbdom
 
 trait DestroyHook {
 
-  def apply(vNode: VNode): Any
+  def apply(vNode: VNode): Unit
 
 }
