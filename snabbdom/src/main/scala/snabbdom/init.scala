@@ -124,9 +124,10 @@ object init {
       val sel = vnode.sel
       sel match {
         case Some("!") =>
+          val text = vnode.text.getOrElse("")
           vnode.copy(
-            text = Some(vnode.text.getOrElse("")),
-            elm = Some(api.createComment(vnode.text.get))
+            text = Some(text),
+            elm = Some(api.createComment(text))
           )
 
         case Some(sel) =>
@@ -173,8 +174,8 @@ object init {
               }
           }
           vnode0.data.hook.map { hooks =>
-            hooks.create.foreach(hook => hook(vnode))
-            hooks.insert.foreach { _ => insertedVNodeQueue.append(vnode) }
+            hooks.create.foreach(hook => hook(vnode0))
+            hooks.insert.foreach { _ => insertedVNodeQueue.append(vnode0) }
           }
           vnode0
 
@@ -415,15 +416,13 @@ object init {
                 }
               case (None, Some(ch)) =>
                 oldVnode.text.foreach(_ => api.setTextContent(elm, Some("")))
-                Some(
-                  addVnodes(
-                    elm,
-                    None,
-                    ch,
-                    0,
-                    ch.length - 1,
-                    insertedVNodeQueue
-                  )
+                addVnodes(
+                  elm,
+                  None,
+                  ch,
+                  0,
+                  ch.length - 1,
+                  insertedVNodeQueue
                 )
                 vnode
 

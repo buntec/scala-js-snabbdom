@@ -844,7 +844,7 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("span", Array("1", "2", "3", "4").map(spanNum))
       val vnode2 = h("span", Array("1", "4", "2", "3").map(spanNum))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.elm.get
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 4)
       val elm2 = patch(vnode1p, vnode2).elm.get
       assertEquals(elm2.asInstanceOf[dom.Element].children.length, 4)
@@ -1205,13 +1205,13 @@ class SnabbdomSuite extends BaseSuite {
 
   group("element hooks") {
     vnode0.test(
-      "calls `create` listener before inserted into parent but after children".only
+      "calls `create` listener before inserted into parent but after children"
     ) { vnode0 =>
       val result = List.newBuilder[VNode]
       val cb: CreateHook = vnode => {
-        //assert(vnode.elm.exists(_.isInstanceOf[dom.Element]))
-        //assertEquals(vnode.elm.map(_.childNodes.length), Some(2))
-        //assertEquals(vnode.elm.map(_.parentNode), Some(null))
+        assert(vnode.elm.exists(_.isInstanceOf[dom.Element]))
+        assertEquals(vnode.elm.map(_.childNodes.length), Some(2))
+        assertEquals(vnode.elm.map(_.parentNode), Some(null))
         result.addOne(vnode)
       }
       val vnode1 = h(
@@ -1471,23 +1471,25 @@ class SnabbdomSuite extends BaseSuite {
 
     vnode0.test("calls `init` and `prepatch` listeners on root") { vnode0 =>
       var count = 0
-      lazy val init: InitHook = (vnode) => {
+      var vnode1: VNode = null
+      var vnode2: VNode = null
+      val init: InitHook = (vnode) => {
         assertEquals(vnode, vnode2)
         count += 1
       }
-      lazy val prepatch: PrePatchHook = (_, vnode) => {
+      val prepatch: PrePatchHook = (_, vnode) => {
         assertEquals(vnode, vnode1)
         count += 1
       }
-      lazy val vnode1 = h(
+      vnode1 = h(
         "div",
         VNodeData(hook =
           Some(Hooks(init = Some(init), prepatch = Some(prepatch)))
         )
       )
-      lazy val vnode1p = patch(vnode0, vnode1)
+      val vnode1p = patch(vnode0, vnode1)
       assertEquals(count, 1)
-      lazy val vnode2 = h(
+      vnode2 = h(
         "span",
         VNodeData(hook =
           Some(Hooks(init = Some(init), prepatch = Some(prepatch)))
