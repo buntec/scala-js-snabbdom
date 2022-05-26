@@ -62,7 +62,7 @@ class VNode private (
 
 object VNode {
 
-  def empty =
+  def empty() =
     new VNode(None, VNodeData.empty, None, None, Some(""), None, None)
 
   def create(
