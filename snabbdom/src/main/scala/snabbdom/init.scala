@@ -123,7 +123,7 @@ object init {
 
       val sel = vnode.sel
       sel match {
-        case Some("!") =>
+        case Some("!") => // a comment node
           val text = vnode.text.getOrElse("")
           val elm = api.createComment(text)
           PatchedVNode(
@@ -236,21 +236,6 @@ object init {
 
     }
 
-    def addAllVnodes(
-        parentElm: dom.Node,
-        before: Option[dom.Node],
-        vnodes: List[VNode],
-        insertedVNodeQueue: VNodeQueue
-    ): List[PatchedVNode] = vnodes.map { vnode =>
-      val pvnode = createElm(vnode, insertedVNodeQueue)
-      api.insertBefore(
-        parentElm,
-        pvnode.elm,
-        before
-      )
-      pvnode
-    }
-
     def invokeDestroyHook(vnode: PatchedVNode): Unit = {
       if (!vnode.isTextNode) { // detroy hooks should not be called on text nodes
         vnode.data.hook.flatMap(_.destroy).foreach(hook => hook(vnode))
@@ -281,6 +266,10 @@ object init {
 
     }
 
+    // TODO
+    // highly sub-optimal right now
+    // doesn't use keys at all
+    // just something that compiles and passes the tests
     def updateChildren(
         parentElm: dom.Node,
         oldCh: List[PatchedVNode],
@@ -322,7 +311,11 @@ object init {
       val elm = oldVnode.elm
       val oldCh = oldVnode.children
 
-      if (oldVnode.toVNode != vnode0) {
+      if (vnode0 == oldVnode.toVNode) {
+
+        oldVnode // nothing to do
+
+      } else {
 
         val vnode = {
           val afterModules = cbs.update.foldLeft(vnode0) { case (vnode, hook) =>
@@ -337,7 +330,7 @@ object init {
           case None =>
             (oldCh, vnode.children) match {
               case (oldCh @ _ :: _, ch @ _ :: _) =>
-                if (oldCh != ch) {
+                if (oldCh.map(_.toVNode) != ch) {
                   PatchedVNode(
                     vnode.sel,
                     vnode.data,
@@ -347,7 +340,6 @@ object init {
                     elm,
                     None
                   )
-
                 } else {
                   PatchedVNode(
                     vnode.sel,
@@ -361,7 +353,6 @@ object init {
                 }
               case (Nil, ch @ _ :: _) =>
                 oldVnode.text.foreach(_ => api.setTextContent(elm, Some("")))
-
                 val patchedChildren = ch.map { vnode =>
                   val pvnode = createElm(vnode, insertedVNodeQueue)
                   api.insertBefore(
@@ -371,7 +362,6 @@ object init {
                   )
                   pvnode
                 }
-
                 PatchedVNode(
                   vnode.sel,
                   vnode.data,
@@ -437,10 +427,6 @@ object init {
           .flatMap(_.postpatch)
           .fold(afterModules)(hook => hook(oldVnode, afterModules))
 
-      } else {
-
-        oldVnode
-
       }
 
     }
@@ -498,17 +484,6 @@ object init {
     vnode1.key == vnode2.key &&
     vnode1.data.is == vnode2.data.is &&
     vnode1.sel == vnode2.sel
-  }
-
-  private def createKeyToOldIdx(
-      children: List[PatchedVNode]
-  ): Map[String, Int] = {
-    children.zipWithIndex
-      .map { case (ch, i) =>
-        ch.key.map { key => (key -> i) }
-      }
-      .collect { case Some(a) => a }
-      .toMap
   }
 
 }

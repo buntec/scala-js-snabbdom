@@ -63,10 +63,10 @@ object VNode {
       data: VNodeData,
       children: List[VNode],
       text: Option[String]
-  ) = new VNode(sel, data, children, text, data.key)
+  ) = VNode(sel, data, children, text, data.key)
 
   def text(text: String) =
-    new VNode(None, VNodeData.empty, Nil, Some(text), None)
+    VNode(None, VNodeData.empty, Nil, Some(text), None)
 
   implicit def fromString(s: String): VNode = text(s)
 
