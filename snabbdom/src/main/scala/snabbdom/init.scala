@@ -295,7 +295,7 @@ object init {
 
       removeAllVnodes(parentElm, toDelete)
 
-      patchedChildren
+      patchedChildren.reverse
 
     }
 
