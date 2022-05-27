@@ -91,26 +91,26 @@ object DomApi {
 
   def apply: DomApi = new DomApi {
 
-    override def createElement(tagName: String): dom.HTMLElement =
+    @inline override def createElement(tagName: String): dom.HTMLElement =
       dom.document
         .createElement(tagName)
         .asInstanceOf[dom.HTMLElement] // TODO: check cast
 
-    override def createElementNS(
+    @inline override def createElementNS(
         namespaceURI: String,
         qualifiedName: String
     ): dom.Element = dom.document.createElementNS(namespaceURI, qualifiedName)
 
-    override def createDocumentFragment: dom.DocumentFragment =
+    @inline override def createDocumentFragment: dom.DocumentFragment =
       dom.document.createDocumentFragment()
 
-    override def createTextNode(text: String): dom.Text =
+    @inline override def createTextNode(text: String): dom.Text =
       dom.document.createTextNode(text)
 
-    override def createComment(text: String): dom.Comment =
+    @inline override def createComment(text: String): dom.Comment =
       dom.document.createComment(text)
 
-    override def insertBefore(
+    @inline override def insertBefore(
         parentNode: dom.Node,
         newNode: dom.Node,
         referenceNode: Option[dom.Node]
@@ -119,41 +119,44 @@ object DomApi {
       ()
     }
 
-    override def removeChild(node: dom.Node, child: dom.Node): Unit = {
+    @inline override def removeChild(node: dom.Node, child: dom.Node): Unit = {
       node.removeChild(child)
       ()
     }
 
-    override def appendChild(node: dom.Node, child: dom.Node): Unit = {
+    @inline override def appendChild(node: dom.Node, child: dom.Node): Unit = {
       node.appendChild(child)
       ()
     }
 
-    override def parentNode(node: dom.Node): Option[dom.Node] =
+    @inline override def parentNode(node: dom.Node): Option[dom.Node] =
       Option(node.parentNode)
 
-    override def nextSibling(node: dom.Node): Option[dom.Node] =
+    @inline override def nextSibling(node: dom.Node): Option[dom.Node] =
       Option(node.nextSibling)
 
-    override def tagName(elm: dom.Element): String = elm.tagName
+    @inline override def tagName(elm: dom.Element): String = elm.tagName
 
-    override def setTextContent(node: dom.Node, text: Option[String]): Unit = {
+    @inline override def setTextContent(
+        node: dom.Node,
+        text: Option[String]
+    ): Unit = {
       node.textContent = text.getOrElse(null)
     }
 
-    override def getTextContent(node: dom.Node): Option[String] =
+    @inline override def getTextContent(node: dom.Node): Option[String] =
       Option(node.textContent)
 
-    override def isElement(node: dom.Node): Boolean =
+    @inline override def isElement(node: dom.Node): Boolean =
       node.nodeType == 1
 
-    override def isText(node: dom.Node): Boolean =
+    @inline override def isText(node: dom.Node): Boolean =
       node.nodeType == 3
 
-    override def isComment(node: dom.Node): Boolean =
+    @inline override def isComment(node: dom.Node): Boolean =
       node.nodeType == 8
 
-    override def isDocumentFragement(node: dom.Node): Boolean =
+    @inline override def isDocumentFragement(node: dom.Node): Boolean =
       node.nodeType == 1
 
   }

@@ -52,49 +52,38 @@ object Props {
     }),
     update = Some(new UpdateHook {
       override def apply(oldVNode: PatchedVNode, vNode: VNode): VNode = {
-        updateProps(oldVNode, vNode)
+        if (vNode.data.props != oldVNode.data.props) {
+          updateProps(oldVNode, vNode)
+        }
         vNode
       }
     })
   )
 
   private def setProps(vnode: PatchedVNode): Unit = {
-
-    val elm = vnode.elm
-    val props = vnode.data.props
-
-    props.foreach { case (key, cur) =>
+    vnode.data.props.foreach { case (key, cur) =>
       if (
-        (key != "value" || elm
+        (key != "value" || vnode.elm
           .asInstanceOf[js.Dictionary[Any]]
           .get(key)
           .forall(_ != cur))
-      ) { elm.asInstanceOf[js.Dictionary[Any]](key) = cur }
+      ) { vnode.elm.asInstanceOf[js.Dictionary[Any]](key) = cur }
     }
-
   }
 
   private def updateProps(oldVnode: PatchedVNode, vnode: VNode): Unit = {
+
     val elm = oldVnode.elm
     val oldProps = oldVnode.data.props
     val props = vnode.data.props
 
-    def update(
-        oldProps: Map[String, PropValue],
-        props: Map[String, PropValue]
-    ): Unit = {
-      props.foreach { case (key, cur) =>
-        if (
-          oldProps.get(key).forall(_ != cur) && (key != "value" || elm
-            .asInstanceOf[js.Dictionary[Any]]
-            .get(key)
-            .forall(_ != cur))
-        ) { elm.asInstanceOf[js.Dictionary[Any]](key) = cur }
-      }
-    }
-
-    if (oldProps != props) {
-      update(oldProps, props) // TODO: remove old props
+    props.foreach { case (key, cur) =>
+      if (
+        oldProps.get(key).forall(_ != cur) && (key != "value" || elm
+          .asInstanceOf[js.Dictionary[Any]]
+          .get(key)
+          .forall(_ != cur))
+      ) { elm.asInstanceOf[js.Dictionary[Any]](key) = cur }
     }
 
   }

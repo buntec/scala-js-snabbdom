@@ -47,13 +47,17 @@ object Dataset {
   val module: Module = Module().copy(
     create = Some(new CreateHook {
       override def apply(vNode: PatchedVNode): PatchedVNode = {
-        setDataset(vNode)
+        if (vNode.data.dataset.nonEmpty) {
+          setDataset(vNode)
+        }
         vNode
       }
     }),
     update = Some(new UpdateHook {
       override def apply(oldVNode: PatchedVNode, vNode: VNode): VNode = {
-        updateDataset(oldVNode, vNode)
+        if (vNode.data.dataset != oldVNode.data.dataset) {
+          updateDataset(oldVNode, vNode)
+        }
         vNode
       }
     })
@@ -88,41 +92,31 @@ object Dataset {
     val dataset = vnode.data.dataset
     val d = elm.dataset
 
-    def update(
-        oldDataset: Map[String, String],
-        dataset: Map[String, String]
-    ): Unit = {
-
-      oldDataset.foreach { case (key, _) =>
-        dataset.get(key) match {
-          case None =>
-            if (!js.isUndefined(d)) { // TODO: does this make sense?
-              d -= key
-            } else {
-              elm.removeAttribute(
-                "data-" + key.replaceAll(CAPS_REGEX, "-$&").toLowerCase()
-              )
-            }
-          case Some(_) => ()
-        }
-      }
-
-      dataset.foreach { case (key, value) =>
-        if (oldDataset.get(key).forall(_ != value)) {
+    oldDataset.foreach { case (key, _) =>
+      dataset.get(key) match {
+        case None =>
           if (!js.isUndefined(d)) { // TODO: does this make sense?
-            d += (key -> value)
+            d -= key
           } else {
-            elm.setAttribute(
-              "data-" + key.replaceAll(CAPS_REGEX, "-$&").toLowerCase(),
-              value
+            elm.removeAttribute(
+              "data-" + key.replaceAll(CAPS_REGEX, "-$&").toLowerCase()
             )
           }
-        }
+        case Some(_) => ()
       }
     }
 
-    if (oldDataset != dataset) {
-      update(oldDataset, dataset)
+    dataset.foreach { case (key, value) =>
+      if (oldDataset.get(key).forall(_ != value)) {
+        if (!js.isUndefined(d)) { // TODO: does this make sense?
+          d += (key -> value)
+        } else {
+          elm.setAttribute(
+            "data-" + key.replaceAll(CAPS_REGEX, "-$&").toLowerCase(),
+            value
+          )
+        }
+      }
     }
 
   }

@@ -46,64 +46,52 @@ object Classes {
   val module: Module = Module().copy(
     create = Some(new CreateHook {
       override def apply(vNode: PatchedVNode): PatchedVNode = {
-        setClasses(vNode)
+        if (vNode.data.classes.nonEmpty) {
+          setClasses(vNode)
+        }
         vNode
       }
     }),
     update = Some(new UpdateHook {
       override def apply(oldVNode: PatchedVNode, vNode: VNode): VNode = {
-        updateClasses(oldVNode, vNode)
+        if (vNode.data.classes != oldVNode.data.classes) {
+          updateClasses(oldVNode, vNode)
+        }
         vNode
       }
     })
   )
 
   private def setClasses(vnode: PatchedVNode): Unit = {
-
     val elm = vnode.elm.asInstanceOf[dom.Element]
-    val classes = vnode.data.classes
-
-    classes.foreach { case (name, cur) =>
+    vnode.data.classes.foreach { case (name, cur) =>
       if (cur) {
         elm.classList.add(name)
       } else {
         elm.classList.remove(name)
       }
     }
-
   }
 
-  private def updateClasses(oldVnode: PatchedVNode, vnode: VNode): VNode = {
-
+  private def updateClasses(oldVnode: PatchedVNode, vnode: VNode): Unit = {
     val elm = oldVnode.elm.asInstanceOf[dom.Element]
-
-    def update(
-        oldClass: Map[String, Boolean],
-        klass: Map[String, Boolean]
-    ): Unit = {
-      oldClass.foreach { case (name, flag) =>
-        if (flag && !klass.contains(name)) {
-          elm.classList.remove(name)
-        }
-      }
-      klass.foreach { case (name, cur) =>
-        if (oldClass.get(name).forall(_ != cur)) {
-          if (cur) {
-            elm.classList.add(name)
-          } else {
-            elm.classList.remove(name)
-          }
-        }
-      }
-    }
-
     val oldClasses = oldVnode.data.classes
     val classes = vnode.data.classes
 
-    if (oldClasses != classes) {
-      update(oldClasses, classes)
+    oldClasses.foreach { case (name, flag) =>
+      if (flag && !classes.contains(name)) {
+        elm.classList.remove(name)
+      }
     }
-    vnode
+    classes.foreach { case (name, cur) =>
+      if (oldClasses.get(name).forall(_ != cur)) {
+        if (cur) {
+          elm.classList.add(name)
+        } else {
+          elm.classList.remove(name)
+        }
+      }
+    }
 
   }
 

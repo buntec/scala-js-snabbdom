@@ -46,11 +46,15 @@ object EventListeners {
   val module: Module = Module().copy(
     create = Some(new CreateHook {
       override def apply(vNode: PatchedVNode): PatchedVNode = {
-        val listener = createListener(vNode)
-        vNode.data.on.foreach { case (name, _) =>
-          vNode.elm.addEventListener(name, listener.jsFun, false)
+        if (vNode.data.on.nonEmpty) {
+          val listener = createListener(vNode)
+          vNode.data.on.foreach { case (name, _) =>
+            vNode.elm.addEventListener(name, listener.jsFun, false)
+          }
+          vNode.copy(listener = Some(listener))
+        } else {
+          vNode
         }
-        vNode.copy(listener = Some(listener))
       }
     }),
     postPatch = Some(new PostPatchHook {
@@ -83,13 +87,17 @@ object EventListeners {
   ): PatchedVNode = {
 
     val oldOn = oldVnode.data.on
-    val oldListener = oldVnode.listener
-    val elm = oldVnode.elm.asInstanceOf[dom.Element]
     val on = vnode.data.on
 
     if (oldOn == on) {
+
       vnode // nothing to do
+
     } else {
+
+      val oldListener = oldVnode.listener
+      val elm = oldVnode.elm.asInstanceOf[dom.Element]
+
       if (oldOn.nonEmpty && oldListener.isDefined) {
         // remove old listeners that are no longer used
         val ol = oldListener.get
@@ -99,6 +107,7 @@ object EventListeners {
           }
         }
       }
+
       if (on.nonEmpty) {
         val listener = oldListener.getOrElse(createListener(vnode))
         listener.vnode =
@@ -114,6 +123,7 @@ object EventListeners {
       } else {
         vnode // new vnode has no listeners
       }
+
     }
 
   }
