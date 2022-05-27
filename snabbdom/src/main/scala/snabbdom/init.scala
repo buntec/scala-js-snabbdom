@@ -306,7 +306,18 @@ object init {
             (Nil, Nil, pn :: acc)
         }
 
-      removeAllVnodes(parentElm, toDelete1.intersect(toDelete2))
+      val (_, toDelete) =
+        toDelete1.reverse.foldLeft((toDelete2, List.empty[PatchedVNode])) {
+          case (((h :: t), acc), vnode) =>
+            if (vnode == h) {
+              (t, h :: acc)
+            } else {
+              (h :: t, acc)
+            }
+          case ((Nil, acc), _) => (Nil, acc)
+        }
+
+      removeAllVnodes(parentElm, toDelete)
 
       patchedChildren.reverse
 

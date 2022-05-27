@@ -720,7 +720,7 @@ class SnabbdomSuite extends BaseSuite {
       )
     }
 
-    vnode0.test("reverses order of children".only) { vnode0 =>
+    vnode0.test("reverses order of children") { vnode0 =>
       val vnode1 = h("div", List(h("span", "1"), h("span", "2")))
       val vnode2 = h("div", List(h("span", "2"), h("span", "1")))
       val vnode3 = h("div", List(h("span", "1"), h("span", "2")))

@@ -39,7 +39,7 @@ ThisBuild / Test / jsEnv := {
 lazy val scalajsDomVersion = "2.1.0"
 lazy val munitVersion = "0.7.29"
 
-lazy val root = tlCrossRootProject.aggregate(snabbdom, examples)
+lazy val root = tlCrossRootProject.aggregate(snabbdom, examples, benchmarks)
 
 lazy val snabbdom = (project
   .in(file("snabbdom")))
@@ -67,5 +67,14 @@ lazy val examples = (project
           )
         )
     }
+  )
+  .dependsOn(snabbdom)
+
+lazy val benchmarks = (project
+  .in(file("benchmarks")))
+  .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
+  .settings(
+    name := "scala-js-snabbdom-benchmarks",
+    scalaJSUseMainModuleInitializer := false
   )
   .dependsOn(snabbdom)
