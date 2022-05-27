@@ -720,6 +720,24 @@ class SnabbdomSuite extends BaseSuite {
       )
     }
 
+    vnode0.test("reverses order of children".only) { vnode0 =>
+      val vnode1 = h("div", List(h("span", "1"), h("span", "2")))
+      val vnode2 = h("div", List(h("span", "2"), h("span", "1")))
+      val vnode3 = h("div", List(h("span", "1"), h("span", "2")))
+      val vnode1p = patch(vnode0, vnode1)
+      val elm1 = vnode1p.elm
+      assertEquals(elm1.asInstanceOf[dom.Element].children(0).innerHTML, "1")
+      assertEquals(elm1.asInstanceOf[dom.Element].children(1).innerHTML, "2")
+      val vnode2p = patch(vnode1p, vnode2)
+      val elm2 = vnode2p.elm
+      assertEquals(elm2.asInstanceOf[dom.Element].children(0).innerHTML, "2")
+      assertEquals(elm2.asInstanceOf[dom.Element].children(1).innerHTML, "1")
+      val vnode3p = patch(vnode2p, vnode3)
+      val elm3 = vnode3p.elm
+      assertEquals(elm3.asInstanceOf[dom.Element].children(0).innerHTML, "1")
+      assertEquals(elm3.asInstanceOf[dom.Element].children(1).innerHTML, "2")
+    }
+
     vnode0.test("removes all children to parent") { vnode0 =>
       val vnode1 = h(
         "span",
