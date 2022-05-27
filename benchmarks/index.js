@@ -1,10 +1,12 @@
-import { init, classModule, propsModule, styleModule, eventListenersModule, h } from 'https://cdn.jsdelivr.net/npm/snabbdom/+esm'
+import { init, attributesModule, classModule, propsModule, styleModule, eventListenersModule, datasetModule, h } from 'https://cdn.jsdelivr.net/npm/snabbdom/+esm'
 
 const patch = init([
+  attributesModule,
   classModule,
   propsModule,
   styleModule,
   eventListenersModule,
+  datasetModule
 ]);
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -12,8 +14,9 @@ document.addEventListener("DOMContentLoaded", function() {
   const container = document.getElementById("container");
 
   const n = 10000
+  const runs = 10
 
-  for (let j = 0; j < 0; j++) {
+  for (let j = 0; j < runs; j++) {
 
     console.log("running js-snabbdom...");
     let t0 = performance.now()
@@ -49,7 +52,7 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
 
-  for (let j = 0; j < 100; j++) {
+  for (let j = 0; j < runs; j++) {
 
     console.log("running scala-js-snabbdom...");
     let t0 = performance.now()
