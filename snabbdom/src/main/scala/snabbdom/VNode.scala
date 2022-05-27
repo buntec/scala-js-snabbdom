@@ -47,7 +47,7 @@ case class VNode private (
 ) {
 
   override def toString: String =
-    s"sel=$sel, data=$data, text=$text, key=$key, children=$children"
+    s"VNode(sel=$sel, data=$data, text=$text, key=$key, children=$children)"
 
   private[snabbdom] def isTextNode: Boolean =
     sel.isEmpty && children.isEmpty && text.isDefined

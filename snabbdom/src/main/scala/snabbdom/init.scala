@@ -266,10 +266,6 @@ object init {
 
     }
 
-    // TODO
-    // highly sub-optimal right now
-    // doesn't use keys at all
-    // just something that compiles and passes the tests
     def updateChildren(
         parentElm: dom.Node,
         oldCh: List[PatchedVNode],
@@ -277,24 +273,40 @@ object init {
         insertedVnodeQueue: VNodeQueue
     ): List[PatchedVNode] = {
 
-      val (toDelete, patchedChildren) =
-        newCh.foldLeft((oldCh, List.empty[PatchedVNode])) {
-          case ((oh :: ot, acc), newCh) =>
+      val (toDelete1, toDelete2, patchedChildren) =
+        newCh.foldLeft((oldCh, oldCh.reverse, List.empty[PatchedVNode])) {
+          case ((oh :: ot, oh2 :: ot2, acc), newCh) =>
             if (sameVnode(oh, newCh)) {
               val pn = patchVnode(oh, newCh, insertedVnodeQueue)
-              (ot, pn :: acc)
-            } else {
+              if (oh == oh2) { // exhausted old child nodes
+                (Nil, Nil, pn :: acc)
+              } else {
+                (ot, oh2 :: ot2, pn :: acc)
+              }
+            } else if (sameVnode(oh2, newCh)) {
+              val pn = patchVnode(oh2, newCh, insertedVnodeQueue)
+              api.insertBefore(parentElm, pn.elm, Some(oh.elm))
+              if (oh == oh2) { // exhausted old child nodes
+                (Nil, Nil, pn :: acc)
+              } else {
+                (oh :: ot, ot2, pn :: acc)
+              }
+            } else { // new node
               val pn = createElm(newCh, insertedVnodeQueue)
               api.insertBefore(parentElm, pn.elm, Some(oh.elm))
-              (oh :: ot, pn :: acc)
+              (oh :: ot, oh2 :: ot2, pn :: acc)
             }
-          case ((Nil, acc), newCh) =>
+          case ((Nil, _, acc), newCh) => // new node
             val pn = createElm(newCh, insertedVnodeQueue)
             api.insertBefore(parentElm, pn.elm, None)
-            (Nil, pn :: acc)
+            (Nil, Nil, pn :: acc)
+          case ((_, Nil, acc), newCh) => // new node
+            val pn = createElm(newCh, insertedVnodeQueue)
+            api.insertBefore(parentElm, pn.elm, None)
+            (Nil, Nil, pn :: acc)
         }
 
-      removeAllVnodes(parentElm, toDelete)
+      removeAllVnodes(parentElm, toDelete1.intersect(toDelete2))
 
       patchedChildren.reverse
 

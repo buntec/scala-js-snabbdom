@@ -32,7 +32,7 @@ case class PatchedVNode private[snabbdom] (
 ) {
 
   override def toString: String =
-    s"sel=$sel, data=$data, text=$text, key=$key, children=$children, elm=$elm, listener=$listener"
+    s"PatchedVNode(sel=$sel, data=$data, text=$text, key=$key, children=$children, elm=$elm, listener=$listener)"
 
   def toVNode: VNode =
     VNode(sel, data, children.map(_.toVNode), text, key)
