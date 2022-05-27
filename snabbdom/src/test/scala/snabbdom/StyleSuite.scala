@@ -191,14 +191,14 @@ class StyleSuite extends BaseSuite {
       val vnode1 =
         h(
           "div",
-          Array(h("i", VNodeData(style = Map("--myVar" -> "1"))))
+          List(h("i", VNodeData(style = Map("--myVar" -> "1"))))
         )
       val vnode2 =
-        h("div", Array(h("i", VNodeData())))
+        h("div", List(h("i", VNodeData())))
       val vnode3 =
         h(
           "div",
-          Array(h("i", VNodeData(style = Map("--myVar" -> "3"))))
+          List(h("i", VNodeData(style = Map("--myVar" -> "3"))))
         )
 
       val vnode1p = patch(vnode0, vnode1)

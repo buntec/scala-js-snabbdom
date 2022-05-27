@@ -41,7 +41,7 @@ package snabbdom
 case class VNode private (
     sel: Option[String],
     data: VNodeData,
-    children: Option[Array[VNode]],
+    children: List[VNode],
     text: Option[String],
     key: Option[KeyValue]
 ) {
@@ -56,17 +56,17 @@ case class VNode private (
 
 object VNode {
 
-  val empty = VNode(None, VNodeData.empty, None, Some(""), None)
+  val empty = VNode(None, VNodeData.empty, Nil, Some(""), None)
 
   def create(
       sel: Option[String],
       data: VNodeData,
-      children: Option[Array[VNode]],
+      children: List[VNode],
       text: Option[String]
-  ) = new VNode(sel, data, children.filter(_.nonEmpty), text, data.key)
+  ) = new VNode(sel, data, children, text, data.key)
 
   def text(text: String) =
-    new VNode(None, VNodeData.empty, None, Some(text), None)
+    new VNode(None, VNodeData.empty, Nil, Some(text), None)
 
   implicit def fromString(s: String): VNode = text(s)
 

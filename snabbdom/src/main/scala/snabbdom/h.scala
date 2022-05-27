@@ -42,36 +42,36 @@ object h {
 
   type VNodes = Array[VNode]
 
-  def apply(sel: String): VNode = h(sel, None, None, None)
+  def apply(sel: String): VNode = h(sel, None, Nil, None)
 
   def apply(sel: String, data: VNodeData): VNode = {
-    apply(sel, Some(data), None, None)
+    apply(sel, Some(data), Nil, None)
   }
 
-  def apply(sel: String, children: Array[VNode]): VNode = {
-    apply(sel, None, Some(children), None)
+  def apply(sel: String, children: List[VNode]): VNode = {
+    apply(sel, None, children, None)
   }
 
   def apply(sel: String, text: String): VNode = {
-    apply(sel, None, None, Some(text))
+    apply(sel, None, Nil, Some(text))
   }
 
   def apply(sel: String, data: VNodeData, text: String): VNode = {
-    apply(sel, Some(data), None, Some(text))
+    apply(sel, Some(data), Nil, Some(text))
   }
 
-  def apply(sel: String, data: VNodeData, children: Array[VNode]): VNode = {
-    apply(sel, Some(data), Some(children), None)
+  def apply(sel: String, data: VNodeData, children: List[VNode]): VNode = {
+    apply(sel, Some(data), children, None)
   }
 
   def apply(sel: String, data: VNodeData, child: VNode): VNode = {
-    apply(sel, Some(data), Some(Array(child)), None)
+    apply(sel, Some(data), List(child), None)
   }
 
   private def apply(
       sel: String,
       data: Option[VNodeData],
-      children: Option[Array[VNode]],
+      children: List[VNode],
       text: Option[String]
   ): VNode = {
     val vnode =
@@ -97,9 +97,7 @@ object h {
       data = vnode.data.copy(ns = Some(ns)),
       children =
         if (vnode.sel.forall(_ != "foreignObject"))
-          vnode.children.map(children =>
-            children.map((child: PatchedVNode) => addNS(child))
-          )
+          vnode.children.map(addNS)
         else vnode.children
     )
   }
@@ -110,7 +108,7 @@ object h {
       data = vnode.data.copy(ns = Some(ns)),
       children =
         if (vnode.sel.forall(_ != "foreignObject"))
-          vnode.children.map(_.map(addNS))
+          vnode.children.map(addNS)
         else vnode.children
     )
   }

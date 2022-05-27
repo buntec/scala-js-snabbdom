@@ -71,8 +71,8 @@ class ThunkSuite extends BaseSuite {
       val n = arr(0).asInstanceOf[Int]
       h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
-    val vnode1 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
-    val vnode2 = h("div", Array(thunk("span", "num", numberInSpan, Seq(2))))
+    val vnode1 = h("div", List(thunk("span", "num", numberInSpan, Seq(1))))
+    val vnode2 = h("div", List(thunk("span", "num", numberInSpan, Seq(2))))
     val vnode1p = patch(vnode0, vnode1)
     assertEquals(called, 1)
     patch(vnode1p, vnode2)
@@ -88,8 +88,8 @@ class ThunkSuite extends BaseSuite {
         val n = arr(0).asInstanceOf[Int]
         h("span", VNodeData(key = Some("num")), s"Number is ${n}")
       }
-      val vnode1 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
-      val vnode2 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
+      val vnode1 = h("div", List(thunk("span", "num", numberInSpan, Seq(1))))
+      val vnode2 = h("div", List(thunk("span", "num", numberInSpan, Seq(1))))
       val vnode1p = patch(vnode0, vnode1)
       assertEquals(called, 1)
       patch(vnode1p, vnode2)
@@ -103,8 +103,8 @@ class ThunkSuite extends BaseSuite {
       val n = arr(0).asInstanceOf[Int]
       h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
-    val vnode1 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
-    val vnode2 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1, 2))))
+    val vnode1 = h("div", List(thunk("span", "num", numberInSpan, Seq(1))))
+    val vnode2 = h("div", List(thunk("span", "num", numberInSpan, Seq(1, 2))))
     val vnode1p = patch(vnode0, vnode1)
     assertEquals(called, 1)
     patch(vnode1p, vnode2)
@@ -123,8 +123,8 @@ class ThunkSuite extends BaseSuite {
       val n = arr(0).asInstanceOf[Int]
       h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
-    val vnode1 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
-    val vnode2 = h("div", Array(thunk("span", "num", numberInSpan2, Seq(1))))
+    val vnode1 = h("div", List(thunk("span", "num", numberInSpan, Seq(1))))
+    val vnode2 = h("div", List(thunk("span", "num", numberInSpan2, Seq(1))))
     val vnode1p = patch(vnode0, vnode1)
     assertEquals(called, 1)
     patch(vnode1p, vnode2)
@@ -138,9 +138,9 @@ class ThunkSuite extends BaseSuite {
       val n = arr(0).asInstanceOf[Int]
       h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
-    val vnode1 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
-    val vnode2 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
-    val vnode3 = h("div", Array(thunk("span", "num", numberInSpan, Seq(2))))
+    val vnode1 = h("div", List(thunk("span", "num", numberInSpan, Seq(1))))
+    val vnode2 = h("div", List(thunk("span", "num", numberInSpan, Seq(1))))
+    val vnode3 = h("div", List(thunk("span", "num", numberInSpan, Seq(2))))
     val vnode1p = patch(vnode0, vnode1)
     val elm1 = vnode1p.elm.asInstanceOf[dom.HTMLElement]
     assertEquals(called, 1)
@@ -228,8 +228,8 @@ class ThunkSuite extends BaseSuite {
       h("span", VNodeData(key = Some("foo")), s"${prefix}: ${n}")
     }
 
-    val vnode1 = h("div", Array(thunk("span", "num", numberInSpan, Seq(1))))
-    val vnode2 = h("div", Array(thunk("div", "oddEven", oddEven, Seq(4))))
+    val vnode1 = h("div", List(thunk("span", "num", numberInSpan, Seq(1))))
+    val vnode2 = h("div", List(thunk("div", "oddEven", oddEven, Seq(4))))
 
     val vnode1p = patch(vnode0, vnode1)
     val elm1 = vnode1p.elm.asInstanceOf[dom.HTMLElement]
@@ -299,13 +299,13 @@ class ThunkSuite extends BaseSuite {
 
     val vnode1 = h(
       "div",
-      Array(
+      List(
         h("div", "Foo"),
         thunk("span", "num", numberInSpan, Seq(1)),
         h("div", "Foo")
       )
     )
-    val vnode2 = h("div", Array(h("div", "Foo"), h("div", "Foo")))
+    val vnode2 = h("div", List(h("div", "Foo"), h("div", "Foo")))
     val vnode1p = patch(vnode0, vnode1)
     patch(vnode1p, vnode2)
     assertEquals(called, 1)
@@ -330,13 +330,13 @@ class ThunkSuite extends BaseSuite {
 
     val vnode1 = h(
       "div",
-      Array(
+      List(
         h("div", "Foo"),
         thunk("span", "num", numberInSpan, Seq(1)),
         h("div", "Foo")
       )
     )
-    val vnode2 = h("div", Array(h("div", "Foo"), h("div", "Foo")))
+    val vnode2 = h("div", List(h("div", "Foo"), h("div", "Foo")))
     val vnode1p = patch(vnode0, vnode1)
     patch(vnode1p, vnode2)
     assertEquals(called, 1)

@@ -22,7 +22,7 @@ import org.scalajs.dom
 case class PatchedVNode private[snabbdom] (
     sel: Option[String],
     data: VNodeData,
-    children: Option[Array[PatchedVNode]],
+    children: List[PatchedVNode],
     text: Option[String],
     key: Option[KeyValue],
     elm: dom.Node, // the corresponding node in the DOM - can't be `dom.Element` unfortunately b/c of fragments
@@ -35,7 +35,7 @@ case class PatchedVNode private[snabbdom] (
     s"sel=$sel, data=$data, text=$text, key=$key, children=$children, elm=$elm, listener=$listener"
 
   def toVNode: VNode =
-    VNode(sel, data, children.map(_.map(_.toVNode)), text, key)
+    VNode(sel, data, children.map(_.toVNode), text, key)
 
   private[snabbdom] def isTextNode: Boolean =
     sel.isEmpty && children.isEmpty && text.isDefined

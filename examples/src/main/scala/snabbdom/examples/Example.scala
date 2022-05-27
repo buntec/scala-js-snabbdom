@@ -41,7 +41,7 @@ object Example {
     val vnode = h(
       "div",
       VNodeData(on = Map("click" -> ((_: dom.Event) => println("foo")))),
-      Array[VNode](
+      List[VNode](
         h(
           "span",
           VNodeData(style = Map("fontWeight" -> "bold")),
@@ -61,7 +61,7 @@ object Example {
     val newVnode = h(
       "div#container.two.classes",
       VNodeData(on = Map("click" -> ((_: dom.Event) => println("bar")))),
-      Array[VNode](
+      List[VNode](
         h(
           "span",
           VNodeData(style =

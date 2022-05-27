@@ -129,7 +129,7 @@ class AttributesSuite extends BaseSuite {
       val vnode1 = h(
         "div#myId.myClass",
         VNodeData(),
-        Array[VNode]("Hello")
+        List[VNode]("Hello")
       )
       val elm1 = patch(vnode0, vnode1).elm.asInstanceOf[dom.HTMLElement]
       assertEquals(elm1.tagName, "DIV")
