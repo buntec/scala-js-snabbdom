@@ -153,7 +153,7 @@ object init {
             api.createElement(tag) // TODO what about data argument?
           }
           val vnode0 = PatchedVNode(
-            vnode.key,
+            vnode.sel,
             vnode.data,
             children = vnode.children.map(
               _.map(ch => createElm(ch, insertedVNodeQueue))
