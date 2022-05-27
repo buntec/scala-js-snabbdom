@@ -53,26 +53,26 @@ class ThunkSuite extends BaseSuite {
 
   test("returns vnode with data and render function") {
 
-    val numberInSpan = (arr: Seq[Any]) => {
-      val n = arr(0).asInstanceOf[Int]
+    val numberInSpan = (arg: Any) => {
+      val n = arg.asInstanceOf[Int]
       h("span", s"Numbe is ${n}")
     }
-    val vnode = thunk("span", "num", numberInSpan, Seq(22))
+    val vnode = thunk("span", "num", numberInSpan, 22)
     assertEquals(vnode.sel, Some("span"))
     assertEquals(vnode.data.key, Some("num"))
-    assertEquals(vnode.data.args, Some(Seq(22)))
+    assertEquals(vnode.data.args, Some(22))
 
   }
 
   vnode0.test("calls render function once on data change") { vnode0 =>
     var called = 0
-    val numberInSpan = (arr: Seq[Any]) => {
+    val numberInSpan = (arg: Any) => {
       called += 1
-      val n = arr(0).asInstanceOf[Int]
+      val n = arg.asInstanceOf[Int]
       h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
-    val vnode1 = h("div", List(thunk("span", "num", numberInSpan, Seq(1))))
-    val vnode2 = h("div", List(thunk("span", "num", numberInSpan, Seq(2))))
+    val vnode1 = h("div", List(thunk("span", "num", numberInSpan, 1)))
+    val vnode2 = h("div", List(thunk("span", "num", numberInSpan, 2)))
     val vnode1p = patch(vnode0, vnode1)
     assertEquals(called, 1)
     patch(vnode1p, vnode2)
@@ -83,28 +83,28 @@ class ThunkSuite extends BaseSuite {
     vnode0 =>
       var called = 0
       // important: we need a stable render function reference!
-      val numberInSpan = (arr: Seq[Any]) => {
+      val numberInSpan = (arg: Any) => {
         called += 1
-        val n = arr(0).asInstanceOf[Int]
+        val n = arg.asInstanceOf[Int]
         h("span", VNodeData(key = Some("num")), s"Number is ${n}")
       }
-      val vnode1 = h("div", List(thunk("span", "num", numberInSpan, Seq(1))))
-      val vnode2 = h("div", List(thunk("span", "num", numberInSpan, Seq(1))))
+      val vnode1 = h("div", List(thunk("span", "num", numberInSpan, 1)))
+      val vnode2 = h("div", List(thunk("span", "num", numberInSpan, 1)))
       val vnode1p = patch(vnode0, vnode1)
       assertEquals(called, 1)
       patch(vnode1p, vnode2)
       assertEquals(called, 1)
   }
 
-  vnode0.test("calls render function once on data-length change") { vnode0 =>
+  vnode0.test("calls render function once on args change") { vnode0 =>
     var called = 0
-    val numberInSpan = (arr: Seq[Any]) => {
+    val numberInSpan = (arg: Any) => {
       called += 1
-      val n = arr(0).asInstanceOf[Int]
+      val n = arg.asInstanceOf[Int]
       h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
-    val vnode1 = h("div", List(thunk("span", "num", numberInSpan, Seq(1))))
-    val vnode2 = h("div", List(thunk("span", "num", numberInSpan, Seq(1, 2))))
+    val vnode1 = h("div", List(thunk("span", "num", numberInSpan, 1)))
+    val vnode2 = h("div", List(thunk("span", "num", numberInSpan, 2)))
     val vnode1p = patch(vnode0, vnode1)
     assertEquals(called, 1)
     patch(vnode1p, vnode2)
@@ -113,18 +113,18 @@ class ThunkSuite extends BaseSuite {
 
   vnode0.test("calls render function once on function change") { vnode0 =>
     var called = 0
-    val numberInSpan = (arr: Seq[Any]) => {
+    val numberInSpan = (arg: Any) => {
       called += 1
-      val n = arr(0).asInstanceOf[Int]
+      val n = arg.asInstanceOf[Int]
       h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
-    val numberInSpan2 = (arr: Seq[Any]) => {
+    val numberInSpan2 = (arg: Any) => {
       called += 1
-      val n = arr(0).asInstanceOf[Int]
+      val n = arg.asInstanceOf[Int]
       h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
-    val vnode1 = h("div", List(thunk("span", "num", numberInSpan, Seq(1))))
-    val vnode2 = h("div", List(thunk("span", "num", numberInSpan2, Seq(1))))
+    val vnode1 = h("div", List(thunk("span", "num", numberInSpan, 1)))
+    val vnode2 = h("div", List(thunk("span", "num", numberInSpan2, 1)))
     val vnode1p = patch(vnode0, vnode1)
     assertEquals(called, 1)
     patch(vnode1p, vnode2)
@@ -133,14 +133,14 @@ class ThunkSuite extends BaseSuite {
 
   vnode0.test("renders correctly") { vnode0 =>
     var called = 0
-    val numberInSpan = (arr: Seq[Any]) => {
+    val numberInSpan = (arg: Any) => {
       called += 1
-      val n = arr(0).asInstanceOf[Int]
+      val n = arg.asInstanceOf[Int]
       h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
-    val vnode1 = h("div", List(thunk("span", "num", numberInSpan, Seq(1))))
-    val vnode2 = h("div", List(thunk("span", "num", numberInSpan, Seq(1))))
-    val vnode3 = h("div", List(thunk("span", "num", numberInSpan, Seq(2))))
+    val vnode1 = h("div", List(thunk("span", "num", numberInSpan, 1)))
+    val vnode2 = h("div", List(thunk("span", "num", numberInSpan, 1)))
+    val vnode3 = h("div", List(thunk("span", "num", numberInSpan, 2)))
     val vnode1p = patch(vnode0, vnode1)
     val elm1 = vnode1p.elm.asInstanceOf[dom.HTMLElement]
     assertEquals(called, 1)
@@ -177,25 +177,25 @@ class ThunkSuite extends BaseSuite {
   }
 
   vnode0.test("supports leaving out the `key` argument") { vnode0 =>
-    val vnodeFn = (args: Seq[Any]) => {
-      val s = args.head.asInstanceOf[String]
+    val vnodeFn = (args: Any) => {
+      val s = args.asInstanceOf[String]
       h("span.number", s"Hello $s")
     }
-    val vnode1 = thunk("span.number", vnodeFn, Seq("World!"))
+    val vnode1 = thunk("span.number", vnodeFn, "World!")
     val elm = patch(vnode0, vnode1).elm
     assertEquals(elm.innerText, "Hello World!")
   }
 
   vnode0.test("renders correctly when root") { vnode0 =>
     var called = 0
-    val numberInSpan = (arr: Seq[Any]) => {
+    val numberInSpan = (arg: Any) => {
       called += 1
-      val n = arr(0).asInstanceOf[Int]
+      val n = arg.asInstanceOf[Int]
       h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
-    val vnode1 = thunk("span", "num", numberInSpan, Seq(1))
-    val vnode2 = thunk("span", "num", numberInSpan, Seq(1))
-    val vnode3 = thunk("span", "num", numberInSpan, Seq(2))
+    val vnode1 = thunk("span", "num", numberInSpan, 1)
+    val vnode2 = thunk("span", "num", numberInSpan, 1)
+    val vnode3 = thunk("span", "num", numberInSpan, 2)
 
     val vnode1p = patch(vnode0, vnode1)
     val elm1 = vnode1p.elm.asInstanceOf[dom.HTMLElement]
@@ -218,18 +218,18 @@ class ThunkSuite extends BaseSuite {
   }
 
   vnode0.test("can be replaced and removed") { vnode0 =>
-    val numberInSpan = (arr: Seq[Any]) => {
-      val n = arr(0).asInstanceOf[Int]
+    val numberInSpan = (arg: Any) => {
+      val n = arg.asInstanceOf[Int]
       h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
-    val oddEven = (arr: Seq[Any]) => {
-      val n = arr(0).asInstanceOf[Int]
+    val oddEven = (arg: Any) => {
+      val n = arg.asInstanceOf[Int]
       val prefix = if (n % 2 == 0) "Even" else "Odd"
       h("span", VNodeData(key = Some("foo")), s"${prefix}: ${n}")
     }
 
-    val vnode1 = h("div", List(thunk("span", "num", numberInSpan, Seq(1))))
-    val vnode2 = h("div", List(thunk("div", "oddEven", oddEven, Seq(4))))
+    val vnode1 = h("div", List(thunk("span", "num", numberInSpan, 1)))
+    val vnode2 = h("div", List(thunk("div", "oddEven", oddEven, 4)))
 
     val vnode1p = patch(vnode0, vnode1)
     val elm1 = vnode1p.elm.asInstanceOf[dom.HTMLElement]
@@ -256,19 +256,19 @@ class ThunkSuite extends BaseSuite {
   }
 
   vnode0.test("can be replaced and removed when root") { vnode0 =>
-    val numberInSpan = (arr: Seq[Any]) => {
-      val n = arr(0).asInstanceOf[Int]
+    val numberInSpan = (arg: Any) => {
+      val n = arg.asInstanceOf[Int]
       h("span", VNodeData(key = Some("num")), s"Number is ${n}")
     }
 
-    val oddEven = (arr: Seq[Any]) => {
-      val n = arr(0).asInstanceOf[Int]
+    val oddEven = (arg: Any) => {
+      val n = arg.asInstanceOf[Int]
       val prefix = if (n % 2 == 0) "Even" else "Odd"
       h("span", VNodeData(key = Some("foo")), s"${prefix}: ${n}")
     }
 
-    val vnode1 = thunk("span", "num", numberInSpan, Seq(1))
-    val vnode2 = thunk("div", "oddEven", oddEven, Seq(4))
+    val vnode1 = thunk("span", "num", numberInSpan, 1)
+    val vnode2 = thunk("div", "oddEven", oddEven, 4)
 
     val vnode1p = patch(vnode0, vnode1)
     val elm1 = vnode1p.elm.asInstanceOf[dom.HTMLElement]
@@ -284,8 +284,8 @@ class ThunkSuite extends BaseSuite {
   vnode0.test("invokes destroy hook on thunks") { vnode0 =>
     var called = 0
     val destroyHook: DestroyHook = (_: PatchedVNode) => { called += 1 }
-    val numberInSpan = (arr: Seq[Any]) => {
-      val n = arr(0).asInstanceOf[Int]
+    val numberInSpan = (arg: Any) => {
+      val n = arg.asInstanceOf[Int]
       h(
         "span",
         VNodeData(
@@ -300,7 +300,7 @@ class ThunkSuite extends BaseSuite {
       "div",
       List(
         h("div", "Foo"),
-        thunk("span", "num", numberInSpan, Seq(1)),
+        thunk("span", "num", numberInSpan, 1),
         h("div", "Foo")
       )
     )
@@ -315,8 +315,8 @@ class ThunkSuite extends BaseSuite {
     val destroyHook: RemoveHook = (_: PatchedVNode, _: () => Unit) => {
       called += 1
     }
-    val numberInSpan = (arr: Seq[Any]) => {
-      val n = arr(0).asInstanceOf[Int]
+    val numberInSpan = (arg: Any) => {
+      val n = arg.asInstanceOf[Int]
       h(
         "span",
         VNodeData(
@@ -331,7 +331,7 @@ class ThunkSuite extends BaseSuite {
       "div",
       List(
         h("div", "Foo"),
-        thunk("span", "num", numberInSpan, Seq(1)),
+        thunk("span", "num", numberInSpan, 1),
         h("div", "Foo")
       )
     )

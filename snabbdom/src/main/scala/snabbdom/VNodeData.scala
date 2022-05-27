@@ -48,8 +48,8 @@ case class VNodeData(
     hook: Option[Hooks] = None,
     key: Option[String] = None,
     ns: Option[String] = None, // for SVG
-    fn: Option[Seq[Any] => VNode] = None, // for thunks
-    args: Option[Seq[Any]] = None, // for thunks
+    fn: Option[Any => VNode] = None, // for thunks
+    args: Option[Any] = None, // for thunks
     is: Option[String] = None
 )
 

@@ -42,22 +42,22 @@ object thunk {
 
   def apply(
       sel: String,
-      fn: Seq[Any] => VNode,
-      args: Seq[Any]
+      fn: Any => VNode,
+      args: Any
   ): VNode = apply(sel, None, fn, args)
 
   def apply(
       sel: String,
       key: String,
-      fn: Seq[Any] => VNode,
-      args: Seq[Any]
+      fn: Any => VNode,
+      args: Any
   ): VNode = apply(sel, Some(key), fn, args)
 
   private def apply(
       sel: String,
       key: Option[String],
-      fn: Seq[Any] => VNode,
-      args: Seq[Any]
+      fn: Any => VNode,
+      args: Any
   ): VNode = {
     val hook = Hooks().copy(
       init = Some((vNode: VNode) => init0(vNode)),
