@@ -72,6 +72,8 @@ object init {
         hooks.copy(
           create = module.create.fold(hooks.create)(_ :: hooks.create),
           update = module.update.fold(hooks.update)(_ :: hooks.update),
+          postPatch =
+            module.postPatch.fold(hooks.postPatch)(_ :: hooks.postPatch),
           remove = module.remove.fold(hooks.remove)(_ :: hooks.remove),
           destroy = module.destroy.fold(hooks.destroy)(_ :: hooks.destroy),
           pre = module.pre.fold(hooks.pre)(_ :: hooks.pre),
@@ -310,15 +312,16 @@ object init {
 
       if (oldVnode.toVNode != vnode0) {
 
-        val vnode = cbs.update.foldLeft(vnode0) { case (vnode, hook) =>
-          hook(oldVnode, vnode)
+        val vnode = {
+          val afterModules = cbs.update.foldLeft(vnode0) { case (vnode, hook) =>
+            hook(oldVnode, vnode)
+          }
+          vnode0.data.hook
+            .flatMap(_.update)
+            .fold(afterModules)(hook => hook(oldVnode, afterModules))
         }
 
-        vnode.data.hook
-          .flatMap(_.update)
-          .foreach(hook => hook(oldVnode, vnode))
-
-        val vnode1 = vnode.text match {
+        val patchedVNode = vnode.text match {
           case None =>
             (oldCh, vnode.children) match {
               case (oldCh @ _ :: _, ch @ _ :: _) =>
@@ -414,9 +417,13 @@ object init {
             )
         }
 
-        hook.flatMap(_.postpatch).foreach(hook => hook(oldVnode, vnode1))
-
-        vnode1
+        val afterModules = cbs.postPatch.foldLeft(patchedVNode) {
+          case (vnode, hook) =>
+            hook(oldVnode, vnode)
+        }
+        patchedVNode.data.hook
+          .flatMap(_.postpatch)
+          .fold(afterModules)(hook => hook(oldVnode, afterModules))
 
       } else {
 

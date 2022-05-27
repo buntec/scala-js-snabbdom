@@ -244,7 +244,6 @@ class ThunkSuite extends BaseSuite {
 
     val vnode2p = patch(vnode1p, vnode2)
     val elm2 = vnode2p.elm.asInstanceOf[dom.HTMLElement]
-    println(elm2.innerHTML)
     assertEquals(
       elm2.firstChild.asInstanceOf[dom.HTMLElement].tagName.toLowerCase,
       "div"

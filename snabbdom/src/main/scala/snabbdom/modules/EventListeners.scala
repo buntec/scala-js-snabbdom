@@ -46,28 +46,49 @@ object EventListeners {
   val module: Module = Module().copy(
     create = Some(new CreateHook {
       override def apply(vNode: PatchedVNode): Unit = {
-        ()
+
+        val listener = createListener(vNode)
+        val elm = vNode.elm
+
+        vNode.data.on.foreach { case (name, _) =>
+          elm.addEventListener(name, listener.jsFun, false)
+        }
+
       }
     }),
-    update = Some(new UpdateHook {
-      override def apply(oldVNode: PatchedVNode, vNode: VNode): VNode =
+    postPatch = Some(new PostPatchHook {
+      override def apply(
+          oldVNode: PatchedVNode,
+          vNode: PatchedVNode
+      ): PatchedVNode =
         updateEventListeners(oldVNode, vNode)
     }),
     destroy = Some(new DestroyHook {
       override def apply(vnode: PatchedVNode): Unit = {
-        ()
+
+        val oldListener = vnode.listener
+        val oldOn = vnode.data.on
+        val elm = vnode.elm
+
+        if (oldOn.nonEmpty && oldListener.isDefined) {
+          val ol = oldListener.get
+          oldOn.foreach { case (name, _) =>
+            elm.removeEventListener(name, ol.jsFun, false)
+          }
+        }
+
       }
     })
   )
 
-  private def createListener(vnode: VNode) = {
-    new Listener(vnode)
+  private def createListener(vnode: PatchedVNode) = {
+    new Listener(vnode.toVNode)
   }
 
   private def updateEventListeners(
       oldVnode: PatchedVNode,
-      vnode: VNode
-  ): VNode = {
+      vnode: PatchedVNode
+  ): PatchedVNode = {
 
     val oldOn = oldVnode.data.on
     val oldListener = oldVnode.listener
@@ -107,10 +128,8 @@ object EventListeners {
           }
         }
 
-        // TODO
-        // val vnode1 = vnode.copy(listener = Some(listener))
-        val vnode1 = vnode
-        listener.vnode = vnode1
+        val vnode1 = vnode.copy(listener = Some(listener))
+        listener.vnode = vnode1.toVNode
         vnode1
 
       } else {
