@@ -171,24 +171,32 @@ object init {
               sel.slice(dot + 1, sel.length).replaceAll("""\.""", " ")
             )
           }
-          cbs.create.foreach(_.apply(vnode0))
-          vnode0.children match {
-            case List() =>
-              vnode0.text match {
-                case None => ()
-                case Some(text) =>
-                  api.appendChild(elm, api.createTextNode(text))
-              }
-            case children =>
-              children.foreach { child =>
-                api.appendChild(elm, child.elm)
-              }
+
+          // insert children into dom
+          vnode0.children.foreach(child => api.appendChild(elm, child.elm))
+
+          // consider `text` only if there are no other children
+          if (vnode0.children.isEmpty) {
+            vnode0.text match {
+              case None => ()
+              case Some(text) =>
+                api.appendChild(elm, api.createTextNode(text))
+            }
           }
-          vnode0.data.hook.map { hooks =>
-            hooks.create.foreach(hook => hook(vnode0))
+
+          val vnode1 = cbs.create.foldLeft(vnode0) { case (vnode, hook) =>
+            hook(vnode)
+          }
+
+          val vnode2 = vnode0.data.hook
+            .flatMap(_.create)
+            .fold(vnode1)(hook => hook(vnode1))
+
+          vnode0.data.hook.foreach { hooks =>
             hooks.insert.foreach { _ => insertedVNodeQueue.append(vnode0) }
           }
-          vnode0
+
+          vnode2
 
         case None =>
           vnode.children match {
@@ -203,6 +211,7 @@ object init {
                 None
               )
 
+            // node is a fragment
             case children =>
               val elm = api.createDocumentFragment
               val vnode0 = PatchedVNode(
@@ -215,9 +224,12 @@ object init {
                 elm = elm,
                 None
               )
-              cbs.create.foreach(hook => hook(vnode0))
-              vnode0.children.foreach(ch => api.appendChild(elm, ch.elm))
-              vnode0
+              val vnode1 = cbs.create.foldLeft(vnode0) { case (vnode, hook) =>
+                hook(vnode)
+              }
+              // insert children into dom
+              vnode1.children.foreach(child => api.appendChild(elm, child.elm))
+              vnode1
           }
 
       }

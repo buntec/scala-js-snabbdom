@@ -46,8 +46,10 @@ object Dataset {
 
   val module: Module = Module().copy(
     create = Some(new CreateHook {
-      override def apply(vNode: PatchedVNode): Unit =
+      override def apply(vNode: PatchedVNode): PatchedVNode = {
         setDataset(vNode)
+        vNode
+      }
     }),
     update = Some(new UpdateHook {
       override def apply(oldVNode: PatchedVNode, vNode: VNode): VNode = {

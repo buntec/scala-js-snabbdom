@@ -1213,6 +1213,7 @@ class SnabbdomSuite extends BaseSuite {
         assertEquals(vnode.elm.childNodes.length, 2)
         assertEquals(vnode.elm.parentNode, null)
         result.addOne(vnode)
+        vnode
       }
       val vnode1 = h(
         "div",
@@ -1623,7 +1624,7 @@ class SnabbdomSuite extends BaseSuite {
         val patch = init(
           Seq(
             Module(
-              create = Some(_ => created += 1),
+              create = Some(vnode => { created += 1; vnode }),
               destroy = Some(_ => destroyed += 1)
             )
           )
@@ -1650,7 +1651,7 @@ class SnabbdomSuite extends BaseSuite {
       val patch = init(
         Seq(
           Module(
-            create = Some(_ => created += 1),
+            create = Some(vnode => { created += 1; vnode }),
             remove = Some((_, _) => removed += 1)
           )
         )
@@ -1677,7 +1678,7 @@ class SnabbdomSuite extends BaseSuite {
         val patch = init(
           Seq(
             Module(
-              create = Some(_ => created += 1),
+              create = Some(vnode => { created += 1; vnode }),
               destroy = Some(_ => destroyed += 1)
             )
           )

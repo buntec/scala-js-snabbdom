@@ -45,7 +45,10 @@ object Attributes {
 
   val module: Module = Module().copy(
     create = Some(new CreateHook {
-      override def apply(vNode: PatchedVNode): Unit = setAttrs(vNode)
+      override def apply(vNode: PatchedVNode): PatchedVNode = {
+        setAttrs(vNode)
+        vNode
+      }
     }),
     update = Some(new UpdateHook {
       override def apply(

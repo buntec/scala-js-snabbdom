@@ -45,15 +45,12 @@ object EventListeners {
 
   val module: Module = Module().copy(
     create = Some(new CreateHook {
-      override def apply(vNode: PatchedVNode): Unit = {
-
+      override def apply(vNode: PatchedVNode): PatchedVNode = {
         val listener = createListener(vNode)
-        val elm = vNode.elm
-
         vNode.data.on.foreach { case (name, _) =>
-          elm.addEventListener(name, listener.jsFun, false)
+          vNode.elm.addEventListener(name, listener.jsFun, false)
         }
-
+        vNode.copy(listener = Some(listener))
       }
     }),
     postPatch = Some(new PostPatchHook {
@@ -65,18 +62,13 @@ object EventListeners {
     }),
     destroy = Some(new DestroyHook {
       override def apply(vnode: PatchedVNode): Unit = {
-
-        val oldListener = vnode.listener
-        val oldOn = vnode.data.on
-        val elm = vnode.elm
-
-        if (oldOn.nonEmpty && oldListener.isDefined) {
-          val ol = oldListener.get
-          oldOn.foreach { case (name, _) =>
-            elm.removeEventListener(name, ol.jsFun, false)
-          }
+        vnode.listener match {
+          case Some(listener) =>
+            vnode.data.on.foreach { case (name, _) =>
+              vnode.elm.removeEventListener(name, listener.jsFun, false)
+            }
+          case None => ()
         }
-
       }
     })
   )
@@ -95,49 +87,33 @@ object EventListeners {
     val elm = oldVnode.elm.asInstanceOf[dom.Element]
     val on = vnode.data.on
 
-    if (oldOn != on) {
-
+    if (oldOn == on) {
+      vnode // nothing to do
+    } else {
       if (oldOn.nonEmpty && oldListener.isDefined) {
+        // remove old listeners that are no longer used
         val ol = oldListener.get
-        if (on.isEmpty) {
-          oldOn.foreach { case (name, _) =>
+        oldOn.foreach { case (name, _) =>
+          if (!on.contains(name)) {
             elm.removeEventListener(name, ol.jsFun, false)
           }
-        } else {
-          oldOn.foreach { case (name, _) =>
-            if (on.get(name).isEmpty) {
-              elm.removeEventListener(name, ol.jsFun, false)
-            }
-          }
         }
       }
-
       if (on.nonEmpty) {
-
         val listener = oldListener.getOrElse(createListener(vnode))
+        listener.vnode =
+          vnode.toVNode // if we are reusing an old listener, we must point it to the new vnode
 
-        if (oldOn.isEmpty) {
-          on.foreach { case (name, _) =>
+        // add any new listeners
+        on.foreach { case (name, _) =>
+          if (!oldOn.contains(name)) {
             elm.addEventListener(name, listener.jsFun, false)
           }
-        } else {
-          on.foreach { case (name, _) =>
-            if (!oldOn.contains(name)) {
-              elm.addEventListener(name, listener.jsFun, false)
-            }
-          }
         }
-
-        val vnode1 = vnode.copy(listener = Some(listener))
-        listener.vnode = vnode1.toVNode
-        vnode1
-
+        vnode.copy(listener = Some(listener))
       } else {
-        vnode
+        vnode // new vnode has no listeners
       }
-
-    } else {
-      vnode
     }
 
   }
