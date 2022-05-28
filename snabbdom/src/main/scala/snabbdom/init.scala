@@ -42,6 +42,7 @@ import org.scalajs.dom
 import scala.collection.mutable
 
 import snabbdom.modules._
+import scala.annotation.tailrec
 
 object init {
 
@@ -146,19 +147,16 @@ object init {
           } else {
             sel
           }
-          val elm = if (vnode.data.ns.isDefined) {
-            api.createElementNS(
-              vnode.data.ns.get,
-              tag
-            ) // TODO what about data?
-          } else {
-            api.createElement(tag) // TODO what about data argument?
+          val elm = vnode.data.ns match {
+            case Some(ns) =>
+              api.createElementNS(ns, tag) // TODO what about data?
+            case None =>
+              api.createElement(tag) // TODO what about data argument?
           }
           val vnode0 = PatchedVNode(
             vnode.sel,
             vnode.data,
-            children =
-              vnode.children.map(ch => createElm(ch, insertedVNodeQueue)),
+            children = vnode.children.map(createElm(_, insertedVNodeQueue)),
             text = vnode.text,
             key = vnode.key,
             elm = elm,
@@ -191,8 +189,8 @@ object init {
           val vnode2 =
             vnode0.data.hook.flatMap(_.create).fold(vnode1)(_(vnode1))
 
-          vnode0.data.hook.foreach { hooks =>
-            hooks.insert.foreach { _ => insertedVNodeQueue.append(vnode0) }
+          vnode0.data.hook.flatMap(_.insert).foreach { _ =>
+            insertedVNodeQueue.append(vnode0)
           }
 
           vnode2
@@ -237,9 +235,9 @@ object init {
 
     def invokeDestroyHook(vnode: PatchedVNode): Unit = {
       if (!vnode.isTextNode) { // detroy hooks should not be called on text nodes
-        vnode.data.hook.flatMap(_.destroy).foreach(hook => hook(vnode))
-        cbs.destroy.foreach(hook => hook(vnode))
-        vnode.children.foreach { child => invokeDestroyHook(child) }
+        vnode.data.hook.flatMap(_.destroy).foreach(_(vnode))
+        cbs.destroy.foreach(_(vnode))
+        vnode.children.foreach(invokeDestroyHook)
       }
     }
 
@@ -253,10 +251,10 @@ object init {
             invokeDestroyHook(ch)
             val listeners = cbs.remove.length + 1
             val rm = createRmCb(ch.elm, listeners)
-            cbs.remove.foreach(hook => hook(ch, rm))
-            ch.data.hook
-              .flatMap(_.remove)
-              .fold(rm()) { hook => hook(ch, rm); () }
+            cbs.remove.foreach(_(ch, rm))
+            ch.data.hook.flatMap(_.remove).fold(rm()) { hook =>
+              hook(ch, rm); ()
+            }
           case None => // text node
             api.removeChild(parentElm, ch.elm)
         }
@@ -377,11 +375,11 @@ object init {
       removeAllVnodes(parentElm, toDeleteUnkeyed)
       removeAllVnodes(parentElm, toDeleteKeyed0.values.toList)
 
-      // A helper function to merge child nodes that were patched or created
+      // A recursive helper function to merge child nodes that were patched or created
       // in the first fold, and those new key'ed child nodes that were
       // matched up with old key'ed children. The result is the
       // list of all patched children in reverse order.
-      def merge(
+      @tailrec def merge(
           v1: List[(PatchedVNode, Int)],
           v2: List[(PatchedVNode, Int)],
           acc: List[PatchedVNode]
@@ -416,11 +414,13 @@ object init {
         vnode00: VNode,
         insertedVNodeQueue: VNodeQueue
     ): PatchedVNode = {
-      val hook = vnode00.data.hook
-      val vnode0 =
-        hook.flatMap(_.prepatch).fold(vnode00)(hook => hook(oldVnode, vnode00))
+
+      // apply prepatch hooks
+      val vnode0 = vnode00.data.hook
+        .flatMap(_.prepatch)
+        .fold(vnode00)(_(oldVnode, vnode00))
+
       val elm = oldVnode.elm
-      val oldCh = oldVnode.children
 
       if (vnode0 == oldVnode.toVNode) {
 
@@ -439,7 +439,7 @@ object init {
 
         val patchedVNode = vnode.text match {
           case None =>
-            (oldCh, vnode.children) match {
+            (oldVnode.children, vnode.children) match {
               case (oldCh @ _ :: _, ch @ _ :: _) =>
                 if (oldCh.map(_.toVNode) != ch) {
                   PatchedVNode(
@@ -483,7 +483,7 @@ object init {
                   None
                 )
 
-              case (_ :: _, Nil) =>
+              case (oldCh @ _ :: _, Nil) =>
                 removeAllVnodes(elm, oldCh)
                 PatchedVNode(
                   vnode.sel,
@@ -507,7 +507,7 @@ object init {
                 )
             }
           case Some(text) if oldVnode.text.forall(_ != text) =>
-            removeAllVnodes(elm, oldCh)
+            removeAllVnodes(elm, oldVnode.children)
             api.setTextContent(elm, Some(text))
             PatchedVNode(
               vnode.sel,
@@ -531,12 +531,11 @@ object init {
         }
 
         val afterModules = cbs.postPatch.foldLeft(patchedVNode) {
-          case (vnode, hook) =>
-            hook(oldVnode, vnode)
+          case (vnode, hook) => hook(oldVnode, vnode)
         }
         patchedVNode.data.hook
           .flatMap(_.postpatch)
-          .fold(afterModules)(hook => hook(oldVnode, afterModules))
+          .fold(afterModules)(_(oldVnode, afterModules))
 
       }
 
@@ -546,6 +545,7 @@ object init {
 
       val insertedVNodeQueue: VNodeQueue =
         mutable.ArrayBuffer.empty[PatchedVNode]
+
       cbs.pre.foreach(_())
 
       val vnode0 = if (sameVnode(oldVnode, vnode)) {
