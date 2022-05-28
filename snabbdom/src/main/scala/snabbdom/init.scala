@@ -266,6 +266,12 @@ object init {
 
     }
 
+    // This would be much simpler if we didn't have to
+    // match up key'ed nodes even when their order and
+    // position has completely changed.
+    // Putting VNodes in Maps/Sets is expensive b/c of hashing
+    // so we want to avoid this as much as possible.
+    // TODO: try to simplify, use better variable names
     def updateChildren(
         parentElm: dom.Node,
         oldCh: List[PatchedVNode],
@@ -273,37 +279,46 @@ object init {
         insertedVnodeQueue: VNodeQueue
     ): List[PatchedVNode] = {
 
-      val (toDelete1, toDelete2, patchedChildren) =
-        newCh.foldLeft((oldCh, oldCh.reverse, List.empty[PatchedVNode])) {
-          case ((oh :: ot, oh2 :: ot2, acc), newCh) =>
+      val (toDelete1, toDelete2, patchedChildrenWithIndex, newKeyed) =
+        newCh.zipWithIndex.foldLeft(
+          (
+            oldCh,
+            oldCh.reverse,
+            List.empty[(PatchedVNode, Int)],
+            List.empty[(VNode, Int)]
+          )
+        ) {
+          case ((oh :: ot, oh2 :: ot2, acc, keyed), (newCh, i)) =>
             if (sameVnode(oh, newCh)) {
               val pn = patchVnode(oh, newCh, insertedVnodeQueue)
               if (oh == oh2) { // exhausted old child nodes
-                (Nil, Nil, pn :: acc)
+                (Nil, Nil, (pn, i) :: acc, keyed)
               } else {
-                (ot, oh2 :: ot2, pn :: acc)
+                (ot, oh2 :: ot2, (pn, i) :: acc, keyed)
               }
             } else if (sameVnode(oh2, newCh)) {
               val pn = patchVnode(oh2, newCh, insertedVnodeQueue)
               api.insertBefore(parentElm, pn.elm, Some(oh.elm))
               if (oh == oh2) { // exhausted old child nodes
-                (Nil, Nil, pn :: acc)
+                (Nil, Nil, (pn, i) :: acc, keyed)
               } else {
-                (oh :: ot, ot2, pn :: acc)
+                (oh :: ot, ot2, (pn, i) :: acc, keyed)
               }
+            } else if (newCh.key.isDefined) {
+              (oh :: ot, oh2 :: ot2, acc, (newCh, i) :: keyed)
             } else { // new node
               val pn = createElm(newCh, insertedVnodeQueue)
               api.insertBefore(parentElm, pn.elm, Some(oh.elm))
-              (oh :: ot, oh2 :: ot2, pn :: acc)
+              (oh :: ot, oh2 :: ot2, (pn, i) :: acc, keyed)
             }
-          case ((Nil, _, acc), newCh) => // new node
+          case ((Nil, _, acc, keyed), (newCh, i)) => // new node
             val pn = createElm(newCh, insertedVnodeQueue)
             api.insertBefore(parentElm, pn.elm, None)
-            (Nil, Nil, pn :: acc)
-          case ((_, Nil, acc), newCh) => // new node
+            (Nil, Nil, (pn, i) :: acc, keyed)
+          case ((_, Nil, acc, keyed), (newCh, i)) => // new node
             val pn = createElm(newCh, insertedVnodeQueue)
             api.insertBefore(parentElm, pn.elm, None)
-            (Nil, Nil, pn :: acc)
+            (Nil, Nil, (pn, i) :: acc, keyed)
         }
 
       val (_, toDelete) =
@@ -317,9 +332,55 @@ object init {
           case ((Nil, acc), _) => (Nil, acc)
         }
 
-      removeAllVnodes(parentElm, toDelete)
+      val (toDeleteKeyed, toDeleteUnkeyed) = toDelete.partition(_.key.isDefined)
 
-      patchedChildren.reverse
+      val oldKeyed = toDeleteKeyed.map(n => (n.key.get -> n)).toMap
+
+      val (patchedKeyedChildrenWithIndex, toDeleteKeyed0) =
+        newKeyed.foldLeft(
+          (List.empty[(PatchedVNode, Int)], oldKeyed)
+        ) { case ((acc1, acc2), (vnode, i)) =>
+          acc2.get(vnode.key.get) match {
+            case None =>
+              ((createElm(vnode, insertedVnodeQueue), i) :: acc1, acc2)
+            case Some(pvnode) =>
+              (
+                (patchVnode(pvnode, vnode, insertedVnodeQueue), i) :: acc1,
+                acc2 - vnode.key.get
+              )
+          }
+        }
+
+      removeAllVnodes(parentElm, toDeleteUnkeyed)
+      removeAllVnodes(parentElm, toDeleteKeyed0.values.toList)
+
+      def merge(
+          v1: List[(PatchedVNode, Int)],
+          v2: List[(PatchedVNode, Int)],
+          acc: List[PatchedVNode]
+      ): List[PatchedVNode] = {
+        (v1, v2) match {
+          case (((h1, i) :: t1), ((h2, j) :: t2)) =>
+            if (j < i) {
+              api.insertBefore(parentElm, h2.elm, Some(h1.elm))
+              merge(v1, t2, h2 :: acc)
+            } else {
+              assert(j > i)
+              merge(t1, v2, h1 :: acc)
+            }
+          case (Nil, ((h2, _) :: t2)) =>
+            api.insertBefore(parentElm, h2.elm, None)
+            merge(Nil, t2, h2 :: acc)
+          case (((h1, _) :: t1), Nil) => merge(t1, Nil, h1 :: acc)
+          case (Nil, Nil)             => acc
+        }
+      }
+
+      merge(
+        patchedChildrenWithIndex.reverse,
+        patchedKeyedChildrenWithIndex,
+        List.empty
+      ).reverse
 
     }
 

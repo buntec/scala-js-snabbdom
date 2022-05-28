@@ -720,24 +720,6 @@ class SnabbdomSuite extends BaseSuite {
       )
     }
 
-    vnode0.test("reverses order of children") { vnode0 =>
-      val vnode1 = h("div", List(h("span", "1"), h("span", "2")))
-      val vnode2 = h("div", List(h("span", "2"), h("span", "1")))
-      val vnode3 = h("div", List(h("span", "1"), h("span", "2")))
-      val vnode1p = patch(vnode0, vnode1)
-      val elm1 = vnode1p.elm
-      assertEquals(elm1.asInstanceOf[dom.Element].children(0).innerHTML, "1")
-      assertEquals(elm1.asInstanceOf[dom.Element].children(1).innerHTML, "2")
-      val vnode2p = patch(vnode1p, vnode2)
-      val elm2 = vnode2p.elm
-      assertEquals(elm2.asInstanceOf[dom.Element].children(0).innerHTML, "2")
-      assertEquals(elm2.asInstanceOf[dom.Element].children(1).innerHTML, "1")
-      val vnode3p = patch(vnode2p, vnode3)
-      val elm3 = vnode3p.elm
-      assertEquals(elm3.asInstanceOf[dom.Element].children(0).innerHTML, "1")
-      assertEquals(elm3.asInstanceOf[dom.Element].children(1).innerHTML, "2")
-    }
-
     vnode0.test("removes all children to parent") { vnode0 =>
       val vnode1 = h(
         "span",
@@ -885,6 +867,25 @@ class SnabbdomSuite extends BaseSuite {
         List("4", "2", "3", "1")
       )
     }
+
+    vnode0.test("reverses order of children twice") { vnode0 =>
+      val vnode1 = h("div", List(h("span", "1"), h("span", "2")))
+      val vnode2 = h("div", List(h("span", "2"), h("span", "1")))
+      val vnode3 = h("div", List(h("span", "1"), h("span", "2")))
+      val vnode1p = patch(vnode0, vnode1)
+      val elm1 = vnode1p.elm
+      assertEquals(elm1.asInstanceOf[dom.Element].children(0).innerHTML, "1")
+      assertEquals(elm1.asInstanceOf[dom.Element].children(1).innerHTML, "2")
+      val vnode2p = patch(vnode1p, vnode2)
+      val elm2 = vnode2p.elm
+      assertEquals(elm2.asInstanceOf[dom.Element].children(0).innerHTML, "2")
+      assertEquals(elm2.asInstanceOf[dom.Element].children(1).innerHTML, "1")
+      val vnode3p = patch(vnode2p, vnode3)
+      val elm3 = vnode3p.elm
+      assertEquals(elm3.asInstanceOf[dom.Element].children(0).innerHTML, "1")
+      assertEquals(elm3.asInstanceOf[dom.Element].children(1).innerHTML, "2")
+    }
+
   }
 
   group("combinations of additions, removals and reorderings") {
@@ -995,10 +996,9 @@ class SnabbdomSuite extends BaseSuite {
     // it is odd that the orginal passes without using the styles module...
     test("handles random shuffles") {
       val elms = 14
-      val samples = 5
+      val samples = 50
       val arr = List.tabulate(elms)(i => i)
-      val rng = new scala.util.Random
-
+      val rng = new scala.util.Random(0)
       (0 until samples).foreach { _ =>
         val vnode1 = h("span", arr.map(spanNumWithOpacity(_, "1")))
         val shufArr = rng.shuffle(arr)
@@ -1022,6 +1022,72 @@ class SnabbdomSuite extends BaseSuite {
         }
       }
     }
+
+    vnode0.test("keyed nodes are patched") { vnode0 =>
+      val result1b = List.newBuilder[VNode]
+      val result2b = List.newBuilder[VNode]
+      val cb: UpdateHook = (pvnode, newVNode) => {
+        result1b += pvnode.toVNode
+        result2b += newVNode
+        newVNode
+      }
+
+      def keyedSpan(text: String, key: Int) =
+        h(
+          "span",
+          VNodeData(
+            key = Some(key.toString),
+            hook = Some(Hooks(update = Some(cb)))
+          ),
+          text
+        )
+
+      val vnode1 =
+        h(
+          "div",
+          List(
+            h("span", "a"),
+            keyedSpan("a", 1),
+            keyedSpan("b", 2),
+            keyedSpan("c", 3),
+            h("span", "d")
+          )
+        )
+
+      val vnode2 = h(
+        "div",
+        List(
+          keyedSpan("aa", 1),
+          keyedSpan("bb", 2),
+          keyedSpan("cc", 3),
+          h("span", "d")
+        )
+      )
+
+      val vnode1p = patch(vnode0, vnode1)
+      patch(vnode1p, vnode2)
+
+      val result1 = result1b.result()
+      val result2 = result2b.result()
+      assertEquals(
+        result1.toSet,
+        Set(
+          keyedSpan("a", 1),
+          keyedSpan("b", 2),
+          keyedSpan("c", 3)
+        )
+      )
+      assertEquals(
+        result2.toSet,
+        Set(
+          keyedSpan("aa", 1),
+          keyedSpan("bb", 2),
+          keyedSpan("cc", 3)
+        )
+      )
+
+    }
+
   }
 
   group("updated children without keys") {
