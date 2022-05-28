@@ -1023,6 +1023,82 @@ class SnabbdomSuite extends BaseSuite {
       }
     }
 
+    test("random shuffle of keyed and non-keyed nodes") {
+
+      val rng = new scala.util.Random(0)
+
+      def span(text: String) = h("span", text)
+
+      def kSpan(text: String, key: Int, update: UpdateHook) =
+        h(
+          "span",
+          VNodeData(
+            key = Some(key.toString),
+            hook = Some(Hooks(update = Some(update)))
+          ),
+          text
+        )
+
+      for {
+        _ <- 0 until 1000
+      } yield {
+
+        val n1 = rng.nextInt(100)
+        val n2 = rng.nextInt(100)
+
+        var counter = 0
+
+        val cb: UpdateHook = (_, vnode) => {
+          counter += 1
+          vnode
+        }
+
+        val spans = List.tabulate(n1)(i => span(s"a-$i"))
+        val kspans = List.tabulate(n2)(i => kSpan(s"k-$i", i, cb))
+
+        val spansAll = spans ::: kspans
+
+        val vnode1 = h("div", rng.shuffle(spansAll))
+        val vnode2 = h(
+          "div",
+          rng
+            .shuffle(spansAll)
+            .map(vnode => vnode.copy(text = vnode.text.map(_ + "X")))
+        )
+        val vnode3 = h("div", rng.shuffle(spansAll))
+
+        val elm = dom.document.createElement("div")
+        val vnode1p = patch(elm, vnode1)
+        assertEquals(vnode1p.toVNode, vnode1)
+        val elm1 = vnode1p.elm.asInstanceOf[dom.HTMLElement]
+        val innerHTML1 = vnode1.children.map { vnode =>
+          s"<span>${vnode.text.get}</span>"
+        }.mkString
+        assertEquals(elm1.innerHTML, innerHTML1)
+
+        val vnode2p = patch(vnode1p, vnode2)
+        assertEquals(vnode2p.toVNode, vnode2)
+        val elm2 = vnode2p.elm.asInstanceOf[dom.HTMLElement]
+        val innerHTML2 = vnode2.children.map { vnode =>
+          s"<span>${vnode.text.get}</span>"
+        }.mkString
+        assertEquals(elm2.innerHTML, innerHTML2)
+
+        val vnode3p = patch(vnode2p, vnode3)
+        assertEquals(vnode3p.toVNode, vnode3)
+        val elm3 = vnode3p.elm.asInstanceOf[dom.HTMLElement]
+        val innerHTML3 = vnode3.children.map { vnode =>
+          s"<span>${vnode.text.get}</span>"
+        }.mkString
+        assertEquals(elm3.innerHTML, innerHTML3)
+
+        // update hook should trigger twice, in patch from 1 -> 2 and from 2 -> 3
+        assertEquals(counter, 2 * n2)
+
+      }
+
+    }
+
     vnode0.test("keyed nodes are patched") { vnode0 =>
       val result1b = List.newBuilder[VNode]
       val result2b = List.newBuilder[VNode]
