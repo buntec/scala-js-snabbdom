@@ -46,19 +46,15 @@ import org.scalajs.dom
 object Styles {
 
   val module: Module = Module().copy(
-    create = Some(new CreateHook {
-      override def apply(vNode: PatchedVNode): PatchedVNode = {
-        setStyle(vNode)
-        vNode
-      }
+    create = Some((vNode: PatchedVNode) => {
+      setStyle(vNode)
+      vNode
     }),
-    update = Some(new UpdateHook {
-      override def apply(oldVNode: PatchedVNode, vNode: VNode): VNode = {
-        if (vNode.data.style != oldVNode.data.style) {
-          updateStyle(oldVNode, vNode)
-        }
-        vNode
+    update = Some((oldVNode: PatchedVNode, vNode: VNode) => {
+      if (vNode.data.style != oldVNode.data.style) {
+        updateStyle(oldVNode, vNode)
       }
+      vNode
     })
   )
 

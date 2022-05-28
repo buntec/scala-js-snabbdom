@@ -45,21 +45,17 @@ import scalajs.js
 object Dataset {
 
   val module: Module = Module().copy(
-    create = Some(new CreateHook {
-      override def apply(vNode: PatchedVNode): PatchedVNode = {
-        if (vNode.data.dataset.nonEmpty) {
-          setDataset(vNode)
-        }
-        vNode
+    create = Some((vNode: PatchedVNode) => {
+      if (vNode.data.dataset.nonEmpty) {
+        setDataset(vNode)
       }
+      vNode
     }),
-    update = Some(new UpdateHook {
-      override def apply(oldVNode: PatchedVNode, vNode: VNode): VNode = {
-        if (vNode.data.dataset != oldVNode.data.dataset) {
-          updateDataset(oldVNode, vNode)
-        }
-        vNode
+    update = Some((oldVNode: PatchedVNode, vNode: VNode) => {
+      if (vNode.data.dataset != oldVNode.data.dataset) {
+        updateDataset(oldVNode, vNode)
       }
+      vNode
     })
   )
 

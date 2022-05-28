@@ -119,7 +119,7 @@ object init {
     ): PatchedVNode = {
 
       val vnode =
-        vnode0.data.hook.flatMap(_.init).fold(vnode0)(hook => hook(vnode0))
+        vnode0.data.hook.flatMap(_.init).fold(vnode0)(_(vnode0))
 
       val sel = vnode.sel
       sel match {
@@ -188,9 +188,8 @@ object init {
             hook(vnode)
           }
 
-          val vnode2 = vnode0.data.hook
-            .flatMap(_.create)
-            .fold(vnode1)(hook => hook(vnode1))
+          val vnode2 =
+            vnode0.data.hook.flatMap(_.create).fold(vnode1)(_(vnode1))
 
           vnode0.data.hook.foreach { hooks =>
             hooks.insert.foreach { _ => insertedVNodeQueue.append(vnode0) }
@@ -269,9 +268,7 @@ object init {
     // This would be much simpler if we didn't have to
     // match up key'ed nodes even when their order and
     // position has completely changed.
-    // Putting VNodes in Maps/Sets is expensive b/c of hashing
-    // so we want to avoid this as much as possible.
-    // TODO: try to simplify, use better variable names
+    // TODO: Try to simplify and use better variable names.
     def updateChildren(
         parentElm: dom.Node,
         oldCh: List[PatchedVNode],
@@ -279,6 +276,18 @@ object init {
         insertedVnodeQueue: VNodeQueue
     ): List[PatchedVNode] = {
 
+      // `toDelete1` - the old children in original order that were not
+      // matched against new children.
+      // `toDelete2` - the old children in reverse order that were not
+      // matched against new children.
+      // The intersection of toDelete1 and toDelete2 are nodes that
+      // should either be deleted or are key'ed nodes that have been moved around.
+      // `patchedChildrenWithIndex` - new children that are the result of
+      // patching old children. Zipped with the index in the list of all
+      // new children to allow merging with key'ed nodes later.
+      // `newKeyed` - new children with keys that have not been matched
+      // to old nodes. They are either new nodes or correspond to
+      // old key'ed nodes that have been moved around.
       val (toDelete1, toDelete2, patchedChildrenWithIndex, newKeyed) =
         newCh.zipWithIndex.foldLeft(
           (
@@ -304,23 +313,30 @@ object init {
               } else {
                 (oh :: ot, ot2, (pn, i) :: acc, keyed)
               }
-            } else if (newCh.key.isDefined) {
+            } else if (newCh.key.isDefined) { // node with key - try to match later
               (oh :: ot, oh2 :: ot2, acc, (newCh, i) :: keyed)
-            } else { // new node
+            } else { // new node without key
               val pn = createElm(newCh, insertedVnodeQueue)
               api.insertBefore(parentElm, pn.elm, Some(oh.elm))
               (oh :: ot, oh2 :: ot2, (pn, i) :: acc, keyed)
             }
-          case ((Nil, _, acc, keyed), (newCh, i)) => // new node
+          case (
+                (Nil, _, acc, keyed),
+                (newCh, i)
+              ) => // old nodes are exhausted - must be new node
             val pn = createElm(newCh, insertedVnodeQueue)
             api.insertBefore(parentElm, pn.elm, None)
             (Nil, Nil, (pn, i) :: acc, keyed)
-          case ((_, Nil, acc, keyed), (newCh, i)) => // new node
+          case (
+                (_, Nil, acc, keyed),
+                (newCh, i)
+              ) => // old nodes are exhausted - must be new node
             val pn = createElm(newCh, insertedVnodeQueue)
             api.insertBefore(parentElm, pn.elm, None)
             (Nil, Nil, (pn, i) :: acc, keyed)
         }
 
+      // `toDelete` is the efficiently computed intersection of `toDelete1` and `toDelete2`.
       val (_, toDelete) =
         toDelete1.reverse.foldLeft((toDelete2, List.empty[PatchedVNode])) {
           case (((h :: t), acc), vnode) =>
@@ -332,10 +348,17 @@ object init {
           case ((Nil, acc), _) => (Nil, acc)
         }
 
+      // We split the old nodes that are candidates for deletion
+      // into those with keys and those without. Those without keys
+      // should certainly be deleted. Those with keys we'll try to match
+      // up against new children with keys - any leftovers will be deleted
       val (toDeleteKeyed, toDeleteUnkeyed) = toDelete.partition(_.key.isDefined)
 
       val oldKeyed = toDeleteKeyed.map(n => (n.key.get -> n)).toMap
 
+      // Here we match new, unmatched children with keys against
+      // old children with keys. Any leftover old children with
+      // keys will be returned for deletion.
       val (patchedKeyedChildrenWithIndex, toDeleteKeyed0) =
         newKeyed.foldLeft(
           (List.empty[(PatchedVNode, Int)], oldKeyed)
@@ -354,6 +377,10 @@ object init {
       removeAllVnodes(parentElm, toDeleteUnkeyed)
       removeAllVnodes(parentElm, toDeleteKeyed0.values.toList)
 
+      // A helper function to merge child nodes that were patched or created
+      // in the first fold, and those new key'ed child nodes that were
+      // matched up with old key'ed children. The result is the
+      // list of all patched children in reverse order.
       def merge(
           v1: List[(PatchedVNode, Int)],
           v2: List[(PatchedVNode, Int)],
@@ -365,7 +392,7 @@ object init {
               api.insertBefore(parentElm, h2.elm, Some(h1.elm))
               merge(v1, t2, h2 :: acc)
             } else {
-              assert(j > i)
+              assert(j > i) // v1 and v2 are disjoint!
               merge(t1, v2, h1 :: acc)
             }
           case (Nil, ((h2, _) :: t2)) =>

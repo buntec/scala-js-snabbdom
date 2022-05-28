@@ -44,21 +44,17 @@ import org.scalajs.dom
 object Classes {
 
   val module: Module = Module().copy(
-    create = Some(new CreateHook {
-      override def apply(vNode: PatchedVNode): PatchedVNode = {
-        if (vNode.data.classes.nonEmpty) {
-          setClasses(vNode)
-        }
-        vNode
+    create = Some((vNode: PatchedVNode) => {
+      if (vNode.data.classes.nonEmpty) {
+        setClasses(vNode)
       }
+      vNode
     }),
-    update = Some(new UpdateHook {
-      override def apply(oldVNode: PatchedVNode, vNode: VNode): VNode = {
-        if (vNode.data.classes != oldVNode.data.classes) {
-          updateClasses(oldVNode, vNode)
-        }
-        vNode
+    update = Some((oldVNode: PatchedVNode, vNode: VNode) => {
+      if (vNode.data.classes != oldVNode.data.classes) {
+        updateClasses(oldVNode, vNode)
       }
+      vNode
     })
   )
 

@@ -430,8 +430,7 @@ class SnabbdomSuite extends BaseSuite {
 
     }
 
-    // TODO: This appears to be a bug in the orignal: https://github.com/snabbdom/snabbdom/pull/1019
-    vnode0.test("removes custom props".ignore) { vnode0 =>
+    vnode0.test("removes custom props") { vnode0 =>
       val vnode1 =
         h("a", VNodeData(props = Map("src" -> "http://other/")))
       val vnode2 = h("a")
@@ -460,7 +459,8 @@ class SnabbdomSuite extends BaseSuite {
 
     }
 
-    vnode0.test("does not delete custom props") { vnode0 =>
+    // this test seems to assert the opposite of "removes custom props" ???
+    vnode0.test("does not delete custom props".ignore) { vnode0 =>
       val vnode1 = h("p", VNodeData(props = Map("a" -> "foo")))
       val vnode2 = h("p")
       val vnode1p = patch(vnode0, vnode1)

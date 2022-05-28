@@ -44,35 +44,27 @@ import org.scalajs.dom
 object EventListeners {
 
   val module: Module = Module().copy(
-    create = Some(new CreateHook {
-      override def apply(vNode: PatchedVNode): PatchedVNode = {
-        if (vNode.data.on.nonEmpty) {
-          val listener = createListener(vNode)
-          vNode.data.on.foreach { case (name, _) =>
-            vNode.elm.addEventListener(name, listener.jsFun, false)
-          }
-          vNode.copy(listener = Some(listener))
-        } else {
-          vNode
+    create = Some((vNode: PatchedVNode) => {
+      if (vNode.data.on.nonEmpty) {
+        val listener = createListener(vNode)
+        vNode.data.on.foreach { case (name, _) =>
+          vNode.elm.addEventListener(name, listener.jsFun, false)
         }
+        vNode.copy(listener = Some(listener))
+      } else {
+        vNode
       }
     }),
-    postPatch = Some(new PostPatchHook {
-      override def apply(
-          oldVNode: PatchedVNode,
-          vNode: PatchedVNode
-      ): PatchedVNode =
-        updateEventListeners(oldVNode, vNode)
-    }),
-    destroy = Some(new DestroyHook {
-      override def apply(vnode: PatchedVNode): Unit = {
-        vnode.listener match {
-          case Some(listener) =>
-            vnode.data.on.foreach { case (name, _) =>
-              vnode.elm.removeEventListener(name, listener.jsFun, false)
-            }
-          case None => ()
-        }
+    postPatch = Some((oldVNode: PatchedVNode, vNode: PatchedVNode) =>
+      updateEventListeners(oldVNode, vNode)
+    ),
+    destroy = Some((vnode: PatchedVNode) => {
+      vnode.listener match {
+        case Some(listener) =>
+          vnode.data.on.foreach { case (name, _) =>
+            vnode.elm.removeEventListener(name, listener.jsFun, false)
+          }
+        case None => ()
       }
     })
   )

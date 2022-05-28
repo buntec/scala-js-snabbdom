@@ -44,30 +44,21 @@ import scalajs.js
 object Props {
 
   val module: Module = Module().copy(
-    create = Some(new CreateHook {
-      override def apply(vNode: PatchedVNode): PatchedVNode = {
-        setProps(vNode)
-        vNode
-      }
+    create = Some((vNode: PatchedVNode) => {
+      setProps(vNode)
+      vNode
     }),
-    update = Some(new UpdateHook {
-      override def apply(oldVNode: PatchedVNode, vNode: VNode): VNode = {
-        if (vNode.data.props != oldVNode.data.props) {
-          updateProps(oldVNode, vNode)
-        }
-        vNode
+    update = Some((oldVNode: PatchedVNode, vNode: VNode) => {
+      if (vNode.data.props != oldVNode.data.props) {
+        updateProps(oldVNode, vNode)
       }
+      vNode
     })
   )
 
   private def setProps(vnode: PatchedVNode): Unit = {
     vnode.data.props.foreach { case (key, cur) =>
-      if (
-        (key != "value" || vnode.elm
-          .asInstanceOf[js.Dictionary[Any]]
-          .get(key)
-          .forall(_ != cur))
-      ) { vnode.elm.asInstanceOf[js.Dictionary[Any]](key) = cur }
+      vnode.elm.asInstanceOf[js.Dictionary[Any]] += (key -> cur)
     }
   }
 
@@ -78,12 +69,15 @@ object Props {
     val props = vnode.data.props
 
     props.foreach { case (key, cur) =>
-      if (
-        oldProps.get(key).forall(_ != cur) && (key != "value" || elm
-          .asInstanceOf[js.Dictionary[Any]]
-          .get(key)
-          .forall(_ != cur))
-      ) { elm.asInstanceOf[js.Dictionary[Any]](key) = cur }
+      if (oldProps.get(key).forall(_ != cur)) {
+        elm.asInstanceOf[js.Dictionary[Any]] += (key -> cur)
+      }
+    }
+
+    oldProps.foreach { case (key, cur) =>
+      if (!props.contains(key)) {
+        elm.asInstanceOf[js.Dictionary[Any]] -= key
+      }
     }
 
   }
