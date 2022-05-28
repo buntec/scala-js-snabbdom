@@ -74,7 +74,7 @@ object Props {
       }
     }
 
-    oldProps.foreach { case (key, cur) =>
+    oldProps.foreach { case (key, _) =>
       if (!props.contains(key)) {
         elm.asInstanceOf[js.Dictionary[Any]] -= key
       }
