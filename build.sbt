@@ -18,12 +18,36 @@ ThisBuild / githubWorkflowBuildMatrixAdditions += "browser" -> List(
   "Firefox"
 )
 ThisBuild / githubWorkflowBuildSbtStepPreamble += s"set Global / useJSEnv := JSEnv.$${{ matrix.browser }}"
+
+ThisBuild / githubWorkflowAddedJobs +=
+  WorkflowJob(
+    id = "coverage",
+    name = "Generate coverage report",
+    scalas = List(scala213),
+    javas = githubWorkflowJavaVersions.value.toList,
+    steps = List(WorkflowStep.Checkout)
+      ++ WorkflowStep.SetupJava(githubWorkflowJavaVersions.value.toList)
+      ++ githubWorkflowGeneratedCacheSteps.value
+      ++ List(
+        WorkflowStep.Sbt(
+          List(
+            "set Global / useJSEnv := JSEnv.JSDOM",
+            "coverage",
+            "test",
+            "coverageAggregate"
+          )
+        ),
+        WorkflowStep.Run(List("bash <(curl -s https://codecov.io/bash)"))
+      )
+  )
+
 lazy val useJSEnv = settingKey[JSEnv]("Browser for running Scala.js tests")
 Global / useJSEnv := JSEnv.Chrome
 ThisBuild / Test / jsEnv := {
   import org.openqa.selenium.chrome.ChromeOptions
   import org.openqa.selenium.firefox.FirefoxOptions
   import org.scalajs.jsenv.selenium.SeleniumJSEnv
+  import org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv
   useJSEnv.value match {
     case JSEnv.Chrome =>
       val options = new ChromeOptions()
@@ -33,6 +57,8 @@ ThisBuild / Test / jsEnv := {
       val options = new FirefoxOptions()
       options.setHeadless(true)
       new SeleniumJSEnv(options)
+    case JSEnv.JSDOM =>
+      new JSDOMNodeJSEnv()
   }
 }
 
