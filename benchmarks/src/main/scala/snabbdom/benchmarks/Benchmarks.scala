@@ -70,4 +70,70 @@ object Benchmarks {
 
   }
 
+  @JSExport
+  def benchmark2(container: dom.Element): Unit = {
+
+    def key(k: String) = VNodeData(key = Some(k))
+
+    val vnode0p = patch(container, h("div"))
+
+    val vnode1 = h(
+      "div",
+      List(
+        h("span", key("1"), "1"),
+        h("span", key("2"), "2"),
+        h("span", key("3"), "3")
+      )
+    )
+    val vnode2 =
+      h("div", List(h("span", key("2"), "2a"), h("span", key("3"), "3a")))
+    val vnode3 = h("div", List(h("span", key("3"), "3b")))
+    val vnode4 =
+      h("div", List(h("span", key("2"), "2c"), h("span", key("3"), "3c")))
+    val vnode5 = h(
+      "div",
+      List(
+        h("span", key("1"), "1d"),
+        h("span", key("2"), "2d"),
+        h("span", key("3"), "3d"),
+        h("span", "b")
+      )
+    )
+    val vnode6 = h(
+      "div",
+      List(
+        h("span", key("1"), "1e"),
+        h("span", key("3"), "3e"),
+        h("span", key("2"), "2e")
+      )
+    )
+    val vnode7 = h(
+      "div",
+      List(
+        h("span", "a"),
+        h("span", "b"),
+        h("span", key("1"), "1f"),
+        h("span", key("2"), "2f"),
+        h("span", key("3"), "3f")
+      )
+    )
+    val vnode8 = h(
+      "div",
+      List(
+        h("span", key("1"), "1g"),
+        h("span", key("2"), "2g"),
+        h("span", key("3"), "3g"),
+        h("span", key("4"), "4g")
+      )
+    )
+
+    List(vnode1, vnode2, vnode3, vnode4, vnode5, vnode6, vnode7, vnode8)
+      .foldLeft(
+        vnode0p
+      ) { case (acc, vnode) => patch(acc, vnode) }
+
+    ()
+
+  }
+
 }
