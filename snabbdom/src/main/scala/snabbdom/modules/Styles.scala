@@ -85,7 +85,8 @@ object Styles {
 
           if (name(0) == '-' && name(1) == '-') {
 
-            elm.asInstanceOf[dom.HTMLElement].style.setProperty(name, cur)
+            // should be dom.HTMLElement but scoverage bug
+            elm.asInstanceOf[js.Dynamic].style.setProperty(name, cur)
 
           } else {
 

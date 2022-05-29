@@ -174,6 +174,11 @@ class ThunkSuite extends BaseSuite {
   }
 
   vnode0.test("supports leaving out the `key` argument") { vnode0 =>
+    assume(
+      !dom.window.navigator.userAgent.contains("jsdom"),
+      "This test is broken on JSDOM"
+    )
+
     val vnodeFn = (args: Seq[Any]) => {
       val s = args.head.asInstanceOf[String]
       h("span.number", s"Hello $s")
