@@ -47,6 +47,7 @@ import scala.collection.mutable.ListBuffer
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 import org.scalacheck.Gen.lzy
+import org.scalacheck.rng.Seed
 
 class SnabbdomSuite extends BaseSuite {
 
@@ -71,18 +72,24 @@ class SnabbdomSuite extends BaseSuite {
     } yield (name, value)
   )
 
-  val genVNodeData: Gen[VNodeData] = for {
-    key <- Gen.frequency(
-      (1 -> Gen.const(None)),
-      (1 -> Gen.some(
-        Gen.uuid
-          .withPerturb(
-            _.reseed(keyRng.nextLong())
-          ) // this does not seem to work!
-          .map(_.toString.take(8))
-      ))
-    )
-  } yield VNodeData(key = key)
+  val genVNodeData: Gen[VNodeData] = {
+    // dirty hack to allow temporary switching of rngs
+    var globalSeed: Seed = null
+    for {
+      key <- Gen
+        .frequency(
+          (1 -> Gen.const(None)),
+          (1 -> Gen.some(Gen.uuid.map(_.toString.take(8))))
+        )
+        .withPerturb { seed =>
+          globalSeed = seed
+          Seed(keyRng.nextLong()) // use seed driven by key rng
+        }
+      _ <- Gen.const(()).withPerturb(_ => globalSeed) // back to global seed
+    } yield {
+      VNodeData(key = key)
+    }
+  }
 
   val genLeaf: Gen[VNode] = for {
     n <- Gen.choose(3, 20)
@@ -1971,28 +1978,28 @@ class SnabbdomSuite extends BaseSuite {
 
   group("patching of random sequence of vnodes") {
 
-    // for reproducability, we want deterministic tests
-    scala.util.Random.setSeed(0)
-    keyRng.setSeed(0)
-
     val nodesGen = for {
       n <- Gen.choose(2, 10)
       vnodes <- Gen.listOfN(n, genVNode)
     } yield vnodes
 
-    test("results in correct innerHTML") {
+    test("results in correct innerHTML".only) {
+
+      // for reproducability, we want deterministic tests
+      scala.util.Random.setSeed(0)
+      keyRng.setSeed(0)
 
       for {
-        _ <- 0 until 1000
+        i <- 0 until 1000
         vnodes <- nodesGen.sample
       } {
 
-        // println(s"iteration: $i")
-        // println(s"# patches: ${vnodes.length}")
-        // println(s"vnode sizes: ${vnodes.map(vnode => size(vnode))}")
+        println(s"iteration: $i")
+        println(s"# patches: ${vnodes.length}")
+        println(s"vnode sizes: ${vnodes.map(vnode => size(vnode))}")
         // println(keys(vnodes.head))
         // println(keys(vnodes.tail.head))
-        // println()
+        println()
 
         val elm = dom.document.createElement("div")
         val vnode = vnodes.tail.foldLeft(patch(elm, vnodes.head)) {
@@ -2001,6 +2008,12 @@ class SnabbdomSuite extends BaseSuite {
 
         val refElm = patch(dom.document.createElement("div"), vnodes.last).elm
           .asInstanceOf[dom.Element]
+
+        if (vnode.elm.asInstanceOf[dom.Element].innerHTML != refElm.innerHTML) {
+          println(vnode.elm.asInstanceOf[dom.Element].innerHTML)
+          println("-----------------------------------------")
+          println(refElm.innerHTML)
+        }
 
         // NOTE: Comparing `innerHTML` only works in the absence of
         // classes b/c `class=""` is semantically the same as not
