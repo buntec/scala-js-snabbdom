@@ -42,9 +42,6 @@ import org.scalajs.dom
 
 class ThunkSuite extends BaseSuite {
 
-  override def munitIgnore: Boolean = // TODO isolate which test doesn't work
-    dom.window.navigator.userAgent.contains("jsdom")
-
   val vnode0 = FunFixture[dom.Element](
     setup = { _ =>
       dom.document.createElement("div")
@@ -177,6 +174,11 @@ class ThunkSuite extends BaseSuite {
   }
 
   vnode0.test("supports leaving out the `key` argument") { vnode0 =>
+    assume(
+      !dom.window.navigator.userAgent.contains("jsdom"),
+      "This test is broken on JSDOM"
+    )
+
     val vnodeFn = (args: Seq[Any]) => {
       val s = args.head.asInstanceOf[String]
       h("span.number", s"Hello $s")
