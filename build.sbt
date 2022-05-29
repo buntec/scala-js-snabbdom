@@ -19,6 +19,7 @@ ThisBuild / githubWorkflowBuildMatrixAdditions += "browser" -> List(
 )
 ThisBuild / githubWorkflowBuildSbtStepPreamble += s"set Global / useJSEnv := JSEnv.$${{ matrix.browser }}"
 
+ThisBuild / coverageScalacPluginVersion := "2.0.0-M6"
 ThisBuild / githubWorkflowAddedJobs +=
   WorkflowJob(
     id = "coverage",
