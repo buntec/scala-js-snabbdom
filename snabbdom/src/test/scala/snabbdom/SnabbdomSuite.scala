@@ -44,7 +44,80 @@ import org.scalajs.dom
 import scalajs.js
 import scala.collection.mutable.ListBuffer
 
+import org.scalacheck.Arbitrary
+import org.scalacheck.Gen
+import org.scalacheck.Gen.lzy
+
 class SnabbdomSuite extends BaseSuite {
+
+  // used only for key generation to ensure that the same
+  // sequence of keys is used for different vnodes
+  val keyRng = new scala.util.Random(0)
+
+  val genClasses: Gen[Map[String, Boolean]] = Gen.mapOfN(
+    3,
+    for {
+      n <- Gen.choose(5, 10)
+      name <- Gen.stringOfN(n, Gen.alphaChar)
+      value <- Gen.oneOf(true, false)
+    } yield (name, value)
+  )
+
+  val genProps: Gen[Map[String, String]] = Gen.mapOfN(
+    3,
+    for {
+      name <- Gen.stringOfN(10, Gen.alphaChar)
+      value <- Gen.stringOfN(10, Gen.alphaChar)
+    } yield (name, value)
+  )
+
+  val genVNodeData: Gen[VNodeData] = for {
+    key <- Gen.frequency(
+      (1 -> Gen.const(None)),
+      (1 -> Gen.some(
+        Gen.uuid
+          .withPerturb(
+            _.reseed(keyRng.nextLong())
+          ) // this does not seem to work!
+          .map(_.toString.take(8))
+      ))
+    )
+  } yield VNodeData(key = key)
+
+  val genLeaf: Gen[VNode] = for {
+    n <- Gen.choose(3, 20)
+    text <- Gen.stringOfN(n, Gen.alphaChar)
+    data <- genVNodeData
+  } yield h("span", data, text)
+
+  val genTree: Gen[VNode] = for {
+    children <- Gen.listOfN(8, genVNodePre)
+    data <- genVNodeData
+  } yield h("div", data, children)
+
+  // Dies out fast enough not to explode, but has 10-1 odds of being just a leaf.
+  // We therefore define `genVNode` by conditioning on `size(vnode) > 1`.
+  def genVNodePre: Gen[VNode] =
+    Gen.frequency((10, genLeaf), (1, lzy(genTree)))
+
+  // We reset the key rng after every evaluation so that
+  // successive vnodes will use the same sequence of keys
+  implicit val genVNode =
+    genVNodePre
+      .flatMap { vnode =>
+        Gen.delay { keyRng.setSeed(0); Gen.const(vnode) }
+      }
+      .retryUntil(vnode => size(vnode) > 1)
+
+  implicit val arbVNode: Arbitrary[VNode] = Arbitrary(genVNode)
+
+  def size(vnode: VNode): Long = 1 + vnode.children.map(size).sum
+
+  def keys(vnode: VNode): Set[String] =
+    vnode.key.toSet.union(vnode.children.map(keys).toList.flatten.toSet)
+
+  def depth(vnode: VNode): Long =
+    1 + vnode.children.map(depth).maxOption.getOrElse(0L)
 
   def spanNum(s: String) = h("span", VNodeData(), s)
   def spanNum(i: Int) =
@@ -1894,6 +1967,52 @@ class SnabbdomSuite extends BaseSuite {
       patch(vnode1p, vnode2)
       assertEquals(result.result().size, 0)
     }
+  }
+
+  group("patching of random sequence of vnodes") {
+
+    // for reproducability, we want deterministic tests
+    scala.util.Random.setSeed(0)
+    keyRng.setSeed(0)
+
+    val nodesGen = for {
+      n <- Gen.choose(2, 10)
+      vnodes <- Gen.listOfN(n, genVNode)
+    } yield vnodes
+
+    test("results in correct innerHTML") {
+
+      for {
+        _ <- 0 until 1000
+        vnodes <- nodesGen.sample
+      } {
+
+        // println(s"iteration: $i")
+        // println(s"# patches: ${vnodes.length}")
+        // println(s"vnode sizes: ${vnodes.map(vnode => size(vnode))}")
+        // println(keys(vnodes.head))
+        // println(keys(vnodes.tail.head))
+        // println()
+
+        val elm = dom.document.createElement("div")
+        val vnode = vnodes.tail.foldLeft(patch(elm, vnodes.head)) {
+          case (pvnode, vnode) => patch(pvnode, vnode)
+        }
+
+        val refElm = patch(dom.document.createElement("div"), vnodes.last).elm
+          .asInstanceOf[dom.Element]
+
+        // NOTE: Comparing `innerHTML` only works in the absence of
+        // classes b/c `class=""` is semantically the same as not
+        // having a `class` attribute at all.
+        assertEquals(
+          vnode.elm.asInstanceOf[dom.Element].innerHTML,
+          refElm.innerHTML
+        )
+
+      }
+    }
+
   }
 
 }

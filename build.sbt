@@ -38,6 +38,7 @@ ThisBuild / Test / jsEnv := {
 
 lazy val scalajsDomVersion = "2.1.0"
 lazy val munitVersion = "0.7.29"
+lazy val scalacheckVersion = "1.16.0"
 
 lazy val root = tlCrossRootProject.aggregate(snabbdom, examples, benchmarks)
 
@@ -48,7 +49,8 @@ lazy val snabbdom = (project
     name := "scala-js-snabbdom",
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % scalajsDomVersion,
-      "org.scalameta" %%% "munit" % munitVersion % Test
+      "org.scalameta" %%% "munit" % munitVersion % Test,
+      "org.scalacheck" %%% "scalacheck" % scalacheckVersion % Test
     )
   )
 
