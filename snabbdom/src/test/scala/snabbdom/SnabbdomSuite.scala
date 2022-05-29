@@ -44,7 +44,6 @@ import org.scalajs.dom
 import scalajs.js
 import scala.collection.mutable.ListBuffer
 
-import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 import org.scalacheck.Gen.lzy
 import org.scalacheck.rng.Seed
@@ -109,14 +108,12 @@ class SnabbdomSuite extends BaseSuite {
 
   // We reset the key rng after every evaluation so that
   // successive vnodes will use the same sequence of keys
-  implicit val genVNode =
+  val genVNode: Gen[VNode] =
     genVNodePre
       .flatMap { vnode =>
         Gen.delay { keyRng.setSeed(0); Gen.const(vnode) }
       }
       .retryUntil(vnode => size(vnode) > 1)
-
-  implicit val arbVNode: Arbitrary[VNode] = Arbitrary(genVNode)
 
   def size(vnode: VNode): Long = 1 + vnode.children.map(size).sum
 
