@@ -1983,23 +1983,23 @@ class SnabbdomSuite extends BaseSuite {
       vnodes <- Gen.listOfN(n, genVNode)
     } yield vnodes
 
-    test("results in correct innerHTML".only) {
+    test("results in correct innerHTML") {
 
       // for reproducability, we want deterministic tests
       scala.util.Random.setSeed(0)
       keyRng.setSeed(0)
 
       for {
-        i <- 0 until 1000
+        _ <- 0 until 1000
         vnodes <- nodesGen.sample
       } {
 
-        println(s"iteration: $i")
-        println(s"# patches: ${vnodes.length}")
-        println(s"vnode sizes: ${vnodes.map(vnode => size(vnode))}")
+        // println(s"iteration: $i")
+        // println(s"# patches: ${vnodes.length}")
+        // println(s"vnode sizes: ${vnodes.map(vnode => size(vnode))}")
         // println(keys(vnodes.head))
         // println(keys(vnodes.tail.head))
-        println()
+        // println()
 
         val elm = dom.document.createElement("div")
         val vnode = vnodes.tail.foldLeft(patch(elm, vnodes.head)) {
@@ -2009,11 +2009,11 @@ class SnabbdomSuite extends BaseSuite {
         val refElm = patch(dom.document.createElement("div"), vnodes.last).elm
           .asInstanceOf[dom.Element]
 
-        if (vnode.elm.asInstanceOf[dom.Element].innerHTML != refElm.innerHTML) {
-          println(vnode.elm.asInstanceOf[dom.Element].innerHTML)
-          println("-----------------------------------------")
-          println(refElm.innerHTML)
-        }
+        // if (vnode.elm.asInstanceOf[dom.Element].innerHTML != refElm.innerHTML) {
+        //  println(vnode.elm.asInstanceOf[dom.Element].innerHTML)
+        //  println("-----------------------------------------")
+        //  println(refElm.innerHTML)
+        // }
 
         // NOTE: Comparing `innerHTML` only works in the absence of
         // classes b/c `class=""` is semantically the same as not

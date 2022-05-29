@@ -362,13 +362,13 @@ object init {
           (List.empty[(PatchedVNode, Int)], oldKeyed)
         ) { case ((acc1, acc2), (vnode, i)) =>
           acc2.get(vnode.key.get) match {
-            case None =>
-              ((createElm(vnode, insertedVnodeQueue), i) :: acc1, acc2)
-            case Some(pvnode) =>
+            case Some(pvnode) if sameVnode(pvnode, vnode) =>
               (
                 (patchVnode(pvnode, vnode, insertedVnodeQueue), i) :: acc1,
                 acc2 - vnode.key.get
               )
+            case _ =>
+              ((createElm(vnode, insertedVnodeQueue), i) :: acc1, acc2)
           }
         }
 
