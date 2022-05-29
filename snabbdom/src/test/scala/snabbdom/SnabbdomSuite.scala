@@ -120,21 +120,6 @@ class SnabbdomSuite extends BaseSuite {
       assertEquals(vnode.text, Some("b"))
     }
 
-    // TODO: do these make sense even in Scala.js?
-
-    // test("can create vnode with Number obj content") {
-    //   val vnode = h("a", new Number(1))
-    //   assertEquals(vnode.text, "1")
-    // }
-
-    // test("can create vnode with null props") {
-    //   var vnode = h("a")
-    //   assertEquals(vnode.data, None)
-    //   vnode = h("a", null, List(VNode.text("I am a string")))
-    //   val children = vnode.children
-    //   assertEquals(children.flatMap(_(0).text), Some("I am a string"))
-    // }
-
     test("can create vnode for comment") {
       val vnode = h("!", "test")
       assertEquals(vnode.sel, Some("!"))
@@ -1043,8 +1028,8 @@ class SnabbdomSuite extends BaseSuite {
         _ <- 0 until 1000
       } yield {
 
-        val n1 = rng.nextInt(100)
-        val n2 = rng.nextInt(100)
+        val n1 = rng.nextInt(10)
+        val n2 = rng.nextInt(10)
 
         var counter = 0
 
