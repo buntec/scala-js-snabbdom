@@ -30,6 +30,7 @@ ThisBuild / githubWorkflowAddedJobs +=
       ++ WorkflowStep.SetupJava(githubWorkflowJavaVersions.value.toList)
       ++ githubWorkflowGeneratedCacheSteps.value
       ++ List(
+        WorkflowStep.Run(List("npm install")),
         WorkflowStep.Sbt(
           List(
             "set Global / useJSEnv := JSEnv.JSDOM",
