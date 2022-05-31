@@ -26,7 +26,7 @@ ThisBuild / githubWorkflowAddedJobs +=
     name = "Generate coverage report",
     scalas = List(scala213),
     javas = githubWorkflowJavaVersions.value.toList,
-    steps = List(WorkflowStep.Checkout)
+    steps = List(WorkflowStep.CheckoutFull)
       ++ WorkflowStep.SetupJava(githubWorkflowJavaVersions.value.toList)
       ++ githubWorkflowGeneratedCacheSteps.value
       ++ List(
