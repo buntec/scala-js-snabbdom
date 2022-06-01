@@ -34,6 +34,7 @@ ThisBuild / githubWorkflowAddedJobs +=
           UseRef.Public("actions", "setup-node", "v3"),
           params = Map("node-version" -> "16", "cache" -> "npm")
         ),
+        WorkflowStep.Run(List("npm install")),
         WorkflowStep.Sbt(
           List(
             "set Global / useJSEnv := JSEnv.JSDOM",

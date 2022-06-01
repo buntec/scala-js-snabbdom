@@ -229,6 +229,8 @@ jobs:
           node-version: 16
           cache: npm
 
+      - run: npm install
+
       - run: 'sbt ''++${{ matrix.scala }}'' ''set Global / useJSEnv := JSEnv.JSDOM'' coverage test coverageAggregate'
 
       - run: 'bash <(curl -s https://codecov.io/bash)'
