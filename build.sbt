@@ -31,6 +31,10 @@ ThisBuild / githubWorkflowAddedJobs +=
       ++ WorkflowStep.SetupJava(githubWorkflowJavaVersions.value.toList)
       ++ githubWorkflowGeneratedCacheSteps.value
       ++ List(
+        WorkflowStep.Use(
+          UseRef.Public("actions", "setup-node", "v3"),
+          params = Map("node-version" -> "16", "cache" -> "npm")
+        ),
         WorkflowStep.Run(List("npm install")),
         WorkflowStep.Sbt(
           List(
