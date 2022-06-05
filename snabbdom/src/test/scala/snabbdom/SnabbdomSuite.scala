@@ -43,12 +43,16 @@ import snabbdom.modules._
 import org.scalajs.dom
 import scalajs.js
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration._
 
 import org.scalacheck.Gen
 import org.scalacheck.Gen.lzy
 import org.scalacheck.rng.Seed
 
 class SnabbdomSuite extends BaseSuite {
+
+  // generous timeout for scalacheck-based tests with large number of samples
+  override val munitTimeout = 5.minutes
 
   // used only for key generation to ensure that the same
   // sequence of keys is used for different vnodes
