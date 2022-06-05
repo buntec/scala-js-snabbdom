@@ -54,65 +54,149 @@ class SnabbdomSuite extends BaseSuite {
   // sequence of keys is used for different vnodes
   val keyRng = new scala.util.Random(0)
 
-  val genClasses: Gen[Map[String, Boolean]] = Gen.mapOfN(
-    3,
-    for {
-      n <- Gen.choose(5, 10)
-      name <- Gen.stringOfN(n, Gen.alphaChar)
-      value <- Gen.oneOf(true, false)
-    } yield (name, value)
+  case class VNodeGenConfig(
+      keys: Boolean,
+      props: Boolean,
+      attrs: Boolean,
+      classes: Boolean,
+      style: Boolean,
+      dataset: Boolean
   )
 
-  val genProps: Gen[Map[String, String]] = Gen.mapOfN(
-    3,
-    for {
-      name <- Gen.stringOfN(10, Gen.alphaChar)
-      value <- Gen.stringOfN(10, Gen.alphaChar)
-    } yield (name, value)
+  val genClasses: Gen[Map[String, Boolean]] = Gen.choose(0, 3).flatMap { n =>
+    Gen.mapOfN(
+      n,
+      for {
+        n <- Gen.choose(4, 8)
+        name <- Gen.stringOfN(n, Gen.alphaChar)
+        value <- Gen.oneOf(true, false)
+      } yield (name, value)
+    )
+  }
+
+  val genProps: Gen[Map[String, String]] = Gen.choose(0, 3).flatMap { n =>
+    Gen.mapOfN(
+      n,
+      for {
+        n <- Gen.choose(4, 8)
+        name <- Gen.stringOfN(n, Gen.alphaChar)
+        k <- Gen.choose(4, 8)
+        value <- Gen.stringOfN(k, Gen.alphaChar)
+      } yield (name, value)
+    )
+  }
+
+  val genAttrs = genProps
+  val genDataset = genProps
+
+  val cssProps = Map(
+    "fontWeight" -> List("normal", "bold"),
+    "background" -> List("green", "red"),
+    "border" -> List("solid", "2px dotted", "medium dashed green"),
+    "padding" -> List("1em", "5% 10%", "1em 2em 2em", "5px 1em 0 2em"),
+    // some CSS custom properties
+    "--first-color" -> List("#16f", "#ff7", "#290"),
+    "--second-color" -> List("#16f", "#ff7", "#290")
   )
 
-  val genVNodeData: Gen[VNodeData] = {
+  val genStyle: Gen[Map[String, String]] = Gen.choose(0, 3).flatMap { n =>
+    Gen.mapOfN(
+      n,
+      Gen.oneOf(cssProps).flatMap { case (key, values) =>
+        Gen.oneOf(values).map(key -> _)
+      }
+    )
+  }
+
+  def genVNodeData(implicit config: VNodeGenConfig): Gen[VNodeData] = {
     // dirty hack to allow temporary switching of rngs
     var globalSeed: Seed = null
     for {
-      key <- Gen
-        .frequency(
-          (1 -> Gen.const(None)),
-          (1 -> Gen.some(Gen.uuid.map(_.toString.take(8))))
-        )
-        .withPerturb { seed =>
-          globalSeed = seed
-          Seed(keyRng.nextLong()) // use seed driven by key rng
-        }
+      _ <- Gen.const(()).withPerturb { seed =>
+        globalSeed = seed
+        Seed(keyRng.nextLong()) // use seed driven by key rng
+      }
+      key <-
+        if (config.keys)
+          Gen
+            .frequency(
+              (1 -> Gen.const(None)),
+              (1 -> Gen.some(Gen.uuid.map(_.toString.take(8))))
+            )
+        else Gen.const(None)
+      props <-
+        if (config.props) genProps else Gen.const(Map.empty[String, String])
+      attrs <-
+        if (config.attrs) genAttrs else Gen.const(Map.empty[String, String])
+      classes <-
+        if (config.classes) genClasses
+        else Gen.const(Map.empty[String, Boolean])
+      style <-
+        if (config.style) genStyle else Gen.const(Map.empty[String, String])
+      dataset <-
+        if (config.dataset) genDataset else Gen.const(Map.empty[String, String])
       _ <- Gen.const(()).withPerturb(_ => globalSeed) // back to global seed
     } yield {
-      VNodeData(key = key)
+      VNodeData(
+        key = key,
+        attrs = attrs,
+        props = props,
+        classes = classes,
+        style = style,
+        dataset = dataset
+      )
     }
   }
 
-  val genLeaf: Gen[VNode] = for {
-    n <- Gen.choose(3, 20)
-    text <- Gen.stringOfN(n, Gen.alphaChar)
-    data <- genVNodeData
-  } yield h("span", data, text)
+  val flowContent =
+    Set("div", "a", "h1", "h2", "h3", "h4", "span", "select", "button", "input")
+  val phrasingContent = Set("span", "button", "input", "cite")
+  val allContent = flowContent ++ phrasingContent
+  val contentModel = Map(
+    "div" -> flowContent,
+    "a" -> allContent,
+    "h1" -> phrasingContent,
+    "h2" -> phrasingContent,
+    "h3" -> phrasingContent,
+    "h4" -> phrasingContent,
+    "span" -> phrasingContent,
+    "button" -> phrasingContent,
+    "cite" -> phrasingContent,
+    "select" -> Set("option"),
+    "input" -> Set.empty[String],
+    "option" -> Set.empty[String]
+  )
 
-  val genTree: Gen[VNode] = for {
-    children <- Gen.listOfN(8, genVNodePre)
-    data <- genVNodeData
-  } yield h("div", data, children)
+  def genLeaf(tags: Set[String])(implicit config: VNodeGenConfig): Gen[VNode] =
+    for {
+      n <- Gen.choose(3, 20)
+      tag <- Gen.oneOf(tags)
+      text <- Gen.stringOfN(n, Gen.alphaChar)
+      data <- genVNodeData
+    } yield h(tag, data, text)
 
-  // Dies out fast enough not to explode, but has 10-1 odds of being just a leaf.
-  // We therefore define `genVNode` by conditioning on `size(vnode) > 1`.
-  def genVNodePre: Gen[VNode] =
-    Gen.frequency((10, genLeaf), (1, lzy(genTree)))
+  def genTree(tags: Set[String])(implicit config: VNodeGenConfig): Gen[VNode] =
+    for {
+      n <- Gen.choose(1, 10)
+      tag <- Gen.oneOf(tags)
+      childTags = contentModel(tag)
+      children <-
+        if (childTags.nonEmpty) Gen.listOfN(n, genVNodePre(childTags))
+        else Gen.const(Nil)
+      data <- genVNodeData
+    } yield h(tag, data, children)
+
+  // Dies out fast enough not to explode, but has 5-1 odds of being just a leaf.
+  // We therefore define `genVNode` by conditioning this generator on `size(vnode) > 1`.
+  def genVNodePre(tags: Set[String])(implicit
+      config: VNodeGenConfig
+  ): Gen[VNode] = Gen.frequency((5, genLeaf(tags)), (1, lzy(genTree(tags))))
 
   // We reset the key rng after every evaluation so that
   // successive vnodes will use the same sequence of keys
-  val genVNode: Gen[VNode] =
-    genVNodePre
-      .flatMap { vnode =>
-        Gen.delay { keyRng.setSeed(0); Gen.const(vnode) }
-      }
+  def genVNode(implicit config: VNodeGenConfig): Gen[VNode] =
+    genVNodePre(allContent)
+      .flatMap { vnode => Gen.delay { keyRng.setSeed(0); Gen.const(vnode) } }
       .retryUntil(vnode => size(vnode) > 1)
 
   def size(vnode: VNode): Long = 1 + vnode.children.map(size).sum
@@ -1975,28 +2059,34 @@ class SnabbdomSuite extends BaseSuite {
 
   group("patching of random sequence of vnodes") {
 
-    val nodesGen = for {
-      n <- Gen.choose(2, 10)
-      vnodes <- Gen.listOfN(n, genVNode)
-    } yield vnodes
-
     test("results in correct innerHTML") {
 
-      // for reproducability, we want deterministic tests
+      // for reproducibility, we want deterministic tests
       scala.util.Random.setSeed(0)
       keyRng.setSeed(0)
+
+      // NOTE: Comparing `innerHTML` only works in the absence of
+      // classes and styles b/c `class=""` is semantically the same as not
+      // having a `class` attribute at all, and similarly for `style=""`.
+      implicit val config: VNodeGenConfig =
+        VNodeGenConfig(
+          keys = true,
+          props = true,
+          attrs = true,
+          classes = false,
+          style = false,
+          dataset = true
+        )
+
+      val nodesGen = for {
+        n <- Gen.choose(2, 10)
+        vnodes <- Gen.listOfN(n, genVNode)
+      } yield vnodes
 
       for {
         _ <- 0 until 1000
         vnodes <- nodesGen.sample
       } {
-
-        // println(s"iteration: $i")
-        // println(s"# patches: ${vnodes.length}")
-        // println(s"vnode sizes: ${vnodes.map(vnode => size(vnode))}")
-        // println(keys(vnodes.head))
-        // println(keys(vnodes.tail.head))
-        // println()
 
         val elm = dom.document.createElement("div")
         val vnode = vnodes.tail.foldLeft(patch(elm, vnodes.head)) {
@@ -2006,19 +2096,51 @@ class SnabbdomSuite extends BaseSuite {
         val refElm = patch(dom.document.createElement("div"), vnodes.last).elm
           .asInstanceOf[dom.Element]
 
-        // if (vnode.elm.asInstanceOf[dom.Element].innerHTML != refElm.innerHTML) {
-        //  println(vnode.elm.asInstanceOf[dom.Element].innerHTML)
-        //  println("-----------------------------------------")
-        //  println(refElm.innerHTML)
-        // }
-
-        // NOTE: Comparing `innerHTML` only works in the absence of
-        // classes b/c `class=""` is semantically the same as not
-        // having a `class` attribute at all.
         assertEquals(
           vnode.elm.asInstanceOf[dom.Element].innerHTML,
           refElm.innerHTML
         )
+
+      }
+    }
+
+    test("results in correct vnode after calling `toVNode`") {
+
+      scala.util.Random.setSeed(0)
+      keyRng.setSeed(0)
+
+      implicit val config: VNodeGenConfig =
+        VNodeGenConfig(
+          keys = true,
+          props = true,
+          attrs = true,
+          classes = true,
+          style =
+            false, // doesn't work here b/c adding and removing a CSS property results in an empty-string attribute value
+          dataset = true
+        )
+
+      val nodesGen = for {
+        n <- Gen.choose(2, 10)
+        vnodes <- Gen.listOfN(n, genVNode)
+      } yield vnodes
+
+      for {
+        _ <- 0 until 1000
+        vnodes <- nodesGen.sample
+      } {
+
+        val elm = dom.document.createElement("div")
+        val vnode = vnodes.tail.foldLeft(patch(elm, vnodes.head)) {
+          case (pvnode, vnode) => patch(pvnode, vnode)
+        }
+
+        val refElm = patch(dom.document.createElement("div"), vnodes.last).elm
+
+        val v1 = toVNode(vnode.elm).toVNode
+        val v2 = toVNode(refElm).toVNode
+
+        assertEquals(v1, v2)
 
       }
     }

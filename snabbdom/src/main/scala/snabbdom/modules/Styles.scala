@@ -60,7 +60,7 @@ object Styles {
 
   private def setStyle(vnode: PatchedVNode): Unit = {
     vnode.data.style.foreach { case (name, cur) =>
-      if (name(0) == '-' && name(1) == '-') {
+      if (name.startsWith("--")) {
         vnode.elm.asInstanceOf[dom.HTMLElement].style.setProperty(name, cur)
       } else {
         vnode.elm
@@ -79,23 +79,21 @@ object Styles {
     val style = vnode.data.style
 
     oldStyle.foreach { case (name, _) =>
-      style.get(name) match {
-        case Some(_) =>
-        case None =>
-          if (name(0) == '-' && name(1) == '-') {
-            elm.asInstanceOf[dom.HTMLElement].style.removeProperty(name)
-          } else {
-            elm
-              .asInstanceOf[dom.HTMLElement]
-              .style
-              .asInstanceOf[js.Dictionary[String]](name) = ""
-          }
+      if (!style.contains(name)) {
+        if (name.startsWith("--")) {
+          elm.asInstanceOf[dom.HTMLElement].style.removeProperty(name)
+        } else {
+          elm
+            .asInstanceOf[dom.HTMLElement]
+            .style
+            .asInstanceOf[js.Dictionary[String]](name) = ""
+        }
       }
     }
 
     style.foreach { case (name, cur) =>
       if (oldStyle.get(name).forall(_ != cur)) {
-        if (name(0) == '-' && name(1) == '-') {
+        if (name.startsWith("--")) {
           elm.asInstanceOf[dom.HTMLElement].style.setProperty(name, cur)
         } else {
           elm
