@@ -157,7 +157,7 @@ object DomApi {
       node.nodeType == 8
 
     @inline override def isDocumentFragement(node: dom.Node): Boolean =
-      node.nodeType == 1
+      node.nodeType == 11
 
   }
 

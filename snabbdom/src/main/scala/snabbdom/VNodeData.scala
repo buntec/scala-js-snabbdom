@@ -48,7 +48,7 @@ final case class VNodeData(
     hook: Option[Hooks] = None,
     key: Option[String] = None,
     ns: Option[String] = None, // for SVG
-    fn: Option[Any => VNode] = None, // for thunks
+    fn: Option[Any => VNode.Element] = None, // for thunks
     args: Option[Any] = None, // for thunks
     is: Option[String] = None
 )

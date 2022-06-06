@@ -45,26 +45,40 @@ object Props {
 
   val module: Module = Module().copy(
     create = Some((vNode: PatchedVNode) => {
-      setProps(vNode)
+      vNode match {
+        case elm: PatchedVNode.Element =>
+          setProps(elm)
+        case _ => ()
+      }
       vNode
     }),
     update = Some((oldVNode: PatchedVNode, vNode: VNode) => {
-      if (vNode.data.props != oldVNode.data.props) {
-        updateProps(oldVNode, vNode)
+      (oldVNode, vNode) match {
+        case (a: PatchedVNode.Element, b: VNode.Element) =>
+          if (a.data.props != b.data.props) {
+            updateProps(a, b)
+          }
+        case _ => ()
       }
       vNode
     })
   )
 
-  private def setProps(vnode: PatchedVNode): Unit = {
-    vnode.data.props.foreach { case (key, cur) =>
-      vnode.elm.asInstanceOf[js.Dictionary[Any]] += (key -> cur)
+  private def setProps(vnode: PatchedVNode.Element): Unit = {
+    vnode match {
+      case elm: PatchedVNode.Element =>
+        elm.data.props.foreach { case (key, cur) =>
+          elm.node.asInstanceOf[js.Dictionary[Any]] += (key -> cur)
+        }
     }
   }
 
-  private def updateProps(oldVnode: PatchedVNode, vnode: VNode): Unit = {
+  private def updateProps(
+      oldVnode: PatchedVNode.Element,
+      vnode: VNode.Element
+  ): Unit = {
 
-    val elm = oldVnode.elm
+    val elm = oldVnode.node
     val oldProps = oldVnode.data.props
     val props = vnode.data.props
 

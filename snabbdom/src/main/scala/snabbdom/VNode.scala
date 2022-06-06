@@ -38,31 +38,36 @@
 
 package snabbdom
 
-final case class VNode private (
-    sel: Option[String],
-    data: VNodeData,
-    children: List[VNode],
-    text: Option[String]
-) {
-
-  private[snabbdom] def isTextNode: Boolean =
-    sel.isEmpty && children.isEmpty && text.isDefined
-
-}
+sealed trait VNode
 
 object VNode {
 
-  val empty: VNode = VNode(None, VNodeData.empty, Nil, Some(""))
+  def key(vnode: VNode): Option[String] = vnode match {
+    case Text(_)             => None
+    case Element(_, data, _) => data.key
+    case Comment(_)          => None
+    case Fragment(_)         => None
+  }
 
-  def create(
-      sel: Option[String],
-      data: VNodeData,
-      children: List[VNode],
-      text: Option[String]
-  ): VNode = VNode(sel, data, children, text)
+  case class Text(content: String) extends VNode
 
-  def text(text: String): VNode =
-    VNode(None, VNodeData.empty, Nil, Some(text))
+  case class Element(sel: String, data: VNodeData, children: List[VNode])
+      extends VNode
+
+  case class Fragment(children: List[VNode]) extends VNode
+
+  case class Comment(content: String) extends VNode
+
+  val empty: VNode = Text("")
+
+  def text(content: String): VNode = Text(content)
+
+  def element(sel: String, data: VNodeData, children: List[VNode]): VNode =
+    Element(sel, data, children)
+
+  def fragment(children: List[VNode]): VNode = Fragment(children)
+
+  def comment(content: String): VNode = Comment(content)
 
   implicit def fromString(s: String): VNode = text(s)
 

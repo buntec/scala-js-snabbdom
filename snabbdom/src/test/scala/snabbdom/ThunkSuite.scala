@@ -55,10 +55,10 @@ class ThunkSuite extends BaseSuite {
 
     val numberInSpan = (arg: Any) => {
       val n = arg.asInstanceOf[Int]
-      h("span", s"Numbe is ${n}")
+      h("span", s"Numbe is ${n}").asInstanceOf[VNode.Element]
     }
     val vnode = thunk("span", "num", numberInSpan, 22)
-    assertEquals(vnode.sel, Some("span"))
+    assertEquals(vnode.sel, "span")
     assertEquals(vnode.data.key, Some("num"))
     assertEquals(vnode.data.args, Some(22))
 
@@ -70,6 +70,7 @@ class ThunkSuite extends BaseSuite {
       called += 1
       val n = arg.asInstanceOf[Int]
       h("span", VNodeData(key = Some("num")), s"Number is ${n}")
+        .asInstanceOf[VNode.Element]
     }
     val vnode1 = h("div", List(thunk("span", "num", numberInSpan, 1)))
     val vnode2 = h("div", List(thunk("span", "num", numberInSpan, 2)))
@@ -131,7 +132,7 @@ class ThunkSuite extends BaseSuite {
     assertEquals(called, 2)
   }
 
-  vnode0.test("renders correctly") { vnode0 =>
+  vnode0.test("renders correctly".only) { vnode0 =>
     var called = 0
     val numberInSpan = (arg: Any) => {
       called += 1
@@ -142,7 +143,7 @@ class ThunkSuite extends BaseSuite {
     val vnode2 = h("div", List(thunk("span", "num", numberInSpan, 1)))
     val vnode3 = h("div", List(thunk("span", "num", numberInSpan, 2)))
     val vnode1p = patch(vnode0, vnode1)
-    val elm1 = vnode1p.elm.asInstanceOf[dom.HTMLElement]
+    val elm1 = vnode1p.node.asInstanceOf[dom.HTMLElement]
     assertEquals(called, 1)
     assertEquals(
       elm1.firstChild.asInstanceOf[dom.HTMLElement].tagName.toLowerCase,
@@ -153,7 +154,7 @@ class ThunkSuite extends BaseSuite {
       "Number is 1"
     )
     val vnode2p = patch(vnode1p, vnode2)
-    val elm2 = vnode2p.elm.asInstanceOf[dom.HTMLElement]
+    val elm2 = vnode2p.node.asInstanceOf[dom.HTMLElement]
     assertEquals(
       elm2.firstChild.asInstanceOf[dom.HTMLElement].tagName.toLowerCase,
       "span"
@@ -164,7 +165,7 @@ class ThunkSuite extends BaseSuite {
     )
     assertEquals(called, 1)
     val vnode3p = patch(vnode2p, vnode3)
-    val elm3 = vnode3p.elm.asInstanceOf[dom.HTMLElement]
+    val elm3 = vnode3p.node.asInstanceOf[dom.HTMLElement]
     assertEquals(
       elm3.firstChild.asInstanceOf[dom.HTMLElement].tagName.toLowerCase,
       "span"
@@ -182,7 +183,7 @@ class ThunkSuite extends BaseSuite {
       h("span.number", s"Hello $s")
     }
     val vnode1 = thunk("span.number", vnodeFn, "World!")
-    val elm = patch(vnode0, vnode1).elm
+    val elm = patch(vnode0, vnode1).node
     assertEquals(elm.innerText, "Hello World!")
   }
 
@@ -198,19 +199,19 @@ class ThunkSuite extends BaseSuite {
     val vnode3 = thunk("span", "num", numberInSpan, 2)
 
     val vnode1p = patch(vnode0, vnode1)
-    val elm1 = vnode1p.elm.asInstanceOf[dom.HTMLElement]
+    val elm1 = vnode1p.node.asInstanceOf[dom.HTMLElement]
     assertEquals(called, 1)
     assertEquals(elm1.tagName.toLowerCase, "span")
     assertEquals(elm1.innerHTML, "Number is 1")
 
     val vnode2p = patch(vnode1p, vnode2)
-    val elm2 = vnode2p.elm.asInstanceOf[dom.HTMLElement]
+    val elm2 = vnode2p.node.asInstanceOf[dom.HTMLElement]
     assertEquals(elm2.tagName.toLowerCase, "span")
     assertEquals(elm2.innerHTML, "Number is 1")
     assertEquals(called, 1)
 
     val vnode3p = patch(vnode2p, vnode3)
-    val elm3 = vnode3p.elm.asInstanceOf[dom.HTMLElement]
+    val elm3 = vnode3p.node.asInstanceOf[dom.HTMLElement]
     assertEquals(elm3.tagName.toLowerCase, "span")
     assertEquals(elm3.innerHTML, "Number is 2")
     assertEquals(called, 2)
@@ -232,7 +233,7 @@ class ThunkSuite extends BaseSuite {
     val vnode2 = h("div", List(thunk("div", "oddEven", oddEven, 4)))
 
     val vnode1p = patch(vnode0, vnode1)
-    val elm1 = vnode1p.elm.asInstanceOf[dom.HTMLElement]
+    val elm1 = vnode1p.node.asInstanceOf[dom.HTMLElement]
     assertEquals(
       elm1.firstChild.asInstanceOf[dom.HTMLElement].tagName.toLowerCase,
       "span"
@@ -243,7 +244,7 @@ class ThunkSuite extends BaseSuite {
     )
 
     val vnode2p = patch(vnode1p, vnode2)
-    val elm2 = vnode2p.elm.asInstanceOf[dom.HTMLElement]
+    val elm2 = vnode2p.node.asInstanceOf[dom.HTMLElement]
     assertEquals(
       elm2.firstChild.asInstanceOf[dom.HTMLElement].tagName.toLowerCase,
       "div"
@@ -271,11 +272,11 @@ class ThunkSuite extends BaseSuite {
     val vnode2 = thunk("div", "oddEven", oddEven, 4)
 
     val vnode1p = patch(vnode0, vnode1)
-    val elm1 = vnode1p.elm.asInstanceOf[dom.HTMLElement]
+    val elm1 = vnode1p.node.asInstanceOf[dom.HTMLElement]
     assertEquals(elm1.tagName.toLowerCase, "span")
     assertEquals(elm1.innerHTML, "Number is 1")
 
-    val elm2 = patch(vnode1p, vnode2).elm.asInstanceOf[dom.HTMLElement]
+    val elm2 = patch(vnode1p, vnode2).node.asInstanceOf[dom.HTMLElement]
     assertEquals(elm2.tagName.toLowerCase, "div")
     assertEquals(elm2.innerHTML, "Even: 4")
 

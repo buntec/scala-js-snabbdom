@@ -40,6 +40,6 @@ package snabbdom
 
 trait CreateHook {
 
-  def apply(vNode: PatchedVNode): PatchedVNode
+  def apply(vNode: PatchedVNode): Unit
 
 }

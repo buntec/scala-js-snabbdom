@@ -39,28 +39,33 @@
 package snabbdom.modules
 
 import snabbdom._
-import org.scalajs.dom
 
 object Attributes {
 
   val module: Module = Module().copy(
     create = Some(new CreateHook {
-      override def apply(vNode: PatchedVNode): PatchedVNode = {
-        if (vNode.data.attrs.nonEmpty) {
-          setAttrs(vNode)
+      override def apply(vNode: PatchedVNode): Unit = {
+        vNode match {
+          case elm: PatchedVNode.Element =>
+            if (elm.data.attrs.nonEmpty) {
+              setAttrs(elm)
+            }
+          case _ => ()
         }
-        vNode
       }
     }),
     update = Some(new UpdateHook {
       override def apply(
           oldVNode: PatchedVNode,
           vNode: VNode
-      ): VNode = {
-        if (vNode.data.attrs != oldVNode.data.attrs) {
-          updateAttrs(oldVNode, vNode)
+      ): Unit = {
+        (oldVNode, vNode) match {
+          case (a: PatchedVNode.Element, b: VNode.Element) =>
+            if (a.data.attrs != b.data.attrs) {
+              updateAttrs(a, b)
+            }
+          case _ => ()
         }
-        vNode
       }
     })
   )
@@ -68,8 +73,8 @@ object Attributes {
   private val xlinkNS = "http://www.w3.org/1999/xlink"
   private val xmlNS = "http://www.w3.org/XML/1998/namespace"
 
-  private def setAttrs(vnode: PatchedVNode): Unit = {
-    val elm = vnode.elm.asInstanceOf[dom.Element]
+  private def setAttrs(vnode: PatchedVNode.Element): Unit = {
+    val elm = vnode.node
     vnode.data.attrs.foreach { case (key, cur) =>
       if (cur == true) {
         elm.setAttribute(key, "")
@@ -90,11 +95,11 @@ object Attributes {
   }
 
   private def updateAttrs(
-      oldVnode: PatchedVNode,
-      vnode: VNode
+      oldVnode: PatchedVNode.Element,
+      vnode: VNode.Element
   ): Unit = {
 
-    val elm = oldVnode.elm.asInstanceOf[dom.Element]
+    val elm = oldVnode.node
     val oldAttrs = oldVnode.data.attrs
     val attrs = vnode.data.attrs
 

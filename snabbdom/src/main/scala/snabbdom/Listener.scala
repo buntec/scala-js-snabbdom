@@ -23,8 +23,14 @@ class Listener(var vnode: VNode) {
 
   def handleEvent(event: dom.Event): Unit = {
     val name = event.`type`
-    vnode.data.on.get(name).foreach { handler =>
-      handler.cbs.foreach(cb => cb(event, vnode))
+    vnode match {
+      case VNode.Element(_, data, _) =>
+        data.on.get(name).foreach { handler =>
+          handler.cbs.foreach(cb => cb(event, vnode))
+        }
+      case VNode.Text(_)     => ()
+      case VNode.Fragment(_) => ()
+      case VNode.Comment(_)  => ()
     }
   }
 

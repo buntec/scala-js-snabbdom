@@ -47,23 +47,28 @@ object Styles {
 
   val module: Module = Module().copy(
     create = Some((vNode: PatchedVNode) => {
-      setStyle(vNode)
-      vNode
+      vNode match {
+        case elm: PatchedVNode.Element => setStyle(elm)
+        case _                         => ()
+      }
     }),
     update = Some((oldVNode: PatchedVNode, vNode: VNode) => {
-      if (vNode.data.style != oldVNode.data.style) {
-        updateStyle(oldVNode, vNode)
+      (oldVNode, vNode) match {
+        case (a: PatchedVNode.Element, b: VNode.Element) =>
+          if (a.data.style != b.data.style) {
+            updateStyle(a, b)
+          }
+        case _ => ()
       }
-      vNode
     })
   )
 
-  private def setStyle(vnode: PatchedVNode): Unit = {
+  private def setStyle(vnode: PatchedVNode.Element): Unit = {
     vnode.data.style.foreach { case (name, cur) =>
       if (name.startsWith("--")) {
-        vnode.elm.asInstanceOf[dom.HTMLElement].style.setProperty(name, cur)
+        vnode.node.asInstanceOf[dom.HTMLElement].style.setProperty(name, cur)
       } else {
-        vnode.elm
+        vnode.node
           .asInstanceOf[dom.HTMLElement]
           .style
           .asInstanceOf[js.Dictionary[String]](name) = cur
@@ -72,9 +77,12 @@ object Styles {
 
   }
 
-  private def updateStyle(oldVnode: PatchedVNode, vnode: VNode): Unit = {
+  private def updateStyle(
+      oldVnode: PatchedVNode.Element,
+      vnode: VNode.Element
+  ): Unit = {
 
-    val elm = oldVnode.elm
+    val elm = oldVnode.node
     val oldStyle = oldVnode.data.style
     val style = vnode.data.style
 

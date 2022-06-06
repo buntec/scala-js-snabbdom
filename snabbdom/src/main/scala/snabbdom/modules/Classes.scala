@@ -45,21 +45,27 @@ object Classes {
 
   val module: Module = Module().copy(
     create = Some((vNode: PatchedVNode) => {
-      if (vNode.data.classes.nonEmpty) {
-        setClasses(vNode)
+      vNode match {
+        case elm: PatchedVNode.Element =>
+          if (elm.data.classes.nonEmpty) {
+            setClasses(elm)
+          }
+        case _ => ()
       }
-      vNode
     }),
     update = Some((oldVNode: PatchedVNode, vNode: VNode) => {
-      if (vNode.data.classes != oldVNode.data.classes) {
-        updateClasses(oldVNode, vNode)
+      (oldVNode, vNode) match {
+        case (a: PatchedVNode.Element, b: VNode.Element) =>
+          if (a.data.classes != b.data.classes) {
+            updateClasses(a, b)
+          }
+        case _ => ()
       }
-      vNode
     })
   )
 
-  private def setClasses(vnode: PatchedVNode): Unit = {
-    val elm = vnode.elm.asInstanceOf[dom.Element]
+  private def setClasses(vnode: PatchedVNode.Element): Unit = {
+    val elm = vnode.node
     vnode.data.classes.foreach { case (name, cur) =>
       if (cur) {
         elm.classList.add(name)
@@ -69,8 +75,11 @@ object Classes {
     }
   }
 
-  private def updateClasses(oldVnode: PatchedVNode, vnode: VNode): Unit = {
-    val elm = oldVnode.elm.asInstanceOf[dom.Element]
+  private def updateClasses(
+      oldVnode: PatchedVNode.Element,
+      vnode: VNode.Element
+  ): Unit = {
+    val elm = oldVnode.node
     val oldClasses = oldVnode.data.classes
     val classes = vnode.data.classes
 

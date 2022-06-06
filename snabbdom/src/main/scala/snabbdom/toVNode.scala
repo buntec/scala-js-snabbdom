@@ -79,13 +79,11 @@ object toVNode {
           dataset = if (datasets.nonEmpty) datasets.toMap else Map.empty
         )
 
-      val vnode = PatchedVNode(
-        Some(sel),
+      val vnode = PatchedVNode.Element(
+        sel,
         data,
         children.toList,
-        None,
-        node,
-        None
+        node.asInstanceOf[dom.Element]
       )
 
       if (
@@ -100,19 +98,25 @@ object toVNode {
 
     } else if (api.isText(node)) {
       val text = api.getTextContent(node).getOrElse("")
-      PatchedVNode(None, VNodeData.empty, Nil, Some(text), node, None)
+      PatchedVNode.text(text, node.asInstanceOf[dom.Text])
     } else if (api.isComment(node)) {
       val text = api.getTextContent(node).getOrElse("")
-      PatchedVNode(
-        Some("!"),
-        VNodeData.empty,
-        Nil,
-        Some(text),
-        node,
-        None
+      PatchedVNode.comment(
+        text,
+        node.asInstanceOf[dom.Comment]
+      )
+    } else if (api.isDocumentFragement(node)) {
+      val children = new mutable.ArrayBuffer[PatchedVNode]
+      val elmChildren = node.childNodes
+      elmChildren.foreach { childNode =>
+        children.append(toVNode(childNode, domApi))
+      }
+      PatchedVNode.fragment(
+        children.toList,
+        node.asInstanceOf[dom.DocumentFragment]
       )
     } else {
-      PatchedVNode(Some(""), VNodeData.empty, Nil, None, node, None)
+      ??? // TODO
     }
 
   }

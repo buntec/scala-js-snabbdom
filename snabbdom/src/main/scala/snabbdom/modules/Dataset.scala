@@ -46,24 +46,30 @@ object Dataset {
 
   val module: Module = Module().copy(
     create = Some((vNode: PatchedVNode) => {
-      if (vNode.data.dataset.nonEmpty) {
-        setDataset(vNode)
+      vNode match {
+        case elm: PatchedVNode.Element =>
+          if (elm.data.dataset.nonEmpty) {
+            setDataset(elm)
+          }
+        case _ => ()
       }
-      vNode
     }),
     update = Some((oldVNode: PatchedVNode, vNode: VNode) => {
-      if (vNode.data.dataset != oldVNode.data.dataset) {
-        updateDataset(oldVNode, vNode)
+      (oldVNode, vNode) match {
+        case (a: PatchedVNode.Element, b: VNode.Element) =>
+          if (a.data.dataset != b.data.dataset) {
+            updateDataset(a, b)
+          }
+        case _ => ()
       }
-      vNode
     })
   )
 
   private val CAPS_REGEX = "[A-Z]"
 
-  private def setDataset(vnode: PatchedVNode): Unit = {
+  private def setDataset(vnode: PatchedVNode.Element): Unit = {
 
-    val elm = vnode.elm.asInstanceOf[dom.HTMLElement]
+    val elm = vnode.node.asInstanceOf[dom.HTMLElement]
     val d = elm.dataset
     val dataset = vnode.data.dataset
 
@@ -81,9 +87,12 @@ object Dataset {
 
   }
 
-  private def updateDataset(oldVnode: PatchedVNode, vnode: VNode): Unit = {
+  private def updateDataset(
+      oldVnode: PatchedVNode.Element,
+      vnode: VNode.Element
+  ): Unit = {
 
-    val elm = oldVnode.elm.asInstanceOf[dom.HTMLElement]
+    val elm = oldVnode.node.asInstanceOf[dom.HTMLElement]
     val oldDataset = oldVnode.data.dataset
     val dataset = vnode.data.dataset
     val d = elm.dataset

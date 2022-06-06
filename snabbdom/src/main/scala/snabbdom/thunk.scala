@@ -42,46 +42,51 @@ object thunk {
 
   def apply(
       sel: String,
-      fn: Any => VNode,
+      fn: Any => VNode.Element,
       args: Any
-  ): VNode = apply(sel, None, fn, args)
+  ): VNode.Element = apply(sel, None, fn, args)
 
   def apply(
       sel: String,
       key: String,
-      fn: Any => VNode,
+      fn: Any => VNode.Element,
       args: Any
-  ): VNode = apply(sel, Some(key), fn, args)
+  ): VNode.Element = apply(sel, Some(key), fn, args)
 
   private def apply(
       sel: String,
       key: Option[String],
-      fn: Any => VNode,
+      fn: Any => VNode.Element,
       args: Any
-  ): VNode = {
+  ): VNode.Element = {
     val hook = Hooks().copy(
-      init = Some((vNode: VNode) => init0(vNode)),
+      init = Some((vNode: VNode) => init0(vNode.asInstanceOf[VNode.Element])),
       prepatch = Some((oldVNode: PatchedVNode, vNode: VNode) =>
-        prepatch0(oldVNode, vNode)
+        prepatch0(
+          oldVNode.asInstanceOf[PatchedVNode.Element],
+          vNode.asInstanceOf[VNode.Element]
+        )
       )
     )
     val data =
       VNodeData(key = key, fn = Some(fn), args = Some(args), hook = Some(hook))
-    h(sel, data)
+    VNode.Element(sel, data, Nil)
   }
 
-  private def init0(thunk: VNode): VNode = {
+  private def init0(thunk: VNode.Element): VNode = {
     val fn = thunk.data.fn.get
     val args = thunk.data.args.get
     val vnode = fn(args)
     thunk.copy(
       children = vnode.children,
-      data = vnode.data.copy(fn = Some(fn), args = Some(args)),
-      text = vnode.text
+      data = vnode.data.copy(fn = Some(fn), args = Some(args))
     )
   }
 
-  private def prepatch0(oldVnode: PatchedVNode, thunk: VNode): VNode = {
+  private def prepatch0(
+      oldVnode: PatchedVNode.Element,
+      thunk: VNode.Element
+  ): VNode = {
     val old = oldVnode.data
     val cur = thunk.data
     val oldArgs = old.args
@@ -92,8 +97,7 @@ object thunk {
       val vnode = curFn.get(args.get)
       thunk.copy(
         children = vnode.children,
-        data = vnode.data.copy(fn = curFn, args = args),
-        text = vnode.text
+        data = vnode.data.copy(fn = curFn, args = args)
       )
     } else {
       oldVnode.toVNode

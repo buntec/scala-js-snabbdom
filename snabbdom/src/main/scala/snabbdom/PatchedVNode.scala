@@ -17,22 +17,88 @@
 package snabbdom
 
 import org.scalajs.dom
+import scalajs.js
 
 /** A `VNode` that has been patched into the DOM. */
-final case class PatchedVNode private[snabbdom] (
-    sel: Option[String],
-    data: VNodeData,
-    children: List[PatchedVNode],
-    text: Option[String],
-    elm: dom.Node, // the corresponding node in the DOM - can't be `dom.Element` unfortunately b/c of fragments
-    listener: Option[
-      Listener
-    ] // this is an optimization that allows re-using event listeners
-) {
+sealed trait PatchedVNode {
+  def node: dom.Node // the corresponding node in the DOM
+  def toVNode: VNode
+}
 
-  def toVNode: VNode = VNode(sel, data, children.map(_.toVNode), text)
+object PatchedVNode {
 
-  private[snabbdom] def isTextNode: Boolean =
-    sel.isEmpty && children.isEmpty && text.isDefined
+  def key(vnode: PatchedVNode): Option[String] = vnode match {
+    case Element(_, data, _, _) => data.key
+    case _                      => None
+  }
+
+  case class Element(
+      sel: String,
+      data: VNodeData,
+      children: List[PatchedVNode],
+      node: dom.Element
+  ) extends PatchedVNode {
+
+    private def handleEvent(event: dom.Event): Unit = {
+      val name = event.`type`
+      data.on.get(name).foreach { handler =>
+        handler.cbs.foreach(cb => cb(event, this.toVNode))
+      }
+    }
+
+    private[snabbdom] lazy val jsFun: js.Function1[dom.Event, Unit] =
+      handleEvent _
+
+    override def toVNode: VNode =
+      VNode.Element(sel, data, children.map(_.toVNode))
+
+  }
+
+  def element(
+      sel: String,
+      data: VNodeData,
+      children: List[PatchedVNode],
+      node: dom.Element
+  ): PatchedVNode =
+    Element(
+      sel,
+      data,
+      children,
+      node
+    )
+
+  case class Text(
+      content: String,
+      node: dom.Text
+  ) extends PatchedVNode {
+
+    override def toVNode: VNode = VNode.Text(content)
+
+  }
+
+  def text(content: String, node: dom.Text): PatchedVNode = Text(content, node)
+
+  case class Fragment(
+      children: List[PatchedVNode],
+      node: dom.DocumentFragment
+  ) extends PatchedVNode {
+
+    override def toVNode: VNode = VNode.Fragment(children.map(_.toVNode))
+
+  }
+
+  def fragment(
+      children: List[PatchedVNode],
+      node: dom.DocumentFragment
+  ): PatchedVNode = Fragment(children, node)
+
+  case class Comment(content: String, node: dom.Comment) extends PatchedVNode {
+
+    override def toVNode: VNode = VNode.comment(content)
+
+  }
+
+  def comment(content: String, node: dom.Comment): PatchedVNode =
+    PatchedVNode.Comment(content, node)
 
 }

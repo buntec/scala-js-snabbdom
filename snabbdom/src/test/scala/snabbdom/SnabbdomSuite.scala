@@ -49,6 +49,10 @@ import org.scalacheck.Gen
 import org.scalacheck.Gen.lzy
 import org.scalacheck.rng.Seed
 import scala.concurrent.Future
+import snabbdom.VNode.Comment
+import snabbdom.VNode.Element
+import snabbdom.VNode.Fragment
+import snabbdom.VNode.Text
 
 class SnabbdomSuite extends BaseSuite {
 
@@ -204,13 +208,30 @@ class SnabbdomSuite extends BaseSuite {
       .flatMap { vnode => Gen.delay { keyRng.setSeed(0); Gen.const(vnode) } }
       .retryUntil(vnode => size(vnode) > 1)
 
-  def size(vnode: VNode): Long = 1 + vnode.children.map(size).sum
+  def size(vnode: VNode): Long = vnode match {
+    case VNode.Comment(_)              => 1
+    case VNode.Fragment(children)      => 1 + children.map(size).sum
+    case VNode.Text(_)                 => 1
+    case VNode.Element(_, _, children) => 1 + children.map(size).sum
+  }
 
   def keys(vnode: VNode): Set[String] =
-    vnode.data.key.toSet.union(vnode.children.map(keys).toList.flatten.toSet)
+    vnode match {
+      case Comment(_) => Set.empty
+      case Element(_, data, children) =>
+        data.key.toSet.union(children.map(keys).toList.flatten.toSet)
+      case Fragment(_) => Set.empty
+      case Text(_)     => Set.empty
+    }
 
   def depth(vnode: VNode): Long =
-    1 + vnode.children.map(depth).maxOption.getOrElse(0L)
+    vnode match {
+      case Comment(_) => 1
+      case Element(_, _, children) =>
+        1 + children.map(depth).maxOption.getOrElse(0L)
+      case Fragment(_) => 1
+      case Text(_)     => 1
+    }
 
   def spanNum(s: String) = h("span", VNodeData(), s)
   def spanNum(i: Int) =
@@ -234,68 +255,57 @@ class SnabbdomSuite extends BaseSuite {
 
   group("hyperscript") {
     test("can create vnode with proper tag") {
-      assertEquals(h("div").sel, Some("div"))
-      assertEquals(h("a").sel, Some("a"))
+      assertEquals(h("div").sel, "div")
+      assertEquals(h("a").sel, "a")
     }
 
     test("can create vnode with children") {
       val vnode = h("div", List(h("span#hello"), h("b.world")))
-      assertEquals(vnode.sel, Some("div"))
+      assertEquals(vnode.sel, "div")
       val children = vnode.children
-      assertEquals(children.head.sel, Some("span#hello"))
-      assertEquals(children.tail.head.sel, Some("b.world"))
+      assertEquals(
+        children.head.asInstanceOf[VNode.Element].sel,
+        "span#hello"
+      )
+      assertEquals(
+        children.tail.head.asInstanceOf[VNode.Element].sel,
+        "b.world"
+      )
     }
 
     test("can create vnode with one child vnode") {
       val vnode = h("div", List(h("span#hello")))
-      assertEquals(vnode.sel, Some("div"))
+      assertEquals(vnode.sel, "div")
       val children = vnode.children
-      assertEquals(children.head.sel, Some("span#hello"))
+      assertEquals(children.head.asInstanceOf[VNode.Element].sel, "span#hello")
     }
 
     test("can create vnode with props and one child vnode") {
       val vnode = h("div", VNodeData(), h("span#hello"))
-      assertEquals(vnode.sel, Some("div"))
+      assertEquals(vnode.sel, "div")
       val children = vnode.children
-      assertEquals(children.head.sel, Some("span#hello"))
+      assertEquals(children.head.asInstanceOf[VNode.Element].sel, "span#hello")
     }
 
     test("can create vnode with text content") {
       val vnode = h("a", List(VNode.text("I am a string")))
       val children = vnode.children
-      assertEquals(children.head.text, Some("I am a string"))
+      assertEquals(
+        children.head.asInstanceOf[VNode.Text].content,
+        "I am a string"
+      )
     }
 
-    test("can create vnode with text content in string") {
-      val vnode = h("a", "I am a string")
-      assertEquals(vnode.text, Some("I am a string"))
-    }
-
-    test("can create vnode with props and text content in string") {
-      val vnode = h("a", VNodeData(), "I am a string")
-      assertEquals(vnode.text, Some("I am a string"))
-    }
-
-    test("can create vnode with String obj content") {
-      val vnode = h("a", new String("b"))
-      assertEquals(vnode.text, Some("b"))
-    }
-
-    test("can create vnode with props and String obj content") {
-      val vnode = h("a", VNodeData(), new String("b"))
-      assertEquals(vnode.text, Some("b"))
-    }
-
-    test("can create vnode for comment") {
-      val vnode = h("!", "test")
-      assertEquals(vnode.sel, Some("!"))
-      assertEquals(vnode.text, Some("test"))
-    }
+    // test("can create vnode for comment") {
+    //  val vnode = h("!", "test")
+    //  assertEquals(vnode.sel, Some("!"))
+    //  assertEquals(vnode.text, Some("test"))
+    // }
   }
 
   group("created element") {
     vnode0.test("has tag") { vnode0 =>
-      val elm = patch(vnode0, h("div")).elm.asInstanceOf[dom.Element]
+      val elm = patch(vnode0, h("div")).node.asInstanceOf[dom.Element]
       assertEquals(elm.tagName, "DIV")
     }
 
@@ -303,13 +313,13 @@ class SnabbdomSuite extends BaseSuite {
       val elm = dom.document.createElement("div")
       vnode0.appendChild(elm)
       val vnode1 = h("span#id")
-      val patched = patch(elm, vnode1).elm.asInstanceOf[dom.HTMLSpanElement]
+      val patched = patch(elm, vnode1).node.asInstanceOf[dom.HTMLSpanElement]
       assertEquals(patched.tagName, "SPAN")
       assertEquals(patched.id, "id")
     }
 
     vnode0.test("has id") { vnode0 =>
-      val elm = patch(vnode0, h("div", List(h("div#unique")))).elm
+      val elm = patch(vnode0, h("div", List(h("div#unique")))).node
       assertEquals(elm.firstChild.asInstanceOf[dom.Element].id, "unique")
     }
 
@@ -319,7 +329,7 @@ class SnabbdomSuite extends BaseSuite {
 
       val data = VNodeData(ns = Some(SVGNamespace))
 
-      val elm1 = patch(vnode0, h("div", List(h("div", data)))).elm
+      val elm1 = patch(vnode0, h("div", List(h("div", data)))).node
       assertEquals(elm1.firstChild.namespaceURI, SVGNamespace)
 
       // verify that svg tag automatically gets svg namespace
@@ -334,24 +344,24 @@ class SnabbdomSuite extends BaseSuite {
             )
           )
         )
-      ).elm
+      ).node
 
       assertEquals(elm2.namespaceURI, SVGNamespace)
       assertEquals(elm2.firstChild.namespaceURI, SVGNamespace)
       assertEquals(elm2.firstChild.firstChild.namespaceURI, XHTMLNamespace)
 
       // verify that svg tag with extra selectors gets svg namespace
-      val elm3 = patch(vnode0, h("svg#some-id")).elm
+      val elm3 = patch(vnode0, h("svg#some-id")).node
       assertEquals(elm3.namespaceURI, SVGNamespace);
 
       // verify that non-svg tag beginning with 'svg' does NOT get namespace
-      val elm4 = patch(vnode0, h("svg-custom-el")).elm
+      val elm4 = patch(vnode0, h("svg-custom-el")).node
       assertNotEquals(elm4.namespaceURI, SVGNamespace)
 
     }
 
     vnode0.test("receives classes in selector") { vnode0 =>
-      val elm = patch(vnode0, h("div", List(h("i.am.a.class")))).elm
+      val elm = patch(vnode0, h("div", List(h("i.am.a.class")))).node
       assert(elm.firstChild.asInstanceOf[dom.Element].classList.contains("am"))
       assert(elm.firstChild.asInstanceOf[dom.Element].classList.contains("a"))
       assert(
@@ -368,7 +378,7 @@ class SnabbdomSuite extends BaseSuite {
           "not" -> false
         )
       )
-      val elm = patch(vnode0, h("i", data)).elm
+      val elm = patch(vnode0, h("i", data)).node
       assert(elm.asInstanceOf[dom.Element].classList.contains("am"))
       assert(elm.asInstanceOf[dom.Element].classList.contains("a"))
       assert(elm.asInstanceOf[dom.Element].classList.contains("class"))
@@ -376,7 +386,7 @@ class SnabbdomSuite extends BaseSuite {
     }
 
     vnode0.test("receives classes in selector when namespaced") { vnode0 =>
-      val elm = patch(vnode0, h("svg", List(h("g.am.a.class.too")))).elm
+      val elm = patch(vnode0, h("svg", List(h("g.am.a.class.too")))).node
       assert(elm.firstChild.asInstanceOf[dom.Element].classList.contains("am"))
       assert(elm.firstChild.asInstanceOf[dom.Element].classList.contains("a"))
       assert(
@@ -394,7 +404,7 @@ class SnabbdomSuite extends BaseSuite {
             "not" -> false
           )
         )
-        val elm = patch(vnode0, h("svg", List(h("g", data)))).elm
+        val elm = patch(vnode0, h("svg", List(h("g", data)))).node
         assert(
           elm.firstChild.asInstanceOf[dom.Element].classList.contains("am")
         )
@@ -409,7 +419,7 @@ class SnabbdomSuite extends BaseSuite {
 
     vnode0.test("handles classes from both selector and property") { vnode0 =>
       val data = VNodeData(classes = Map("classes" -> true))
-      val elm = patch(vnode0, h("div", List(h("i.has", data)))).elm
+      val elm = patch(vnode0, h("div", List(h("i.has", data)))).node
       assert(elm.firstChild.asInstanceOf[dom.Element].classList.contains("has"))
       assert(
         elm.firstChild.asInstanceOf[dom.Element].classList.contains("classes")
@@ -417,14 +427,17 @@ class SnabbdomSuite extends BaseSuite {
     }
 
     vnode0.test("can create elements with text content") { vnode0 =>
-      val elm = patch(vnode0, h("div", List[VNode]("I am a string"))).elm
+      val elm = patch(vnode0, h("div", List[VNode]("I am a string"))).node
       assertEquals(elm.asInstanceOf[dom.Element].innerHTML, "I am a string")
     }
 
     vnode0.test("can create elements with span and text content") { vnode0 =>
       val elm =
-        patch(vnode0, h("a", List[VNode](h("span"), "I am a string"))).elm
-      assertEquals(elm.childNodes(0).asInstanceOf[dom.Element].tagName, "SPAN")
+        patch(vnode0, h("a", List[VNode](h("span"), "I am a string"))).node
+      assertEquals(
+        elm.childNodes(0).asInstanceOf[dom.Element].tagName,
+        "SPAN"
+      )
       assertEquals(
         elm.childNodes(1).asInstanceOf[dom.Element].textContent,
         "I am a string"
@@ -432,13 +445,13 @@ class SnabbdomSuite extends BaseSuite {
     }
 
     vnode0.test("can create vnode with array String obj content") { vnode0 =>
-      val elm = patch(vnode0, h("a", List[VNode]("b", "c"))).elm
+      val elm = patch(vnode0, h("a", List[VNode]("b", "c"))).node
       assertEquals(elm.asInstanceOf[dom.Element].innerHTML, "bc")
     }
 
     vnode0.test("can create elements with props") { vnode0 =>
       val data = VNodeData(props = Map("src" -> "http://localhost/"))
-      val elm = patch(vnode0, h("a", data)).elm
+      val elm = patch(vnode0, h("a", data)).node
       assertEquals(
         elm.asInstanceOf[js.Dictionary[String]]("src"),
         "http://localhost/"
@@ -455,7 +468,7 @@ class SnabbdomSuite extends BaseSuite {
       elmWithIdAndClass.asInstanceOf[dom.HTMLElement].className = "class"
       val vnode1 = h("div#id.class", List(h("span", "Hi")));
       val elm =
-        patch(elmWithIdAndClass, vnode1).elm.asInstanceOf[dom.Element]
+        patch(elmWithIdAndClass, vnode1).node.asInstanceOf[dom.Element]
       assertEquals(elm, elmWithIdAndClass)
       assertEquals(elm.tagName, "DIV")
       assertEquals(elm.id, "id")
@@ -463,7 +476,7 @@ class SnabbdomSuite extends BaseSuite {
     }
 
     vnode0.test("can create comments") { vnode0 =>
-      val elm = patch(vnode0, h("!", "test")).elm
+      val elm = patch(vnode0, h.comment("test")).node
       assertEquals(elm.nodeType, dom.Node.COMMENT_NODE)
       assertEquals(elm.textContent, "test")
     }
@@ -477,7 +490,7 @@ class SnabbdomSuite extends BaseSuite {
         fragment(
           List[VNode]("I am", h("span", List[VNode](" a", " fragment")))
         )
-      val elm = patch(vnode0, vnode1).elm
+      val elm = patch(vnode0, vnode1).node
       assertEquals(elm.nodeType, dom.Node.DOCUMENT_FRAGMENT_NODE)
       assertEquals(elm.textContent, "I am a fragment")
     }
@@ -495,7 +508,7 @@ class SnabbdomSuite extends BaseSuite {
         VNodeData(classes = Map("i" -> true, "am" -> true, "horse" -> false))
       )
       val vnode1p = patch(vnode0, vnode1)
-      val elm = patch(vnode1p, vnode2).elm
+      val elm = patch(vnode1p, vnode2).node
       assert(elm.asInstanceOf[dom.Element].classList.contains("i"))
       assert(elm.asInstanceOf[dom.Element].classList.contains("am"))
       assert(!elm.asInstanceOf[dom.Element].classList.contains("horse"))
@@ -511,11 +524,11 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("i", cachedClasses)
       val vnode2 = h("i", cachedClasses)
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm.asInstanceOf[dom.Element]
+      val elm = vnode1p.node.asInstanceOf[dom.Element]
       assert(elm.classList.contains("i"))
       assert(elm.classList.contains("am"))
       assert(!elm.classList.contains("horse"))
-      val elm2 = patch(vnode1p, vnode2).elm.asInstanceOf[dom.Element]
+      val elm2 = patch(vnode1p, vnode2).node.asInstanceOf[dom.Element]
       assert(elm2.classList.contains("i"))
       assert(elm2.classList.contains("am"))
       assert(!elm2.classList.contains("horse"))
@@ -531,7 +544,7 @@ class SnabbdomSuite extends BaseSuite {
         VNodeData(classes = Map("i" -> true, "am" -> true))
       )
       val vnode1p = patch(vnode0, vnode1)
-      val elm = patch(vnode1p, vnode2).elm.asInstanceOf[dom.Element]
+      val elm = patch(vnode1p, vnode2).node.asInstanceOf[dom.Element]
       assert(elm.classList.contains("i"))
       assert(elm.classList.contains("am"))
       assert(!elm.classList.contains("horse"))
@@ -544,7 +557,7 @@ class SnabbdomSuite extends BaseSuite {
         h("a", VNodeData(props = Map("src" -> "http://localhost/")))
       val vnode1p = patch(vnode0, vnode1)
       val elm =
-        patch(vnode1p, vnode2).elm.asInstanceOf[js.Dictionary[String]]
+        patch(vnode1p, vnode2).node.asInstanceOf[js.Dictionary[String]]
       assertEquals(elm("src"), "http://localhost/")
     }
 
@@ -553,12 +566,12 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("a", cachedProps)
       val vnode2 = h("a", cachedProps)
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(
         elm.asInstanceOf[js.Dictionary[String]]("src"),
         "http://other/"
       )
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assertEquals(
         elm2.asInstanceOf[js.Dictionary[String]]("src"),
         "http://other/"
@@ -569,14 +582,14 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 =
         h("p", VNodeData(props = Map("textContent" -> "foo")))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(
         elm.asInstanceOf[dom.HTMLParagraphElement].textContent,
         "foo"
       )
       val vnode2 =
         h("p", VNodeData(props = Map("textContent" -> "")))
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assertEquals(elm2.asInstanceOf[dom.HTMLParagraphElement].textContent, "")
 
     }
@@ -586,7 +599,7 @@ class SnabbdomSuite extends BaseSuite {
         h("a", VNodeData(props = Map("src" -> "http://other/")))
       val vnode2 = h("a")
       val vnode1p = patch(vnode0, vnode1)
-      val elm = patch(vnode1p, vnode2).elm
+      val elm = patch(vnode1p, vnode2).node
       assert(!elm.asInstanceOf[js.Dictionary[String]].contains("src"))
     }
 
@@ -595,13 +608,13 @@ class SnabbdomSuite extends BaseSuite {
         h("a", VNodeData(props = Map("href" -> "http://example.com/")))
       val vnode2 = h("a")
       val vnode1p = patch(vnode0, vnode1)
-      val elm1 = vnode1p.elm
+      val elm1 = vnode1p.node
       assert(elm1.isInstanceOf[dom.HTMLAnchorElement])
       assertEquals(
         elm1.asInstanceOf[dom.HTMLAnchorElement].href,
         "http://example.com/"
       )
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assert(elm2.isInstanceOf[dom.HTMLAnchorElement])
       assertEquals(
         elm2.asInstanceOf[dom.HTMLAnchorElement].href,
@@ -615,10 +628,10 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("p", VNodeData(props = Map("a" -> "foo")))
       val vnode2 = h("p")
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assert(elm.isInstanceOf[dom.HTMLParagraphElement])
       assertEquals(elm.asInstanceOf[js.Dictionary[String]]("a"), "foo")
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assertEquals(elm2.asInstanceOf[js.Dictionary[String]]("a"), "foo")
     }
   }
@@ -635,8 +648,9 @@ class SnabbdomSuite extends BaseSuite {
       prevElm.appendChild(h2)
       val nextVNode = h("div#id.class", List(h("span", "Hi")))
       val elm =
-        patch(toVNode(prevElm), nextVNode).elm
+        patch(toVNode(prevElm), nextVNode).node
           .asInstanceOf[dom.HTMLElement]
+
       assertEquals(elm, prevElm)
       assertEquals(elm.tagName, "DIV")
       assertEquals(elm.id, "id")
@@ -654,16 +668,16 @@ class SnabbdomSuite extends BaseSuite {
 
     test("can support patching in a DocumentFragment") {
       val prevElm = dom.document.createDocumentFragment()
-      val nextVNode = VNode.create(
-        Some(""),
-        VNodeData.empty,
-        List(h("div#id.class", List(h("span", "Hi")))),
-        None
-        // Some(prevElm)
+      val nextVNode = VNode.fragment(
+        List(h("div#id.class", List(h("span", "Hi"))))
       )
+
+      val vnode = toVNode(prevElm)
+
       val elm =
-        patch(toVNode(prevElm), nextVNode).elm
+        patch(vnode, nextVNode).node
           .asInstanceOf[dom.DocumentFragment]
+
       assertEquals(elm, prevElm)
       assertEquals(elm.nodeType, 11)
       assertEquals(elm.childNodes.length, 1)
@@ -715,7 +729,7 @@ class SnabbdomSuite extends BaseSuite {
       prevElm.appendChild(h2)
       val nextVNode = h("div#id.class", List[VNode]("Foobar"))
       val elm =
-        patch(toVNode(prevElm), nextVNode).elm.asInstanceOf[dom.HTMLElement]
+        patch(toVNode(prevElm), nextVNode).node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm, prevElm)
       assertEquals(elm.tagName, "DIV")
       assertEquals(elm.id, "id")
@@ -742,7 +756,7 @@ class SnabbdomSuite extends BaseSuite {
       prevElm.appendChild(h2)
       val nextVNode = h("div#id.class", List(h("h2", "Hello")))
       val elm =
-        patch(toVNode(prevElm), nextVNode).elm.asInstanceOf[dom.HTMLElement]
+        patch(toVNode(prevElm), nextVNode).node.asInstanceOf[dom.HTMLElement]
 
       assertEquals(elm, prevElm)
       assertEquals(elm.tagName, "DIV")
@@ -763,14 +777,22 @@ class SnabbdomSuite extends BaseSuite {
       val onlyAttrs = dom.document.createElement("div")
       onlyAttrs.setAttribute("foo", "bar")
       assertEquals(
-        toVNode(onlyAttrs).data.attrs.get("foo"),
+        toVNode(onlyAttrs)
+          .asInstanceOf[PatchedVNode.Element]
+          .data
+          .attrs
+          .get("foo"),
         Some("bar")
       )
 
       val onlyDatasets = dom.document.createElement("div")
       onlyDatasets.setAttribute("data-foo", "bar")
       assertEquals(
-        toVNode(onlyDatasets).data.dataset.get("foo"),
+        toVNode(onlyDatasets)
+          .asInstanceOf[PatchedVNode.Element]
+          .data
+          .dataset
+          .get("foo"),
         Some("bar")
       )
 
@@ -778,7 +800,11 @@ class SnabbdomSuite extends BaseSuite {
         dom.document.createElement("div").asInstanceOf[dom.HTMLElement]
       onlyDatasets2.dataset("foo") = "bar"
       assertEquals(
-        toVNode(onlyDatasets).data.dataset.get("foo"),
+        toVNode(onlyDatasets)
+          .asInstanceOf[PatchedVNode.Element]
+          .data
+          .dataset
+          .get("foo"),
         Some("bar")
       )
 
@@ -787,7 +813,9 @@ class SnabbdomSuite extends BaseSuite {
       bothAttrsAndDatasets.setAttribute("foo", "bar")
       bothAttrsAndDatasets.setAttribute("data-foo", "bar")
       bothAttrsAndDatasets.dataset("again") = "again"
-      val data = toVNode(bothAttrsAndDatasets).data
+      val data =
+        toVNode(bothAttrsAndDatasets).asInstanceOf[PatchedVNode.Element].data
+
       assertEquals(data.attrs.get("foo"), Some("bar"))
       assertEquals(data.dataset.get("foo"), Some("bar"))
       assertEquals(data.dataset.get("again"), Some("again"))
@@ -802,10 +830,10 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("span", List("1").map(spanNum))
       val vnode2 = h("span", List("1", "2", "3").map(spanNum))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 1)
       val vnode12 = patch(vnode1p, vnode2)
-      val elm2 = vnode12.elm
+      val elm2 = vnode12.node
       assertEquals(elm2.asInstanceOf[dom.Element].children.length, 3)
       assertEquals(elm2.asInstanceOf[dom.Element].children(1).innerHTML, "2")
       assertEquals(elm2.asInstanceOf[dom.Element].children(2).innerHTML, "3")
@@ -815,10 +843,10 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("span", List("4", "5").map(spanNum))
       val vnode2 = h("span", List("1", "2", "3", "4", "5").map(spanNum))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 2)
       val vnode2p = patch(vnode1p, vnode2)
-      val elm2 = vnode2p.elm
+      val elm2 = vnode2p.node
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
         List("1", "2", "3", "4", "5")
@@ -829,10 +857,10 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("span", List("1", "2", "4", "5").map(spanNum))
       val vnode2 = h("span", List("1", "2", "3", "4", "5").map(spanNum))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 4)
       val vnode2p = patch(vnode1p, vnode2)
-      val elm2 = vnode2p.elm
+      val elm2 = vnode2p.node
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
         List("1", "2", "3", "4", "5")
@@ -843,10 +871,10 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("span", List("2", "3", "4").map(spanNum))
       val vnode2 = h("span", List("1", "2", "3", "4", "5").map(spanNum))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 3)
       val vnode2p = patch(vnode1p, vnode2)
-      val elm2 = vnode2p.elm
+      val elm2 = vnode2p.node
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
         List("1", "2", "3", "4", "5")
@@ -861,10 +889,10 @@ class SnabbdomSuite extends BaseSuite {
         List("1", "2", "3").map(spanNum)
       )
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 0)
       val vnode2p = patch(vnode1p, vnode2)
-      val elm2 = vnode2p.elm
+      val elm2 = vnode2p.node
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
         List("1", "2", "3")
@@ -879,13 +907,13 @@ class SnabbdomSuite extends BaseSuite {
       )
       val vnode2 = h("span", VNodeData(key = Some("span")))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(
         elm.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
         List("1", "2", "3")
       )
       val vnode2p = patch(vnode1p, vnode2)
-      val elm2 = vnode2p.elm
+      val elm2 = vnode2p.node
       assertEquals(elm2.asInstanceOf[dom.Element].children.length, 0)
     }
 
@@ -897,14 +925,14 @@ class SnabbdomSuite extends BaseSuite {
         h("span", data, List(spanNum("1"), h("i", data2, "2"), spanNum("3")))
 
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(
         elm.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
         List("1", "2", "3")
       )
 
       val vnode2p = patch(vnode1p, vnode2)
-      val elm2 = vnode2p.elm
+      val elm2 = vnode2p.node
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
         List("1", "2", "3")
@@ -921,10 +949,10 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("span", List("1", "2", "3", "4", "5").map(spanNum))
       val vnode2 = h("span", List("3", "4", "5").map(spanNum))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 5)
       val vnode2p = patch(vnode1p, vnode2)
-      val elm2 = vnode2p.elm
+      val elm2 = vnode2p.node
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
         List("3", "4", "5")
@@ -935,10 +963,10 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("span", List("1", "2", "3", "4", "5").map(spanNum))
       val vnode2 = h("span", List("1", "2", "3").map(spanNum))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 5)
       val vnode2p = patch(vnode1p, vnode2)
-      val elm2 = vnode2p.elm
+      val elm2 = vnode2p.node
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
         List("1", "2", "3")
@@ -949,10 +977,10 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("span", List("1", "2", "3", "4", "5").map(spanNum))
       val vnode2 = h("span", List("1", "2", "4", "5").map(spanNum))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 5)
       val vnode2p = patch(vnode1p, vnode2)
-      val elm2 = vnode2p.elm
+      val elm2 = vnode2p.node
       assertEquals(elm2.asInstanceOf[dom.Element].children.length, 4)
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
@@ -966,10 +994,10 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("span", List("1", "2", "3", "4").map(spanNum))
       val vnode2 = h("span", List("2", "3", "1", "4").map(spanNum))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 4)
       val vnode2p = patch(vnode1p, vnode2)
-      val elm2 = vnode2p.elm
+      val elm2 = vnode2p.node
       assertEquals(elm2.asInstanceOf[dom.Element].children.length, 4)
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
@@ -981,9 +1009,9 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("span", List("1", "2", "3").map(spanNum))
       val vnode2 = h("span", List("2", "3", "1").map(spanNum))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 3)
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assertEquals(elm2.asInstanceOf[dom.Element].children.length, 3)
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
@@ -995,9 +1023,9 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("span", List("1", "2", "3", "4").map(spanNum))
       val vnode2 = h("span", List("1", "4", "2", "3").map(spanNum))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 4)
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assertEquals(elm2.asInstanceOf[dom.Element].children.length, 4)
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
@@ -1009,9 +1037,9 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("span", List("1", "2", "3", "4").map(spanNum))
       val vnode2 = h("span", List("4", "2", "3", "1").map(spanNum))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 4)
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assertEquals(elm2.asInstanceOf[dom.Element].children.length, 4)
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
@@ -1024,15 +1052,15 @@ class SnabbdomSuite extends BaseSuite {
       val vnode2 = h("div", List(h("span", "2"), h("span", "1")))
       val vnode3 = h("div", List(h("span", "1"), h("span", "2")))
       val vnode1p = patch(vnode0, vnode1)
-      val elm1 = vnode1p.elm
+      val elm1 = vnode1p.node
       assertEquals(elm1.asInstanceOf[dom.Element].children(0).innerHTML, "1")
       assertEquals(elm1.asInstanceOf[dom.Element].children(1).innerHTML, "2")
       val vnode2p = patch(vnode1p, vnode2)
-      val elm2 = vnode2p.elm
+      val elm2 = vnode2p.node
       assertEquals(elm2.asInstanceOf[dom.Element].children(0).innerHTML, "2")
       assertEquals(elm2.asInstanceOf[dom.Element].children(1).innerHTML, "1")
       val vnode3p = patch(vnode2p, vnode3)
-      val elm3 = vnode3p.elm
+      val elm3 = vnode3p.node
       assertEquals(elm3.asInstanceOf[dom.Element].children(0).innerHTML, "1")
       assertEquals(elm3.asInstanceOf[dom.Element].children(1).innerHTML, "2")
     }
@@ -1044,9 +1072,9 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("span", List("1", "2", "3", "4", "5").map(spanNum))
       val vnode2 = h("span", List("4", "1", "2", "3", "6").map(spanNum))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 5)
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assertEquals(elm2.asInstanceOf[dom.Element].children.length, 5)
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
@@ -1058,9 +1086,9 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("span", List("1", "4", "5").map(spanNum))
       val vnode2 = h("span", List("4", "6").map(spanNum))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 3)
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assertEquals(elm2.asInstanceOf[dom.Element].children.length, 2)
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
@@ -1074,9 +1102,9 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("span", List("2", "4", "5").map(spanNum))
       val vnode2 = h("span", List("4", "5", "3").map(spanNum))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 3)
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assertEquals(elm2.asInstanceOf[dom.Element].children.length, 3)
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
@@ -1094,10 +1122,10 @@ class SnabbdomSuite extends BaseSuite {
         )
       )
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 4)
       assertEquals(elm.textContent, "1abc")
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assertEquals(elm2.asInstanceOf[dom.Element].children.length, 6)
       assertEquals(elm2.textContent, "dabc1e")
     }
@@ -1110,9 +1138,9 @@ class SnabbdomSuite extends BaseSuite {
       val vnode2 =
         h("span", List("8", "7", "6", "5", "4", "3", "2", "1").map(spanNum))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 8)
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assertEquals(elm2.asInstanceOf[dom.Element].children.length, 8)
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
@@ -1126,9 +1154,9 @@ class SnabbdomSuite extends BaseSuite {
       val vnode2 =
         h("span", List(4, 3, 2, 1, 5, 0).map(spanNum))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.elm
+      val elm = vnode1p.node
       assertEquals(elm.asInstanceOf[dom.Element].children.length, 6)
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assertEquals(elm2.asInstanceOf[dom.Element].children.length, 6)
       assertEquals(
         elm2.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
@@ -1155,7 +1183,7 @@ class SnabbdomSuite extends BaseSuite {
         val shufArr = rng.shuffle(arr)
         val elm = dom.document.createElement("div")
         val vnode1p = patch(elm, vnode1)
-        val elm1 = vnode1p.elm.asInstanceOf[dom.HTMLSpanElement]
+        val elm1 = vnode1p.node.asInstanceOf[dom.HTMLSpanElement]
         assertEquals(
           elm1.asInstanceOf[dom.Element].children.toList.map(_.innerHTML),
           arr.map(_.toString).toList
@@ -1164,7 +1192,7 @@ class SnabbdomSuite extends BaseSuite {
         val vnode2 =
           h("span", arr.map(n => spanNumWithOpacity(shufArr(n), opacities(n))))
         val elm2 =
-          patch(vnode1p, vnode2).elm.asInstanceOf[dom.HTMLSpanElement]
+          patch(vnode1p, vnode2).node.asInstanceOf[dom.HTMLSpanElement]
         (0 until elms).foreach { i =>
           assertEquals(elm2.children(i).innerHTML, shufArr(i).toString)
           val opacity =
@@ -1199,9 +1227,8 @@ class SnabbdomSuite extends BaseSuite {
 
         var counter = 0
 
-        val cb: UpdateHook = (_, vnode) => {
+        val cb: UpdateHook = (_, _) => {
           counter += 1
-          vnode
         }
 
         val spans = List.tabulate(n1)(i => span(s"a-$i"))
@@ -1214,32 +1241,38 @@ class SnabbdomSuite extends BaseSuite {
           "div",
           rng
             .shuffle(spansAll)
-            .map(vnode => vnode.copy(text = vnode.text.map(_ + "X")))
+            .map(vnode =>
+              vnode.copy(children =
+                vnode.children.map(ch =>
+                  VNode.text(ch.asInstanceOf[VNode.Text].content + "X")
+                )
+              )
+            )
         )
         val vnode3 = h("div", rng.shuffle(spansAll))
 
         val elm = dom.document.createElement("div")
         val vnode1p = patch(elm, vnode1)
         assertEquals(vnode1p.toVNode, vnode1)
-        val elm1 = vnode1p.elm.asInstanceOf[dom.HTMLElement]
+        val elm1 = vnode1p.node.asInstanceOf[dom.HTMLElement]
         val innerHTML1 = vnode1.children.map { vnode =>
-          s"<span>${vnode.text.get}</span>"
+          s"<span>${vnode.asInstanceOf[VNode.Element].children.head.asInstanceOf[VNode.Text].content}</span>"
         }.mkString
         assertEquals(elm1.innerHTML, innerHTML1)
 
         val vnode2p = patch(vnode1p, vnode2)
         assertEquals(vnode2p.toVNode, vnode2)
-        val elm2 = vnode2p.elm.asInstanceOf[dom.HTMLElement]
+        val elm2 = vnode2p.node.asInstanceOf[dom.HTMLElement]
         val innerHTML2 = vnode2.children.map { vnode =>
-          s"<span>${vnode.text.get}</span>"
+          s"<span>${vnode.asInstanceOf[VNode.Element].children.head.asInstanceOf[VNode.Text].content}</span>"
         }.mkString
         assertEquals(elm2.innerHTML, innerHTML2)
 
         val vnode3p = patch(vnode2p, vnode3)
         assertEquals(vnode3p.toVNode, vnode3)
-        val elm3 = vnode3p.elm.asInstanceOf[dom.HTMLElement]
+        val elm3 = vnode3p.node.asInstanceOf[dom.HTMLElement]
         val innerHTML3 = vnode3.children.map { vnode =>
-          s"<span>${vnode.text.get}</span>"
+          s"<span>${vnode.asInstanceOf[VNode.Element].children.head.asInstanceOf[VNode.Text].content}</span>"
         }.mkString
         assertEquals(elm3.innerHTML, innerHTML3)
 
@@ -1256,10 +1289,9 @@ class SnabbdomSuite extends BaseSuite {
       val cb: UpdateHook = (pvnode, newVNode) => {
         result1b += pvnode.toVNode
         result2b += newVNode
-        newVNode
       }
 
-      def keyedSpan(text: String, key: Int) =
+      def keyedSpan(text: String, key: Int): VNode =
         h(
           "span",
           VNodeData(
@@ -1269,7 +1301,7 @@ class SnabbdomSuite extends BaseSuite {
           text
         )
 
-      val vnode1 =
+      val vnode1: VNode =
         h(
           "div",
           List(
@@ -1322,9 +1354,9 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("div", List(h("span", "Hello")))
       val vnode2 = h("div", List(h("span", "Hello"), h("span", "World")))
       val vnode1p = patch(vnode0, vnode1)
-      val elm1 = vnode1p.elm.asInstanceOf[dom.Element]
+      val elm1 = vnode1p.node.asInstanceOf[dom.Element]
       assertEquals(elm1.children.toSeq.map(_.innerHTML), List("Hello"))
-      val elm2 = patch(vnode1p, vnode2).elm.asInstanceOf[dom.Element]
+      val elm2 = patch(vnode1p, vnode2).node.asInstanceOf[dom.Element]
       assertEquals(elm2.children.toSeq.map(_.innerHTML), List("Hello", "World"))
     }
 
@@ -1332,9 +1364,9 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("div", List[VNode]("Text", h("span", "Span")))
       val vnode2 = h("div", List[VNode]("Text", h("span", "Span")))
       val vnode1p = patch(vnode0, vnode1)
-      val elm1 = vnode1p.elm
+      val elm1 = vnode1p.node
       assertEquals(elm1.childNodes(0).textContent, "Text")
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assertEquals(elm2.childNodes(0).textContent, "Text")
     }
 
@@ -1342,39 +1374,44 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("div", List[VNode]("Text", h("span", "Span")))
       val vnode2 = h("div", List[VNode]("Text2", h("span", "Span")))
       val vnode1p = patch(vnode0, vnode1)
-      val elm1 = vnode1p.elm
+      val elm1 = vnode1p.node
       assertEquals(elm1.childNodes(0).textContent, "Text")
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assertEquals(elm2.childNodes(0).textContent, "Text2")
     }
 
     vnode0.test("handles unmoved comment nodes") { vnode0 =>
-      val vnode1 = h("div", List[VNode](h("!", "Text"), h("span", "Span")))
-      val vnode2 = h("div", List[VNode](h("!", "Text"), h("span", "Span")))
+      val vnode1 =
+        h("div", List[VNode](h.comment("Text"), h("span", "Span")))
+      val vnode2 =
+        h("div", List[VNode](h.comment("Text"), h("span", "Span")))
       val vnode1p = patch(vnode0, vnode1)
-      val elm1 = vnode1p.elm
+      val elm1 = vnode1p.node
       assertEquals(elm1.childNodes(0).textContent, "Text")
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assertEquals(elm2.childNodes(0).textContent, "Text")
     }
 
     vnode0.test("handles changing comment text") { vnode0 =>
-      val vnode1 = h("div", List[VNode](h("!", "Text"), h("span", "Span")))
-      val vnode2 = h("div", List[VNode](h("!", "Text2"), h("span", "Span")))
+      val vnode1 =
+        h("div", List[VNode](h.comment("Text"), h("span", "Span")))
+      val vnode2 =
+        h("div", List[VNode](h.comment("Text2"), h("span", "Span")))
       val vnode1p = patch(vnode0, vnode1)
-      val elm1 = vnode1p.elm
+      val elm1 = vnode1p.node
       assertEquals(elm1.childNodes(0).textContent, "Text")
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assertEquals(elm2.childNodes(0).textContent, "Text2")
     }
 
     vnode0.test("handles changing empty comment") { vnode0 =>
-      val vnode1 = h("div", List[VNode](h("!"), h("span", "Span")))
-      val vnode2 = h("div", List[VNode](h("!", "Test"), h("span", "Span")))
+      val vnode1 = h("div", List[VNode](h.comment(""), h("span", "Span")))
+      val vnode2 =
+        h("div", List[VNode](h.comment("Test"), h("span", "Span")))
       val vnode1p = patch(vnode0, vnode1)
-      val elm1 = vnode1p.elm
+      val elm1 = vnode1p.node
       assertEquals(elm1.childNodes(0).textContent, "")
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assertEquals(elm2.childNodes(0).textContent, "Test")
     }
 
@@ -1382,9 +1419,9 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("div", List(h("span", "World")))
       val vnode2 = h("div", List(h("span", "Hello"), h("span", "World")))
       val vnode1p = patch(vnode0, vnode1)
-      val elm1 = vnode1p.elm.asInstanceOf[dom.Element]
+      val elm1 = vnode1p.node.asInstanceOf[dom.Element]
       assertEquals(elm1.children.toSeq.map(_.innerHTML), List("World"))
-      val elm2 = patch(vnode1p, vnode2).elm.asInstanceOf[dom.Element]
+      val elm2 = patch(vnode1p, vnode2).node.asInstanceOf[dom.Element]
       assertEquals(elm2.children.toSeq.map(_.innerHTML), List("Hello", "World"))
     }
 
@@ -1392,9 +1429,9 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("div", List(h("span", "World")))
       val vnode2 = h("div", List(h("div", "Hello"), h("span", "World")))
       val vnode1p = patch(vnode0, vnode1)
-      val elm1 = vnode1p.elm.asInstanceOf[dom.Element]
+      val elm1 = vnode1p.node.asInstanceOf[dom.Element]
       assertEquals(elm1.children.toSeq.map(_.innerHTML), List("World"))
-      val elm2 = patch(vnode1p, vnode2).elm.asInstanceOf[dom.Element]
+      val elm2 = patch(vnode1p, vnode2).node.asInstanceOf[dom.Element]
       assertEquals(elm2.children.toSeq.map(_.innerHTML), List("Hello", "World"))
       assertEquals(elm2.children.toSeq.map(_.tagName), List("DIV", "SPAN"))
     }
@@ -1404,12 +1441,12 @@ class SnabbdomSuite extends BaseSuite {
         h("div", List(h("span", "One"), h("span", "Two"), h("span", "Three")))
       val vnode2 = h("div", List(h("span", "One"), h("span", "Three")))
       val vnode1p = patch(vnode0, vnode1)
-      val elm1 = vnode1p.elm.asInstanceOf[dom.Element]
+      val elm1 = vnode1p.node.asInstanceOf[dom.Element]
       assertEquals(
         elm1.children.toSeq.map(_.innerHTML),
         List("One", "Two", "Three")
       )
-      val elm2 = patch(vnode1p, vnode2).elm.asInstanceOf[dom.Element]
+      val elm2 = patch(vnode1p, vnode2).node.asInstanceOf[dom.Element]
       assertEquals(elm2.children.toSeq.map(_.innerHTML), List("One", "Three"))
     }
 
@@ -1417,9 +1454,9 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("div", "One")
       val vnode2 = h("div")
       val vnode1p = patch(vnode0, vnode1)
-      val elm1 = vnode1p.elm
+      val elm1 = vnode1p.node
       assertEquals(elm1.textContent, "One")
-      val elm2 = patch(vnode1p, vnode2).elm
+      val elm2 = patch(vnode1p, vnode2).node
       assertEquals(elm2.textContent, "")
     }
 
@@ -1428,9 +1465,9 @@ class SnabbdomSuite extends BaseSuite {
         val vnode1 = h("div", "One")
         val vnode2 = h("div", List(h("div", "Two"), h("span", "Three")))
         val vnode1p = patch(vnode0, vnode1)
-        val elm1 = vnode1p.elm.asInstanceOf[dom.Element]
+        val elm1 = vnode1p.node.asInstanceOf[dom.Element]
         assertEquals(elm1.textContent, "One")
-        val elm2 = patch(vnode1p, vnode2).elm.asInstanceOf[dom.Element]
+        val elm2 = patch(vnode1p, vnode2).node.asInstanceOf[dom.Element]
         assertEquals(
           elm2.childNodes.toSeq.map(_.textContent),
           List("Two", "Three")
@@ -1441,12 +1478,12 @@ class SnabbdomSuite extends BaseSuite {
       val vnode1 = h("div", List[VNode]("One", h("span", "Two")))
       val vnode2 = h("div", List(h("div", "Three")))
       val vnode1p = patch(vnode0, vnode1)
-      val elm1 = vnode1p.elm
+      val elm1 = vnode1p.node
       assertEquals(
         elm1.childNodes.toSeq.map(_.textContent),
         List("One", "Two")
       )
-      val elm2 = patch(vnode1p, vnode2).elm.asInstanceOf[dom.Element]
+      val elm2 = patch(vnode1p, vnode2).node.asInstanceOf[dom.Element]
       assertEquals(elm2.childNodes.length, 1)
       assertEquals(elm2.childNodes(0).asInstanceOf[dom.Element].tagName, "DIV")
       assertEquals(elm2.childNodes(0).textContent, "Three")
@@ -1458,12 +1495,12 @@ class SnabbdomSuite extends BaseSuite {
       val vnode2 =
         h("div", List(h("b", "Three"), h("span", "One"), h("div", "Two")))
       val vnode1p = patch(vnode0, vnode1)
-      val elm1 = vnode1p.elm.asInstanceOf[dom.Element]
+      val elm1 = vnode1p.node.asInstanceOf[dom.Element]
       assertEquals(
         elm1.children.toSeq.map(_.innerHTML),
         List("One", "Two", "Three")
       )
-      val elm2 = patch(vnode1p, vnode2).elm.asInstanceOf[dom.Element]
+      val elm2 = patch(vnode1p, vnode2).node.asInstanceOf[dom.Element]
       assertEquals(elm2.children.toSeq.map(_.tagName), List("B", "SPAN", "DIV"))
       assertEquals(
         elm2.children.toSeq.map(_.innerHTML),
@@ -1484,16 +1521,16 @@ class SnabbdomSuite extends BaseSuite {
       val vnode3 = fragment(List("fragment ", "again"))
 
       val vnode1p = patch(vnode0, vnode1)
-      var elm = vnode1p.elm
+      var elm = vnode1p.node
       assertEquals(elm.nodeType, dom.Node.DOCUMENT_FRAGMENT_NODE)
 
       val vnode2p = patch(vnode1p, vnode2)
-      elm = vnode2p.elm
+      elm = vnode2p.node
       assertEquals(elm.asInstanceOf[dom.Element].tagName, "DIV")
       assertEquals(elm.textContent, "I am an element")
 
       val vnode3p = patch(vnode2p, vnode3)
-      elm = vnode3p.elm
+      elm = vnode3p.node
       assertEquals(elm.nodeType, dom.Node.DOCUMENT_FRAGMENT_NODE)
       assertEquals(elm.textContent, "fragment again")
     }
@@ -1506,10 +1543,10 @@ class SnabbdomSuite extends BaseSuite {
       val vnode2 = h("div", "I am an element")
 
       val vnode1p = patch(vnode0, vnode1)
-      var elm = vnode1p.elm
+      var elm = vnode1p.node
       assertEquals(elm.nodeType, dom.Node.DOCUMENT_FRAGMENT_NODE)
 
-      elm = patch(vnode1p, vnode2).elm
+      elm = patch(vnode1p, vnode2).node
       assertEquals(elm.asInstanceOf[dom.Element].tagName, "DIV")
     }
   }
@@ -1520,11 +1557,10 @@ class SnabbdomSuite extends BaseSuite {
     ) { vnode0 =>
       val result = List.newBuilder[PatchedVNode]
       val cb: CreateHook = vnode => {
-        assert(vnode.elm.isInstanceOf[dom.Element])
-        assertEquals(vnode.elm.childNodes.length, 2)
-        assertEquals(vnode.elm.parentNode, null)
+        assert(vnode.node.isInstanceOf[dom.Element])
+        assertEquals(vnode.node.childNodes.length, 2)
+        assertEquals(vnode.node.parentNode, null)
         result.addOne(vnode)
-        vnode
       }
       val vnode1 = h(
         "div",
@@ -1550,10 +1586,10 @@ class SnabbdomSuite extends BaseSuite {
     ) { vnode0 =>
       val result = List.newBuilder[PatchedVNode]
       val cb: InsertHook = (vnode) => {
-        assert(vnode.elm.isInstanceOf[dom.Element])
-        assertEquals(vnode.elm.childNodes.length, 2)
+        assert(vnode.node.isInstanceOf[dom.Element])
+        assertEquals(vnode.node.childNodes.length, 2)
         assertEquals(
-          vnode.elm.parentNode.childNodes.length,
+          vnode.node.parentNode.childNodes.length,
           3
         )
         result.addOne(vnode)
@@ -1583,7 +1619,6 @@ class SnabbdomSuite extends BaseSuite {
         assertEquals(vnode1.children.tail.head, oldVnode.toVNode)
         assertEquals(vnode2.children.tail.head, vnode)
         result.addOne(vnode)
-        vnode
       }
       lazy val vnode1 = h(
         "div",
@@ -1638,8 +1673,8 @@ class SnabbdomSuite extends BaseSuite {
             VNodeData(hook =
               Some(
                 Hooks(
-                  prepatch = Some((_, vnode) => { preCb(); vnode }),
-                  postpatch = Some((_, vnode) => { postCb(); vnode })
+                  prepatch = Some((_, _) => { preCb() }),
+                  postpatch = Some((_, _) => { postCb() })
                 )
               )
             ),
@@ -1659,8 +1694,8 @@ class SnabbdomSuite extends BaseSuite {
             VNodeData(hook =
               Some(
                 Hooks(
-                  prepatch = Some((_, vnode) => { preCb(); vnode }),
-                  postpatch = Some((_, vnode) => { postCb(); vnode })
+                  prepatch = Some((_, _) => { preCb() }),
+                  postpatch = Some((_, _) => { postCb() })
                 )
               )
             ),
@@ -1689,7 +1724,7 @@ class SnabbdomSuite extends BaseSuite {
           assertEquals(result(result.length - 1), oldVnode.toVNode)
         }
         result.addOne(vnode)
-        vnode
+        ()
       }
       val vnode1 = h(
         "div",
@@ -1736,9 +1771,9 @@ class SnabbdomSuite extends BaseSuite {
     vnode0.test("calls `remove` listener") { vnode0 =>
       val result = List.newBuilder[VNode]
       val cb: RemoveHook = (vnode, rm) => {
-        val parent = vnode.elm.parentNode
-        assert(vnode.elm.isInstanceOf[dom.Element])
-        assertEquals(vnode.elm.childNodes.length, 2)
+        val parent = vnode.node.parentNode
+        assert(vnode.node.isInstanceOf[dom.Element])
+        assertEquals(vnode.node.childNodes.length, 2)
         assertEquals(parent.childNodes.length, 2)
         result.addOne(vnode.toVNode)
         rm()
@@ -1794,12 +1829,10 @@ class SnabbdomSuite extends BaseSuite {
       val init: InitHook = (vnode) => {
         assertEquals(vnode, vnode2)
         count += 1
-        vnode
       }
       val prepatch: PrePatchHook = (_, vnode) => {
         assertEquals(vnode, vnode1)
         count += 1
-        vnode
       }
       vnode1 = h(
         "div",
@@ -1839,9 +1872,9 @@ class SnabbdomSuite extends BaseSuite {
         )
         val vnode2 = h("div", List.empty[VNode])
         val vnode1p = patch(vnode0, vnode1)
-        var elm = vnode1p.elm
+        var elm = vnode1p.node
         assertEquals(elm.childNodes.length, 1)
-        elm = patch(vnode1p, vnode2).elm
+        elm = patch(vnode1p, vnode2).node
         assertEquals(elm.childNodes.length, 1)
         rm1()
         assertEquals(elm.childNodes.length, 1)
@@ -1935,7 +1968,7 @@ class SnabbdomSuite extends BaseSuite {
         val patch = init(
           Seq(
             Module(
-              create = Some(vnode => { created += 1; vnode }),
+              create = Some(_ => { created += 1 }),
               destroy = Some(_ => destroyed += 1)
             )
           )
@@ -1962,7 +1995,7 @@ class SnabbdomSuite extends BaseSuite {
       val patch = init(
         Seq(
           Module(
-            create = Some(vnode => { created += 1; vnode }),
+            create = Some(_ => { created += 1 }),
             remove = Some((_, _) => removed += 1)
           )
         )
@@ -1989,7 +2022,7 @@ class SnabbdomSuite extends BaseSuite {
         val patch = init(
           Seq(
             Module(
-              create = Some(vnode => { created += 1; vnode }),
+              create = Some(_ => { created += 1 }),
               destroy = Some(_ => destroyed += 1)
             )
           )
@@ -2018,9 +2051,8 @@ class SnabbdomSuite extends BaseSuite {
   group("short circuiting") {
     vnode0.test("does not update strictly equal vnodes") { vnode0 =>
       val result = List.newBuilder[VNode]
-      val cb: UpdateHook = (vnode, newVNode) => {
+      val cb: UpdateHook = (vnode, _) => {
         result += vnode.toVNode
-        newVNode
       }
       val vnode1 = h(
         "div",
@@ -2040,9 +2072,8 @@ class SnabbdomSuite extends BaseSuite {
 
     vnode0.test("does not update strictly equal children") { vnode0 =>
       val result = List.newBuilder[VNode]
-      val cb: UpdateHook = (vnode, newVNode) => {
+      val cb: UpdateHook = (vnode, _) => {
         result += vnode.toVNode
-        newVNode
       }
       val vnode1 = h(
         "div",
@@ -2101,11 +2132,11 @@ class SnabbdomSuite extends BaseSuite {
               }
 
               val refElm =
-                patch(dom.document.createElement("div"), vnodes.last).elm
+                patch(dom.document.createElement("div"), vnodes.last).node
                   .asInstanceOf[dom.Element]
 
               assertEquals(
-                vnode.elm.asInstanceOf[dom.Element].innerHTML,
+                vnode.node.asInstanceOf[dom.Element].innerHTML,
                 refElm.innerHTML
               )
           }
@@ -2149,9 +2180,9 @@ class SnabbdomSuite extends BaseSuite {
               }
 
               val refElm =
-                patch(dom.document.createElement("div"), vnodes.last).elm
+                patch(dom.document.createElement("div"), vnodes.last).node
 
-              val v1 = toVNode(vnode.elm).toVNode
+              val v1 = toVNode(vnode.node).toVNode
               val v2 = toVNode(refElm).toVNode
 
               assertEquals(v1, v2)
