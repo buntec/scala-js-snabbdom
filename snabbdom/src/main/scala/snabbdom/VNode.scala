@@ -42,13 +42,6 @@ sealed trait VNode
 
 object VNode {
 
-  def key(vnode: VNode): Option[String] = vnode match {
-    case Text(_)             => None
-    case Element(_, data, _) => data.key
-    case Comment(_)          => None
-    case Fragment(_)         => None
-  }
-
   case class Text(content: String) extends VNode
 
   case class Element(sel: String, data: VNodeData, children: List[VNode])
@@ -70,6 +63,13 @@ object VNode {
   def comment(content: String): VNode = Comment(content)
 
   implicit def fromString(s: String): VNode = text(s)
+
+  def key(vnode: VNode): Option[String] = vnode match {
+    case Text(_)             => None
+    case Element(_, data, _) => data.key
+    case Comment(_)          => None
+    case Fragment(_)         => None
+  }
 
   def applyInitHook(vnode: VNode): VNode = vnode match {
     case Text(_) => vnode
