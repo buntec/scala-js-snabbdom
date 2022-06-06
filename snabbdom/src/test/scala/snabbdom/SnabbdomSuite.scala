@@ -48,6 +48,7 @@ import scala.concurrent.duration._
 import org.scalacheck.Gen
 import org.scalacheck.Gen.lzy
 import org.scalacheck.rng.Seed
+import scala.concurrent.Future
 
 class SnabbdomSuite extends BaseSuite {
 
@@ -2065,7 +2066,9 @@ class SnabbdomSuite extends BaseSuite {
 
     test("results in correct innerHTML") {
 
-      // for reproducibility, we want deterministic tests
+      // need macrotask EC to allow rendering between async boundaries to avoid rendering timeouts
+      import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits._
+
       scala.util.Random.setSeed(0)
       keyRng.setSeed(0)
 
@@ -2087,28 +2090,33 @@ class SnabbdomSuite extends BaseSuite {
         vnodes <- Gen.listOfN(n, genVNode)
       } yield vnodes
 
-      for {
-        _ <- 0 until 1000
-        vnodes <- nodesGen.sample
-      } {
+      Future.sequence {
+        (0 until 2000).map { _ =>
+          Future(nodesGen.sample).map {
+            case None => Future.unit
+            case Some(vnodes) =>
+              val elm = dom.document.createElement("div")
+              val vnode = vnodes.tail.foldLeft(patch(elm, vnodes.head)) {
+                case (pvnode, vnode) => patch(pvnode, vnode)
+              }
 
-        val elm = dom.document.createElement("div")
-        val vnode = vnodes.tail.foldLeft(patch(elm, vnodes.head)) {
-          case (pvnode, vnode) => patch(pvnode, vnode)
+              val refElm =
+                patch(dom.document.createElement("div"), vnodes.last).elm
+                  .asInstanceOf[dom.Element]
+
+              assertEquals(
+                vnode.elm.asInstanceOf[dom.Element].innerHTML,
+                refElm.innerHTML
+              )
+          }
         }
-
-        val refElm = patch(dom.document.createElement("div"), vnodes.last).elm
-          .asInstanceOf[dom.Element]
-
-        assertEquals(
-          vnode.elm.asInstanceOf[dom.Element].innerHTML,
-          refElm.innerHTML
-        )
-
       }
     }
 
     test("results in correct vnode after calling `toVNode`") {
+
+      // need macrotask EC to allow rendering between async boundaries to avoid rendering timeouts
+      import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits._
 
       scala.util.Random.setSeed(0)
       keyRng.setSeed(0)
@@ -2129,23 +2137,27 @@ class SnabbdomSuite extends BaseSuite {
         vnodes <- Gen.listOfN(n, genVNode)
       } yield vnodes
 
-      for {
-        _ <- 0 until 1000
-        vnodes <- nodesGen.sample
-      } {
+      Future.sequence {
+        (0 until 2000).map { _ =>
+          Future(nodesGen.sample).map {
+            case None => Future.unit
+            case Some(vnodes) =>
+              val elm = dom.document.createElement("div")
 
-        val elm = dom.document.createElement("div")
-        val vnode = vnodes.tail.foldLeft(patch(elm, vnodes.head)) {
-          case (pvnode, vnode) => patch(pvnode, vnode)
+              val vnode = vnodes.tail.foldLeft(patch(elm, vnodes.head)) {
+                case (pvnode, vnode) => patch(pvnode, vnode)
+              }
+
+              val refElm =
+                patch(dom.document.createElement("div"), vnodes.last).elm
+
+              val v1 = toVNode(vnode.elm).toVNode
+              val v2 = toVNode(refElm).toVNode
+
+              assertEquals(v1, v2)
+
+          }
         }
-
-        val refElm = patch(dom.document.createElement("div"), vnodes.last).elm
-
-        val v1 = toVNode(vnode.elm).toVNode
-        val v2 = toVNode(refElm).toVNode
-
-        assertEquals(v1, v2)
-
       }
     }
 
