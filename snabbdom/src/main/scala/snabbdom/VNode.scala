@@ -71,4 +71,12 @@ object VNode {
 
   implicit def fromString(s: String): VNode = text(s)
 
+  def applyInitHook(vnode: VNode): VNode = vnode match {
+    case Text(_) => vnode
+    case Element(_, data, _) =>
+      data.hook.flatMap(_.init).fold(vnode)(hook => hook(vnode))
+    case Fragment(_) => vnode
+    case Comment(_)  => vnode
+  }
+
 }

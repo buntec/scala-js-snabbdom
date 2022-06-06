@@ -132,7 +132,7 @@ class ThunkSuite extends BaseSuite {
     assertEquals(called, 2)
   }
 
-  vnode0.test("renders correctly".only) { vnode0 =>
+  vnode0.test("renders correctly") { vnode0 =>
     var called = 0
     val numberInSpan = (arg: Any) => {
       called += 1

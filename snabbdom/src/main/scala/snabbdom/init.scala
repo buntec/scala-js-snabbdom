@@ -112,9 +112,11 @@ object init {
     }
 
     def createElm(
-        vnode0: VNode,
+        vnode00: VNode,
         insertedVNodeQueue: VNodeQueue
     ): PatchedVNode = {
+
+      val vnode0 = VNode.applyInitHook(vnode00)
 
       vnode0 match {
         case VNode.Comment(content) =>
@@ -143,8 +145,6 @@ object init {
           )
 
         case VNode.Element(sel, data, children) =>
-          data.hook.flatMap(_.init).foreach(hook => hook(vnode0))
-
           val hashIdx = sel.indexOf("#")
           val dotIdx = sel.indexOf(".", hashIdx)
           val hash = if (hashIdx > 0) hashIdx else sel.length
@@ -371,15 +371,17 @@ object init {
 
     def patchVnode(
         oldVnode: PatchedVNode,
-        vnode: VNode,
+        vnode00: VNode,
         insertedVNodeQueue: VNodeQueue
     ): PatchedVNode = {
 
       // apply prepatch hooks
-      vnode match {
+      val vnode = vnode00 match {
         case VNode.Element(_, data, _) =>
-          data.hook.flatMap(_.prepatch).foreach(hook => hook(oldVnode, vnode))
-        case _ => ()
+          data.hook
+            .flatMap(_.prepatch)
+            .fold(vnode00)(hook => hook(oldVnode, vnode00))
+        case _ => vnode00
       }
 
       if (vnode == oldVnode.toVNode) {
