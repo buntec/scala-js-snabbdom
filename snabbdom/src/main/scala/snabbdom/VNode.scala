@@ -38,16 +38,12 @@
 
 package snabbdom
 
-case class VNode private (
+final case class VNode private (
     sel: Option[String],
     data: VNodeData,
     children: List[VNode],
-    text: Option[String],
-    key: Option[KeyValue]
+    text: Option[String]
 ) {
-
-  override def toString: String =
-    s"VNode(sel=$sel, data=$data, text=$text, key=$key, children=$children)"
 
   private[snabbdom] def isTextNode: Boolean =
     sel.isEmpty && children.isEmpty && text.isDefined
@@ -56,17 +52,17 @@ case class VNode private (
 
 object VNode {
 
-  val empty = VNode(None, VNodeData.empty, Nil, Some(""), None)
+  val empty: VNode = VNode(None, VNodeData.empty, Nil, Some(""))
 
   def create(
       sel: Option[String],
       data: VNodeData,
       children: List[VNode],
       text: Option[String]
-  ) = VNode(sel, data, children, text, data.key)
+  ): VNode = VNode(sel, data, children, text)
 
-  def text(text: String) =
-    VNode(None, VNodeData.empty, Nil, Some(text), None)
+  def text(text: String): VNode =
+    VNode(None, VNodeData.empty, Nil, Some(text))
 
   implicit def fromString(s: String): VNode = text(s)
 

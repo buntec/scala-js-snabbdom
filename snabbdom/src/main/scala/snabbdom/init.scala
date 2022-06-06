@@ -92,7 +92,6 @@ object init {
         VNodeData.empty,
         Nil,
         None,
-        None,
         elm,
         None
       )
@@ -100,7 +99,7 @@ object init {
     }
 
     def emptyDocumentFragmentAt(frag: dom.DocumentFragment): PatchedVNode = {
-      PatchedVNode(None, VNodeData.empty, Nil, None, None, frag, None)
+      PatchedVNode(None, VNodeData.empty, Nil, None, frag, None)
     }
 
     def createRmCb(childElm: dom.Node, listeners: Int): () => Unit = {
@@ -132,7 +131,6 @@ object init {
             vnode.data,
             Nil, // comment nodes can't have children
             Some(text),
-            vnode.key,
             elm,
             None
           )
@@ -158,7 +156,6 @@ object init {
             vnode.data,
             children = vnode.children.map(createElm(_, insertedVNodeQueue)),
             text = vnode.text,
-            key = vnode.key,
             elm = elm,
             None
           )
@@ -203,7 +200,6 @@ object init {
                 vnode.data,
                 Nil,
                 vnode.text,
-                vnode.key,
                 api.createTextNode(vnode.text.getOrElse("")),
                 None
               )
@@ -217,7 +213,6 @@ object init {
                 children =
                   children.map(ch => createElm(ch, insertedVNodeQueue)),
                 text = vnode.text,
-                key = vnode.key,
                 elm = elm,
                 None
               )
@@ -311,7 +306,7 @@ object init {
               } else {
                 (oh :: ot, ot2, (pn, i) :: acc, keyed)
               }
-            } else if (newCh.key.isDefined) { // node with key - try to match later
+            } else if (newCh.data.key.isDefined) { // node with key - try to match later
               (oh :: ot, oh2 :: ot2, acc, (newCh, i) :: keyed)
             } else { // new node without key
               val pn = createElm(newCh, insertedVnodeQueue)
@@ -350,9 +345,10 @@ object init {
       // into those with keys and those without. Those without keys
       // should certainly be deleted. Those with keys we'll try to match
       // up against new children with keys - any leftovers will be deleted
-      val (toDeleteKeyed, toDeleteUnkeyed) = toDelete.partition(_.key.isDefined)
+      val (toDeleteKeyed, toDeleteUnkeyed) =
+        toDelete.partition(_.data.key.isDefined)
 
-      val oldKeyed = toDeleteKeyed.map(n => (n.key.get -> n)).toMap
+      val oldKeyed = toDeleteKeyed.map(n => (n.data.key.get -> n)).toMap
 
       // Here we match new, unmatched children with keys against
       // old children with keys. Any leftover old children with
@@ -361,11 +357,11 @@ object init {
         newKeyed.foldLeft(
           (List.empty[(PatchedVNode, Int)], oldKeyed)
         ) { case ((acc1, acc2), (vnode, i)) =>
-          acc2.get(vnode.key.get) match {
+          acc2.get(vnode.data.key.get) match {
             case Some(pvnode) if sameVnode(pvnode, vnode) =>
               (
                 (patchVnode(pvnode, vnode, insertedVnodeQueue), i) :: acc1,
-                acc2 - vnode.key.get
+                acc2 - vnode.data.key.get
               )
             case _ =>
               ((createElm(vnode, insertedVnodeQueue), i) :: acc1, acc2)
@@ -447,7 +443,6 @@ object init {
                     vnode.data,
                     updateChildren(elm, oldCh, ch, insertedVNodeQueue),
                     vnode.text,
-                    vnode.key,
                     elm,
                     None
                   )
@@ -457,7 +452,6 @@ object init {
                     vnode.data,
                     oldCh,
                     vnode.text,
-                    vnode.key,
                     elm,
                     None
                   )
@@ -478,7 +472,6 @@ object init {
                   vnode.data,
                   patchedChildren,
                   vnode.text,
-                  vnode.key,
                   elm,
                   None
                 )
@@ -490,7 +483,6 @@ object init {
                   vnode.data,
                   Nil,
                   vnode.text,
-                  vnode.key,
                   elm,
                   None
                 )
@@ -501,7 +493,6 @@ object init {
                   vnode.data,
                   Nil,
                   vnode.text,
-                  vnode.key,
                   elm,
                   None
                 )
@@ -514,7 +505,6 @@ object init {
               vnode.data,
               Nil,
               vnode.text,
-              vnode.key,
               elm,
               None
             )
@@ -524,7 +514,6 @@ object init {
               vnode.data,
               Nil,
               vnode.text,
-              vnode.key,
               elm,
               None
             )
@@ -592,7 +581,7 @@ object init {
   }
 
   private def sameVnode(vnode1: PatchedVNode, vnode2: VNode): Boolean = {
-    vnode1.key == vnode2.key &&
+    vnode1.data.key == vnode2.data.key &&
     vnode1.data.is == vnode2.data.is &&
     vnode1.sel == vnode2.sel
   }

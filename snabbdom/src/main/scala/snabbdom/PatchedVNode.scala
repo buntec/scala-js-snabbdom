@@ -19,23 +19,18 @@ package snabbdom
 import org.scalajs.dom
 
 /** A `VNode` that has been patched into the DOM. */
-case class PatchedVNode private[snabbdom] (
+final case class PatchedVNode private[snabbdom] (
     sel: Option[String],
     data: VNodeData,
     children: List[PatchedVNode],
     text: Option[String],
-    key: Option[KeyValue],
     elm: dom.Node, // the corresponding node in the DOM - can't be `dom.Element` unfortunately b/c of fragments
     listener: Option[
       Listener
     ] // this is an optimization that allows re-using event listeners
 ) {
 
-  override def toString: String =
-    s"PatchedVNode(sel=$sel, data=$data, text=$text, key=$key, children=$children, elm=$elm, listener=$listener)"
-
-  def toVNode: VNode =
-    VNode(sel, data, children.map(_.toVNode), text, key)
+  def toVNode: VNode = VNode(sel, data, children.map(_.toVNode), text)
 
   private[snabbdom] def isTextNode: Boolean =
     sel.isEmpty && children.isEmpty && text.isDefined

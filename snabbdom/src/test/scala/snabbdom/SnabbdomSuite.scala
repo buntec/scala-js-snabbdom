@@ -206,7 +206,7 @@ class SnabbdomSuite extends BaseSuite {
   def size(vnode: VNode): Long = 1 + vnode.children.map(size).sum
 
   def keys(vnode: VNode): Set[String] =
-    vnode.key.toSet.union(vnode.children.map(keys).toList.flatten.toSet)
+    vnode.data.key.toSet.union(vnode.children.map(keys).toList.flatten.toSet)
 
   def depth(vnode: VNode): Long =
     1 + vnode.children.map(depth).maxOption.getOrElse(0L)

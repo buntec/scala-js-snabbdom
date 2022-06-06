@@ -38,7 +38,7 @@
 
 package snabbdom
 
-case class VNodeData(
+final case class VNodeData(
     props: Map[String, PropValue] = Map.empty,
     attrs: Map[String, AttrValue] = Map.empty,
     classes: Map[String, ClassValue] = Map.empty,

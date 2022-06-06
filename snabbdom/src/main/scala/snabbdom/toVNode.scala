@@ -84,7 +84,6 @@ object toVNode {
         data,
         children.toList,
         None,
-        None,
         node,
         None
       )
@@ -101,7 +100,7 @@ object toVNode {
 
     } else if (api.isText(node)) {
       val text = api.getTextContent(node).getOrElse("")
-      PatchedVNode(None, VNodeData.empty, Nil, Some(text), None, node, None)
+      PatchedVNode(None, VNodeData.empty, Nil, Some(text), node, None)
     } else if (api.isComment(node)) {
       val text = api.getTextContent(node).getOrElse("")
       PatchedVNode(
@@ -109,12 +108,11 @@ object toVNode {
         VNodeData.empty,
         Nil,
         Some(text),
-        None,
         node,
         None
       )
     } else {
-      PatchedVNode(Some(""), VNodeData.empty, Nil, None, None, node, None)
+      PatchedVNode(Some(""), VNodeData.empty, Nil, None, node, None)
     }
 
   }
