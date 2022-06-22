@@ -19,8 +19,6 @@ ThisBuild / githubWorkflowBuildMatrixAdditions += "browser" -> List(
 )
 ThisBuild / githubWorkflowBuildSbtStepPreamble += s"set Global / useJSEnv := JSEnv.$${{ matrix.browser }}"
 
-ThisBuild / resolvers += Resolver.sonatypeRepo("snapshots")
-ThisBuild / coverageScalacPluginVersion := "2.0.0-M7+1-9cfca69b-SNAPSHOT"
 ThisBuild / githubWorkflowAddedJobs +=
   WorkflowJob(
     id = "coverage",
