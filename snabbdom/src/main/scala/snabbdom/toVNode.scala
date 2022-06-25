@@ -116,7 +116,7 @@ object toVNode {
         node.asInstanceOf[dom.DocumentFragment]
       )
     } else {
-      ??? // TODO
+      throw new IllegalArgumentException(s"Unexpected node type: $node")
     }
 
   }

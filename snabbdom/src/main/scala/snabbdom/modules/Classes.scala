@@ -39,7 +39,6 @@
 package snabbdom.modules
 
 import snabbdom._
-import org.scalajs.dom
 
 object Classes {
 

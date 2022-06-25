@@ -50,7 +50,6 @@ object Props {
           setProps(elm)
         case _ => ()
       }
-      vNode
     }),
     update = Some((oldVNode: PatchedVNode, vNode: VNode) => {
       (oldVNode, vNode) match {
@@ -60,7 +59,6 @@ object Props {
           }
         case _ => ()
       }
-      vNode
     })
   )
 
