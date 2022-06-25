@@ -18,12 +18,41 @@ ThisBuild / githubWorkflowBuildMatrixAdditions += "browser" -> List(
   "Firefox"
 )
 ThisBuild / githubWorkflowBuildSbtStepPreamble += s"set Global / useJSEnv := JSEnv.$${{ matrix.browser }}"
+
+ThisBuild / githubWorkflowAddedJobs +=
+  WorkflowJob(
+    id = "coverage",
+    name = "Generate coverage report",
+    scalas = List(scala213),
+    javas = githubWorkflowJavaVersions.value.toList,
+    steps = List(WorkflowStep.CheckoutFull)
+      ++ WorkflowStep.SetupJava(githubWorkflowJavaVersions.value.toList)
+      ++ githubWorkflowGeneratedCacheSteps.value
+      ++ List(
+        WorkflowStep.Use(
+          UseRef.Public("actions", "setup-node", "v3"),
+          params = Map("node-version" -> "16", "cache" -> "npm")
+        ),
+        WorkflowStep.Run(List("npm install")),
+        WorkflowStep.Sbt(
+          List(
+            "set Global / useJSEnv := JSEnv.JSDOM",
+            "coverage",
+            "test",
+            "coverageAggregate"
+          )
+        ),
+        WorkflowStep.Run(List("bash <(curl -s https://codecov.io/bash)"))
+      )
+  )
+
 lazy val useJSEnv = settingKey[JSEnv]("Browser for running Scala.js tests")
 Global / useJSEnv := JSEnv.Chrome
 ThisBuild / Test / jsEnv := {
   import org.openqa.selenium.chrome.ChromeOptions
   import org.openqa.selenium.firefox.FirefoxOptions
   import org.scalajs.jsenv.selenium.SeleniumJSEnv
+  import org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv
   useJSEnv.value match {
     case JSEnv.Chrome =>
       val options = new ChromeOptions()
@@ -33,12 +62,14 @@ ThisBuild / Test / jsEnv := {
       val options = new FirefoxOptions()
       options.setHeadless(true)
       new SeleniumJSEnv(options)
+    case JSEnv.JSDOM =>
+      new JSDOMNodeJSEnv()
   }
 }
 
 lazy val scalajsDomVersion = "2.1.0"
-lazy val munitVersion = "0.7.29"
 lazy val scalacheckVersion = "1.16.0"
+lazy val munitVersion = "1.0.0-M5"
 
 lazy val root = tlCrossRootProject.aggregate(snabbdom, examples, benchmarks)
 
@@ -60,6 +91,7 @@ lazy val examples = (project
   .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
   .settings(
     name := "scala-js-snabbdom-examples",
+    coverageEnabled := false,
     scalaJSUseMainModuleInitializer := true,
     Compile / fastLinkJS / scalaJSLinkerConfig ~= {
       import org.scalajs.linker.interface.ModuleSplitStyle
