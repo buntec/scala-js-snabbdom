@@ -36,55 +36,22 @@
  * IN THE SOFTWARE.
  */
 
-package snabbdom.modules
+package snabbdom
 
-import snabbdom._
+sealed trait AttrValue
 
-object EventListeners {
+object AttrValue {
 
-  val module: Module = Module().copy(
-    create = Some((vNode: PatchedVNode) => {
-      vNode match {
-        case elm: PatchedVNode.Element =>
-          if (elm.data.on.nonEmpty) {
-            elm.data.on.foreach { case (name, _) =>
-              elm.node.addEventListener(name, elm.listener, false)
-            }
-          }
-        case _ => ()
-      }
-    }),
-    postPatch = Some((oldVNode: PatchedVNode, vNode: PatchedVNode) =>
-      (oldVNode, vNode) match {
-        case (a: PatchedVNode.Element, b: PatchedVNode.Element) =>
-          updateEventListeners(a, b)
-        case _ => ()
-      }
-    ),
-    destroy = Some((vnode: PatchedVNode) => {
-      vnode match {
-        case elm: PatchedVNode.Element =>
-          elm.data.on.foreach { case (name, _) =>
-            elm.node.removeEventListener(name, elm.listener, false)
-          }
-        case _ => ()
-      }
-    })
-  )
+  def apply(s: String): AttrValue = StringAttrValue(s)
+  def apply(b: Boolean): AttrValue = BooleanAttrValue(b)
 
-  private def updateEventListeners(
-      oldVnode: PatchedVNode.Element,
-      vnode: PatchedVNode.Element
-  ): Unit = {
+  case class StringAttrValue(value: String) extends AttrValue
+  case class BooleanAttrValue(value: Boolean) extends AttrValue
 
-    val elm = oldVnode.node
-    oldVnode.data.on.foreach { case (name, _) =>
-      elm.removeEventListener(name, oldVnode.listener, false)
-    }
-    vnode.data.on.foreach { case (name, _) =>
-      elm.addEventListener(name, vnode.listener, false)
-    }
+  implicit def stringToAttrValue(value: String): AttrValue =
+    StringAttrValue(value)
 
-  }
+  implicit def booleanToAttrValue(value: Boolean): AttrValue =
+    BooleanAttrValue(value)
 
 }

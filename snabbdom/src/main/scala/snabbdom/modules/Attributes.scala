@@ -75,22 +75,23 @@ object Attributes {
 
   private def setAttrs(vnode: PatchedVNode.Element): Unit = {
     val elm = vnode.node
-    vnode.data.attrs.foreach { case (key, cur) =>
-      if (cur == true) {
-        elm.setAttribute(key, "")
-      } else if (cur == false) {
-        elm.removeAttribute(key)
-      } else {
-        if (key.charAt(0) != 'x') {
-          elm.setAttribute(key, cur.toString)
-        } else if (key.length > 3 && key.charAt(3) == ':') {
-          elm.setAttributeNS(xmlNS, key, cur.toString)
-        } else if (key.length > 5 && key.charAt(5) == ':') {
-          elm.setAttributeNS(xlinkNS, key, cur.toString)
+    vnode.data.attrs.foreach {
+      case (key, AttrValue.BooleanAttrValue(value)) =>
+        if (value) {
+          elm.setAttribute(key, "")
         } else {
-          elm.setAttribute(key, cur.toString)
+          elm.removeAttribute(key)
         }
-      }
+      case (key, AttrValue.StringAttrValue(value)) =>
+        if (key.charAt(0) != 'x') {
+          elm.setAttribute(key, value)
+        } else if (key.length > 3 && key.charAt(3) == ':') {
+          elm.setAttributeNS(xmlNS, key, value)
+        } else if (key.length > 5 && key.charAt(5) == ':') {
+          elm.setAttributeNS(xlinkNS, key, value)
+        } else {
+          elm.setAttribute(key, value)
+        }
     }
   }
 
@@ -104,22 +105,24 @@ object Attributes {
     val attrs = vnode.data.attrs
 
     attrs.foreach { case (key, cur) =>
-      val old = oldAttrs.get(key)
-      if (old.forall(_ != cur)) {
-        if (cur == true) {
-          elm.setAttribute(key, "")
-        } else if (cur == false) {
-          elm.removeAttribute(key)
-        } else {
-          if (key.charAt(0) != 'x') {
-            elm.setAttribute(key, cur.toString)
-          } else if (key.length > 3 && key.charAt(3) == ':') {
-            elm.setAttributeNS(xmlNS, key, cur.toString)
-          } else if (key.length > 5 && key.charAt(5) == ':') {
-            elm.setAttributeNS(xlinkNS, key, cur.toString)
-          } else {
-            elm.setAttribute(key, cur.toString)
-          }
+      if (oldAttrs.get(key).forall(_ != cur)) {
+        cur match {
+          case AttrValue.BooleanAttrValue(value) =>
+            if (value) {
+              elm.setAttribute(key, "")
+            } else {
+              elm.removeAttribute(key)
+            }
+          case AttrValue.StringAttrValue(value) =>
+            if (key.charAt(0) != 'x') {
+              elm.setAttribute(key, value)
+            } else if (key.length > 3 && key.charAt(3) == ':') {
+              elm.setAttributeNS(xmlNS, key, value)
+            } else if (key.length > 5 && key.charAt(5) == ':') {
+              elm.setAttributeNS(xlinkNS, key, value)
+            } else {
+              elm.setAttribute(key, cur.toString)
+            }
         }
       }
     }

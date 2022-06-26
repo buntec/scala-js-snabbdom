@@ -39,7 +39,6 @@
 package object snabbdom {
 
   type PropValue = Any
-  type AttrValue = Any // JS snabbdom uses string | number | boolean
   type ClassValue = Boolean
   type StyleValue = String
   type KeyValue = String

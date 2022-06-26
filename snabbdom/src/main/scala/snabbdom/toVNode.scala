@@ -75,7 +75,9 @@ object toVNode {
 
       val data =
         VNodeData(
-          attrs = if (attrs.nonEmpty) attrs.toMap else Map.empty,
+          attrs = attrs.toMap.map { case (key, value) =>
+            key -> AttrValue(value)
+          },
           dataset = if (datasets.nonEmpty) datasets.toMap else Map.empty
         )
 

@@ -59,7 +59,7 @@ class AttributesSuite extends BaseSuite {
         VNodeData(attrs =
           Map(
             "href" -> "/foo",
-            "minlength" -> 1,
+            "minlength" -> "1",
             "selected" -> true,
             "disabled" -> false
           )
@@ -75,7 +75,7 @@ class AttributesSuite extends BaseSuite {
 
     vnode0.test("can be memoized") { vnode0 =>
       val cachedAttrs = VNodeData(
-        attrs = Map("href" -> "/foo", "minlength" -> 1, "selected" -> true)
+        attrs = Map("href" -> "/foo", "minlength" -> "1", "selected" -> true)
       )
       val vnode1 = h("div", cachedAttrs)
       val vnode2 = h("div", cachedAttrs)
@@ -97,8 +97,8 @@ class AttributesSuite extends BaseSuite {
           "div",
           VNodeData(attrs =
             Map(
-              "href" -> None,
-              "minlength" -> 0,
+              "href" -> "None",
+              "minlength" -> "0",
               "value" -> "",
               "title" -> "undefined"
             )
@@ -149,7 +149,7 @@ class AttributesSuite extends BaseSuite {
           VNodeData(attrs =
             Map(
               "required" -> true,
-              "readonly" -> 1,
+              "readonly" -> "1",
               "noresize" -> "truthy"
             )
           )
@@ -174,7 +174,7 @@ class AttributesSuite extends BaseSuite {
       val vnode1 =
         h(
           "div",
-          VNodeData(attrs = Map("readonly" -> 0, "noresize" -> ""))
+          VNodeData(attrs = Map("readonly" -> "0", "noresize" -> ""))
         )
       val elm = patch(vnode0, vnode1).node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm.hasAttribute("readonly"), true)

@@ -148,7 +148,9 @@ class SnabbdomSuite extends BaseSuite {
     } yield {
       VNodeData(
         key = key,
-        attrs = attrs,
+        attrs = attrs.map { case (key, value) =>
+          key -> AttrValue.StringAttrValue(value)
+        },
         props = props,
         classes = classes,
         style = style,
@@ -782,7 +784,7 @@ class SnabbdomSuite extends BaseSuite {
           .data
           .attrs
           .get("foo"),
-        Some("bar")
+        Some(AttrValue.StringAttrValue("bar"))
       )
 
       val onlyDatasets = dom.document.createElement("div")
@@ -816,7 +818,10 @@ class SnabbdomSuite extends BaseSuite {
       val data =
         toVNode(bothAttrsAndDatasets).asInstanceOf[PatchedVNode.Element].data
 
-      assertEquals(data.attrs.get("foo"), Some("bar"))
+      assertEquals(
+        data.attrs.get("foo"),
+        Some(AttrValue.StringAttrValue("bar"))
+      )
       assertEquals(data.dataset.get("foo"), Some("bar"))
       assertEquals(data.dataset.get("again"), Some("again"))
 
