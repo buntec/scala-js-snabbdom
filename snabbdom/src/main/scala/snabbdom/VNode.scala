@@ -42,14 +42,14 @@ sealed trait VNode
 
 object VNode {
 
-  case class Text(content: String) extends VNode
+  final case class Text(content: String) extends VNode
 
-  case class Element(sel: String, data: VNodeData, children: List[VNode])
+  final case class Element(sel: String, data: VNodeData, children: List[VNode])
       extends VNode
 
-  case class Fragment(children: List[VNode]) extends VNode
+  final case class Fragment(children: List[VNode]) extends VNode
 
-  case class Comment(content: String) extends VNode
+  final case class Comment(content: String) extends VNode
 
   val empty: VNode = Text("")
 
@@ -71,12 +71,11 @@ object VNode {
     case Fragment(_)         => None
   }
 
-  def applyInitHook(vnode: VNode): VNode = vnode match {
-    case Text(_) => vnode
-    case Element(_, data, _) =>
-      data.hook.flatMap(_.init).fold(vnode)(hook => hook(vnode))
-    case Fragment(_) => vnode
-    case Comment(_)  => vnode
+  private[snabbdom] def applyInitHook(vnode: VNode): VNode = vnode match {
+    case Text(_)             => vnode
+    case Element(_, data, _) => data.hook.flatMap(_.init).fold(vnode)(_(vnode))
+    case Fragment(_)         => vnode
+    case Comment(_)          => vnode
   }
 
 }

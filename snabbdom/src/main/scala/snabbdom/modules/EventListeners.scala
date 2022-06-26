@@ -48,7 +48,7 @@ object EventListeners {
         case elm: PatchedVNode.Element =>
           if (elm.data.on.nonEmpty) {
             elm.data.on.foreach { case (name, _) =>
-              elm.node.addEventListener(name, elm.jsFun, false)
+              elm.node.addEventListener(name, elm.listener, false)
             }
           }
         case _ => ()
@@ -65,7 +65,7 @@ object EventListeners {
       vnode match {
         case elm: PatchedVNode.Element =>
           elm.data.on.foreach { case (name, _) =>
-            elm.node.removeEventListener(name, elm.jsFun, false)
+            elm.node.removeEventListener(name, elm.listener, false)
           }
         case _ => ()
       }
@@ -82,11 +82,11 @@ object EventListeners {
     val elm = oldVnode.node
 
     oldOn.foreach { case (name, _) =>
-      elm.removeEventListener(name, oldVnode.jsFun, false)
+      elm.removeEventListener(name, oldVnode.listener, false)
     }
 
     on.foreach { case (name, _) =>
-      elm.addEventListener(name, vnode.jsFun, false)
+      elm.addEventListener(name, vnode.listener, false)
     }
 
   }

@@ -32,7 +32,7 @@ object PatchedVNode {
     case _                      => None
   }
 
-  case class Element(
+  final case class Element(
       sel: String,
       data: VNodeData,
       children: List[PatchedVNode],
@@ -42,11 +42,11 @@ object PatchedVNode {
     private def handleEvent(event: dom.Event): Unit = {
       val name = event.`type`
       data.on.get(name).foreach { handler =>
-        handler.cbs.foreach(cb => cb(event, this.toVNode))
+        handler.cbs.foreach(_(event, this.toVNode))
       }
     }
 
-    private[snabbdom] lazy val jsFun: js.Function1[dom.Event, Unit] =
+    private[snabbdom] lazy val listener: js.Function1[dom.Event, Unit] =
       handleEvent _
 
     override def toVNode: VNode =
@@ -67,7 +67,7 @@ object PatchedVNode {
       node
     )
 
-  case class Text(
+  final case class Text(
       content: String,
       node: dom.Text
   ) extends PatchedVNode {
@@ -78,7 +78,7 @@ object PatchedVNode {
 
   def text(content: String, node: dom.Text): PatchedVNode = Text(content, node)
 
-  case class Fragment(
+  final case class Fragment(
       children: List[PatchedVNode],
       node: dom.DocumentFragment
   ) extends PatchedVNode {
@@ -92,7 +92,8 @@ object PatchedVNode {
       node: dom.DocumentFragment
   ): PatchedVNode = Fragment(children, node)
 
-  case class Comment(content: String, node: dom.Comment) extends PatchedVNode {
+  final case class Comment(content: String, node: dom.Comment)
+      extends PatchedVNode {
 
     override def toVNode: VNode = VNode.comment(content)
 
