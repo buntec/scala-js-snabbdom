@@ -25,6 +25,8 @@ import scala.concurrent.Future
 
 class RandomizedSuite extends BaseSuite {
 
+  val nSamples = 20000 // all sufficiently large values will result in timeouts
+
   // generous timeout for scalacheck-based tests with large number of samples
   override val munitTimeout = 5.minutes
 
@@ -37,9 +39,9 @@ class RandomizedSuite extends BaseSuite {
     )
   )
 
-  group("patching of random sequence of vnodes") {
+  group("patching a random sequence of vnodes") {
 
-    test("results in correct innerHTML") {
+    test("results in expected innerHTML") {
 
       // need macrotask EC to allow rendering between async boundaries to avoid rendering timeouts
       import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits._
@@ -55,7 +57,8 @@ class RandomizedSuite extends BaseSuite {
         attrs = true,
         classes = false,
         style = false,
-        dataset = true
+        dataset = true,
+        fragments = true
       )
 
       val vnodeGen = VNodeGen(config)
@@ -66,29 +69,31 @@ class RandomizedSuite extends BaseSuite {
       } yield vnodes
 
       Future.sequence {
-        (0 until 1000).map { _ =>
-          Future(nodesGen.sample).map {
-            case None => Future.unit
-            case Some(vnodes) =>
-              val elm = dom.document.createElement("div")
-              val vnode = vnodes.tail.foldLeft(patch(elm, vnodes.head)) {
-                case (pvnode, vnode) => patch(pvnode, vnode)
-              }
+        (0 until nSamples).map { _ =>
+          Future(nodesGen.sample)
+            .map {
+              case None => Future.unit
+              case Some(vnodes) =>
+                val elm = dom.document.createElement("div")
+                val vnode = vnodes.tail.foldLeft(patch(elm, vnodes.head)) {
+                  case (pvnode, vnode) => patch(pvnode, vnode)
+                }
 
-              val refElm =
-                patch(dom.document.createElement("div"), vnodes.last).node
-                  .asInstanceOf[dom.Element]
+                val refElm =
+                  patch(dom.document.createElement("div"), vnodes.last).node
+                    .asInstanceOf[dom.Element]
 
-              assertEquals(
-                vnode.node.asInstanceOf[dom.Element].innerHTML,
-                refElm.innerHTML
-              )
-          }
+                val a = vnode.node.asInstanceOf[dom.Element].innerHTML
+                val b = refElm.innerHTML
+
+                assertEquals(a, b)
+
+            }
         }
       }
     }
 
-    test("results in correct vnode after calling `toVNode`") {
+    test("results in expected vnode after calling `toVNode`") {
 
       // need macrotask EC to allow rendering between async boundaries to avoid rendering timeouts
       import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits._
@@ -102,7 +107,8 @@ class RandomizedSuite extends BaseSuite {
         classes = true,
         style =
           false, // doesn't work here b/c adding and removing a CSS property results in an empty-string attribute value
-        dataset = true
+        dataset = true,
+        fragments = true
       )
 
       val vnodeGen = VNodeGen(config)
@@ -113,7 +119,7 @@ class RandomizedSuite extends BaseSuite {
       } yield vnodes
 
       Future.sequence {
-        (0 until 1000).map { _ =>
+        (0 until nSamples).map { _ =>
           Future(nodesGen.sample).map {
             case None => Future.unit
             case Some(vnodes) =>

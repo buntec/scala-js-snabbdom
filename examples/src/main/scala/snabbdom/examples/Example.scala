@@ -40,7 +40,9 @@ object Example {
 
     val vnode = h(
       "div",
-      VNodeData(on = Map("click" -> ((_: dom.Event) => println("foo")))),
+      VNodeData(on =
+        Map("click" -> ((_: dom.Event) => dom.console.log("foo")))
+      ),
       List[VNode](
         h(
           "span",
@@ -60,7 +62,9 @@ object Example {
 
     val newVnode = h(
       "div#container.two.classes",
-      VNodeData(on = Map("click" -> ((_: dom.Event) => println("bar")))),
+      VNodeData(on =
+        Map("click" -> ((_: dom.Event) => dom.console.log("bar")))
+      ),
       List[VNode](
         h(
           "span",

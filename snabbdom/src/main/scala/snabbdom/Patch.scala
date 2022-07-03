@@ -46,6 +46,4 @@ trait Patch {
 
   def apply(elm: dom.Element, vnode: VNode): PatchedVNode
 
-  def apply(frag: dom.DocumentFragment, vnode: VNode): PatchedVNode
-
 }

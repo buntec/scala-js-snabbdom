@@ -101,8 +101,8 @@ object h {
     vnode match {
       case Comment(_, _)           => vnode
       case PatchedVNode.Text(_, _) => vnode
-      case PatchedVNode.Fragment(children, elm) =>
-        PatchedVNode.Fragment(children.map(addNS), elm)
+      case PatchedVNode.Fragment(parent, children, elm) =>
+        PatchedVNode.Fragment(parent, children.map(addNS), elm)
       case PatchedVNode.Element(sel, data, children, elm) =>
         PatchedVNode.Element(
           sel,

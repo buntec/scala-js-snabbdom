@@ -34,7 +34,8 @@ object VNodeGen {
       attrs: Boolean,
       classes: Boolean,
       style: Boolean,
-      dataset: Boolean
+      dataset: Boolean,
+      fragments: Boolean
   )
 
   def apply(config: Config): VNodeGen = {
@@ -161,6 +162,8 @@ object VNodeGen {
       "option" -> Set.empty[String]
     )
 
+    val fragmentWeight = if (config.fragments) 1 else 0
+
     def genLeaf(
         tags: Set[String]
     )(implicit config: VNodeGen.Config): Gen[VNode] =
@@ -170,6 +173,16 @@ object VNodeGen {
         text <- Gen.stringOfN(n, Gen.alphaChar)
         data <- genVNodeData
       } yield h(tag, data, text)
+
+    def genFragment(
+        tags: Set[String]
+    )(implicit config: VNodeGen.Config): Gen[VNode] =
+      for {
+        n <- Gen.choose(1, 3)
+        children <-
+          if (tags.nonEmpty) Gen.listOfN(n, genVNodePre(tags))
+          else Gen.const(Nil)
+      } yield fragment(children)
 
     def genTree(
         tags: Set[String]
@@ -184,11 +197,16 @@ object VNodeGen {
         data <- genVNodeData
       } yield h(tag, data, children)
 
-    // Dies out fast enough not to explode, but has 5-1 odds of being just a leaf.
-    // We therefore define `genVNode` by conditioning this generator on `size(vnode) > 1`.
+    // Dies out fast enough not to explode, but has high odds of being just a leaf.
+    // To get a more interesting distribution for the final `Gen[VNode]`, we
+    // therefore condition this generator on `size(vnode) > 1`.
     def genVNodePre(tags: Set[String])(implicit
         config: VNodeGen.Config
-    ): Gen[VNode] = Gen.frequency((5, genLeaf(tags)), (1, lzy(genTree(tags))))
+    ): Gen[VNode] = Gen.frequency(
+      (10, genLeaf(tags)),
+      (1, lzy(genTree(tags))),
+      (fragmentWeight, lzy(genFragment(tags)))
+    )
 
     new VNodeGen {
 
@@ -199,7 +217,10 @@ object VNodeGen {
           .flatMap { vnode =>
             Gen.delay { keyRng.setSeed(0); Gen.const(vnode) }
           }
-          .retryUntil(vnode => VNodeGen.size(vnode) > 1)
+          .retryUntil(vnode =>
+            // the root node should not be a fragment
+            !vnode.isInstanceOf[VNode.Fragment] && VNodeGen.size(vnode) > 1
+          )
     }
 
   }

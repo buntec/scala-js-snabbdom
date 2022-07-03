@@ -64,11 +64,40 @@ object VNode {
 
   implicit def fromString(s: String): VNode = text(s)
 
-  def key(vnode: VNode): Option[String] = vnode match {
+  implicit class VNodeOps(val vnode: VNode) extends AnyVal {
+
+    def prettyPrint: String = VNode.prettyPrint(vnode)
+
+    def key: Option[String] = VNode.key(vnode)
+
+  }
+
+  private def key(vnode: VNode): Option[String] = vnode match {
     case Text(_)             => None
     case Element(_, data, _) => data.key
     case Comment(_)          => None
     case Fragment(_)         => None
+  }
+
+  // TODO: include attributes
+  private def prettyPrint(vnode: VNode): String = {
+    def go(indent: Int, vnode: VNode): String = {
+      vnode match {
+        case Text(content) => s"${" " * indent}$content"
+        case Element(sel, data, children) =>
+          s"""|${" " * indent}<$sel${data.key.fold("")(key => s" key=$key")}>
+              |${children.map(go(indent + 2, _)).mkString("\n")}
+              |${" " * indent}</$sel>
+              |""".stripMargin
+        case Fragment(children) =>
+          s"""|${" " * indent}<>
+              |${children.map(go(indent + 2, _)).mkString("\n")}
+              |${" " * indent}</>
+              |""".stripMargin
+        case Comment(content) => s"""<!--${content}-->"""
+      }
+    }
+    go(0, vnode)
   }
 
   private[snabbdom] def applyInitHook(vnode: VNode): VNode = vnode match {
@@ -77,5 +106,14 @@ object VNode {
     case Fragment(_)         => vnode
     case Comment(_)          => vnode
   }
+
+  private[snabbdom] def recursivelyRemoveKeys(vnode: VNode): VNode =
+    vnode match {
+      case Text(content) => Text(content)
+      case Element(sel, data, children) =>
+        Element(sel, data.copy(key = None), children.map(recursivelyRemoveKeys))
+      case Fragment(children) => Fragment(children.map(recursivelyRemoveKeys))
+      case Comment(content)   => Comment(content)
+    }
 
 }

@@ -107,16 +107,6 @@ object toVNode {
         text,
         node.asInstanceOf[dom.Comment]
       )
-    } else if (api.isDocumentFragement(node)) {
-      val children = new mutable.ArrayBuffer[PatchedVNode]
-      val elmChildren = node.childNodes
-      elmChildren.foreach { childNode =>
-        children.append(toVNode(childNode, domApi))
-      }
-      PatchedVNode.fragment(
-        children.toList,
-        node.asInstanceOf[dom.DocumentFragment]
-      )
     } else {
       throw new IllegalArgumentException(s"Unexpected node type: $node")
     }
