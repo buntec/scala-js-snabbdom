@@ -26,9 +26,9 @@ import scala.concurrent.Future
 class RandomizedSuite extends BaseSuite {
 
   // generous timeout for scalacheck-based tests with large number of samples
-  override val munitTimeout = 5.minutes
+  override val munitTimeout = 10.minutes
 
-  val nSamples = 2500
+  val nSamples = 1000
 
   val patch = init(
     Seq(
