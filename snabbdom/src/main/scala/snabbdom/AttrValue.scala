@@ -45,8 +45,8 @@ object AttrValue {
   def apply(s: String): AttrValue = StringAttrValue(s)
   def apply(b: Boolean): AttrValue = BooleanAttrValue(b)
 
-  case class StringAttrValue(value: String) extends AttrValue
-  case class BooleanAttrValue(value: Boolean) extends AttrValue
+  final case class StringAttrValue(value: String) extends AttrValue
+  final case class BooleanAttrValue(value: Boolean) extends AttrValue
 
   implicit def stringToAttrValue(value: String): AttrValue =
     StringAttrValue(value)

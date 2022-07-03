@@ -28,7 +28,7 @@ trait VNodeGen {
 
 object VNodeGen {
 
-  case class Config(
+  final case class Config(
       keys: Boolean,
       props: Boolean,
       attrs: Boolean,
