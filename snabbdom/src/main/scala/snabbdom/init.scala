@@ -108,7 +108,6 @@ object init {
     }
 
     def createElm(
-        parent: Option[dom.Node],
         vnode00: VNode,
         insertedVNodeQueue: VNodeQueue
     ): PatchedVNode = {
@@ -119,23 +118,6 @@ object init {
         case VNode.Comment(content) =>
           val node = api.createComment(content)
           PatchedVNode.comment(content, node)
-
-        case VNode.Fragment(children) =>
-          val node = api.createDocumentFragment
-          val patchedChildren =
-            children.map(ch => createElm(parent, ch, insertedVNodeQueue))
-          require(parent.isDefined, "Fragments need a parent.")
-          val vnode = PatchedVNode.fragment(
-            parent.get,
-            children = patchedChildren,
-            node = node
-          )
-          cbs.create.foreach { hook => hook(vnode) }
-
-          // insert children into dom
-          patchedChildren.foreach(child => api.appendChild(node, child.node))
-
-          vnode
 
         case VNode.Text(text) =>
           PatchedVNode.Text(
@@ -162,8 +144,7 @@ object init {
           val pvnode0 = PatchedVNode.Element(
             sel,
             data,
-            children =
-              children.map(createElm(Some(elm), _, insertedVNodeQueue)),
+            children = children.map(createElm(_, insertedVNodeQueue)),
             node = elm
           )
           if (hash < dot) elm.setAttribute("id", sel.slice(hash + 1, dot))
@@ -215,9 +196,6 @@ object init {
           }
         case PatchedVNode.Text(_, node) => // text node
           api.removeChild(parentElm, node)
-        case child @ PatchedVNode.Fragment(_, children, _) =>
-          invokeDestroyHook(child)
-          removeAllVnodes(parentElm, children)
         case _ => ()
 
       }
@@ -234,14 +212,6 @@ object init {
         newCh: List[VNode],
         insertedVnodeQueue: VNodeQueue
     ): List[PatchedVNode] = {
-
-      // This is needed for fragments b/c the "children" of fragments are
-      // actually the children of the parent of the fragment
-      // and that parent might have more children than `oldCh`.
-      // Consequently, when we insert new children we have to make sure that we insert
-      // them *before* any other children of the parent, i.e., before `boundary`.
-      val boundary =
-        oldCh.lastOption.flatMap(vnode => Option(vnode.node.nextSibling))
 
       // `toDelete1` - the old children in original order that were not
       // matched against new children.
@@ -274,8 +244,7 @@ object init {
               }
             } else if (sameVnode(oh2, newCh)) {
               val pn = patchVnode(oh2, newCh, insertedVnodeQueue)
-              val before = PatchedVNode.firstNonFragmentNode(oh).map(_.node)
-              api.insertBefore(parentElm, pn.node, before)
+              api.insertBefore(parentElm, pn.node, Some(oh.node))
               if (oh == oh2) { // exhausted old child nodes
                 (Nil, Nil, (pn, i) :: acc, keyed)
               } else {
@@ -284,24 +253,19 @@ object init {
             } else if (newCh.key.isDefined) { // node with key - try to match later
               (oh :: ot, oh2 :: ot2, acc, (newCh, i) :: keyed)
             } else { // new node without key
-              val pn = createElm(Some(parentElm), newCh, insertedVnodeQueue)
-              val before = PatchedVNode.firstNonFragmentNode(oh).map(_.node)
-              api.insertBefore(parentElm, pn.node, before)
+              val pn = createElm(newCh, insertedVnodeQueue)
+              api.insertBefore(parentElm, pn.node, Some(oh.node))
               (oh :: ot, oh2 :: ot2, (pn, i) :: acc, keyed)
             }
-          case (
-                (Nil, _, acc, keyed),
-                (newCh, i)
-              ) => // old nodes are exhausted - must be new node
-            val pn = createElm(Some(parentElm), newCh, insertedVnodeQueue)
-            api.insertBefore(parentElm, pn.node, boundary)
+          case ((Nil, _, acc, keyed), (newCh, i)) =>
+            // old nodes are exhausted - must be new node
+            val pn = createElm(newCh, insertedVnodeQueue)
+            api.insertBefore(parentElm, pn.node, None)
             (Nil, Nil, (pn, i) :: acc, keyed)
-          case (
-                (_, Nil, acc, keyed),
-                (newCh, i)
-              ) => // old nodes are exhausted - must be new node
-            val pn = createElm(Some(parentElm), newCh, insertedVnodeQueue)
-            api.insertBefore(parentElm, pn.node, boundary)
+          case ((_, Nil, acc, keyed), (newCh, i)) =>
+            // old nodes are exhausted - must be new node
+            val pn = createElm(newCh, insertedVnodeQueue)
+            api.insertBefore(parentElm, pn.node, None)
             (Nil, Nil, (pn, i) :: acc, keyed)
         }
 
@@ -341,13 +305,7 @@ object init {
                 acc2 - vnode.key.get
               )
             case _ =>
-              (
-                (
-                  createElm(Some(parentElm), vnode, insertedVnodeQueue),
-                  i
-                ) :: acc1,
-                acc2
-              )
+              ((createElm(vnode, insertedVnodeQueue), i) :: acc1, acc2)
           }
         }
 
@@ -366,11 +324,10 @@ object init {
         (v1, v2) match {
           case (((h1, i) :: t1), ((h2, j) :: t2)) =>
             if (j < i) {
-              val before = PatchedVNode.firstNonFragmentNode(h1).map(_.node)
               api.insertBefore(
                 parentElm,
                 h2.node,
-                before
+                Some(h1.node)
               )
               merge(v1, t2, h2 :: acc)
             } else {
@@ -378,10 +335,12 @@ object init {
               merge(t1, v2, h1 :: acc)
             }
           case (Nil, ((h2, _) :: t2)) =>
-            api.insertBefore(parentElm, h2.node, boundary)
+            api.insertBefore(parentElm, h2.node, None)
             merge(Nil, t2, h2 :: acc)
-          case (((h1, _) :: t1), Nil) => merge(t1, Nil, h1 :: acc)
-          case (Nil, Nil)             => acc
+          case (((h1, _) :: t1), Nil) =>
+            merge(t1, Nil, h1 :: acc)
+          case (Nil, Nil) =>
+            acc
         }
       }
 
@@ -425,53 +384,6 @@ object init {
         val patchedVNode = (oldVnode, vnode) match {
 
           case (
-                old @ PatchedVNode.Fragment(parent, oldCh, elm),
-                VNode.Fragment(ch)
-              ) =>
-            (oldCh, ch) match {
-              case (oldCh @ _ :: _, ch @ _ :: _) =>
-                if (oldCh.map(_.toVNode) != ch) {
-                  PatchedVNode.fragment(
-                    parent,
-                    updateChildren(parent, oldCh, ch, insertedVNodeQueue),
-                    elm
-                  )
-                } else old
-
-              case (Nil, ch @ _ :: _) =>
-                val patchedChildren = ch.map { vnode =>
-                  val pvnode =
-                    createElm(Some(parent), vnode, insertedVNodeQueue)
-                  api.insertBefore(
-                    elm,
-                    pvnode.node,
-                    None
-                  )
-                  pvnode
-                }
-                PatchedVNode.fragment(
-                  parent,
-                  patchedChildren,
-                  elm
-                )
-
-              case (oldCh @ _ :: _, Nil) =>
-                removeAllVnodes(elm, oldCh)
-                PatchedVNode.fragment(
-                  parent,
-                  Nil,
-                  elm
-                )
-              case (Nil, Nil) =>
-                PatchedVNode.fragment(
-                  parent,
-                  Nil,
-                  elm
-                )
-
-            }
-
-          case (
                 PatchedVNode.Comment(oldContent, node),
                 VNode.Comment(content)
               ) =>
@@ -513,7 +425,7 @@ object init {
 
               case (Nil, ch @ _ :: _) =>
                 val patchedChildren = ch.map { vnode =>
-                  val pvnode = createElm(Some(elm), vnode, insertedVNodeQueue)
+                  val pvnode = createElm(vnode, insertedVNodeQueue)
                   api.insertBefore(
                     elm,
                     pvnode.node,
@@ -547,9 +459,7 @@ object init {
             }
 
           case _ =>
-            throw new IllegalStateException(
-              "trying to patch incompatible nodes"
-            )
+            throw new AssertionError("trying to patch incompatible nodes")
 
         }
 
@@ -580,11 +490,8 @@ object init {
         patchVnode(oldVnode, vnode, insertedVNodeQueue)
       } else {
         val elm = oldVnode.node
-        val parent = oldVnode match {
-          case PatchedVNode.Fragment(parent, _, _) => Some(parent)
-          case _                                   => api.parentNode(elm)
-        }
-        val vnode1 = createElm(parent, vnode, insertedVNodeQueue)
+        val parent = api.parentNode(elm)
+        val vnode1 = createElm(vnode, insertedVNodeQueue)
         parent match {
           case Some(parent) =>
             api.insertBefore(parent, vnode1.node, api.nextSibling(elm))
@@ -620,8 +527,7 @@ object init {
 
   private def sameVnode(vnode1: PatchedVNode, vnode2: VNode): Boolean = {
     (vnode1.toVNode, vnode2) match {
-      case (VNode.Text(_), VNode.Text(_))         => true
-      case (VNode.Fragment(_), VNode.Fragment(_)) => true
+      case (VNode.Text(_), VNode.Text(_)) => true
       case (VNode.Element(sel1, data1, _), VNode.Element(sel2, data2, _)) =>
         data1.key == data2.key && data1.is == data2.is && sel1 == sel2
       case _ => false

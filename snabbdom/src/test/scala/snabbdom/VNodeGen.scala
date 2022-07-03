@@ -34,15 +34,15 @@ object VNodeGen {
       attrs: Boolean,
       classes: Boolean,
       style: Boolean,
-      dataset: Boolean,
-      fragments: Boolean
+      dataset: Boolean
   )
 
   def apply(config: Config): VNodeGen = {
 
-    // used only for key generation to ensure that the same
-    // sequence of keys is used for different vnodes
-    val keyRng = new scala.util.Random(0)
+    // Used for data (keys, props, classes, etc.) generation
+    // to ensure that the same sequence of keys, props, etc.
+    // is used for successive vnodes.
+    val dataRng = new scala.util.Random(0)
 
     val genClasses: Gen[Map[String, Boolean]] = Gen.choose(0, 3).flatMap { n =>
       Gen.mapOfN(
@@ -95,7 +95,7 @@ object VNodeGen {
       for {
         _ <- Gen.const(()).withPerturb { seed =>
           globalSeed = seed
-          Seed(keyRng.nextLong()) // use seed driven by key rng
+          Seed(dataRng.nextLong()) // use seed driven by data rng
         }
         key <-
           if (config.keys)
@@ -162,8 +162,6 @@ object VNodeGen {
       "option" -> Set.empty[String]
     )
 
-    val fragmentWeight = if (config.fragments) 1 else 0
-
     def genLeaf(
         tags: Set[String]
     )(implicit config: VNodeGen.Config): Gen[VNode] =
@@ -173,16 +171,6 @@ object VNodeGen {
         text <- Gen.stringOfN(n, Gen.alphaChar)
         data <- genVNodeData
       } yield h(tag, data, text)
-
-    def genFragment(
-        tags: Set[String]
-    )(implicit config: VNodeGen.Config): Gen[VNode] =
-      for {
-        n <- Gen.choose(1, 3)
-        children <-
-          if (tags.nonEmpty) Gen.listOfN(n, genVNodePre(tags))
-          else Gen.const(Nil)
-      } yield fragment(children)
 
     def genTree(
         tags: Set[String]
@@ -199,35 +187,34 @@ object VNodeGen {
 
     // Dies out fast enough not to explode, but has high odds of being just a leaf.
     // To get a more interesting distribution for the final `Gen[VNode]`, we
-    // therefore condition this generator on `size(vnode) > 1`.
+    // therefore condition this generator on `size(vnode) > 2`.
     def genVNodePre(tags: Set[String])(implicit
         config: VNodeGen.Config
     ): Gen[VNode] = Gen.frequency(
       (10, genLeaf(tags)),
-      (1, lzy(genTree(tags))),
-      (fragmentWeight, lzy(genFragment(tags)))
+      (1, lzy(genTree(tags)))
     )
 
     new VNodeGen {
 
-      // We reset the key rng after every evaluation so that
-      // successive vnodes will use the same sequence of keys
+      // We reset the data rng after every evaluation so that
+      // successive vnodes will use the same sequence of keys, props, etc.
       def gen: Gen[VNode] =
         genVNodePre(allContent)(config)
           .flatMap { vnode =>
-            Gen.delay { keyRng.setSeed(0); Gen.const(vnode) }
+            Gen.delay { dataRng.setSeed(0); Gen.const(vnode) }
           }
-          .retryUntil(vnode =>
-            // the root node should not be a fragment
-            !vnode.isInstanceOf[VNode.Fragment] && VNodeGen.size(vnode) > 1
-          )
+          .retryUntil(vnode => VNodeGen.size(vnode) > 2)
+          .map { vnode =>
+            // println(s"size=${size(vnode)}, depth=${depth(vnode)}")
+            vnode
+          }
     }
 
   }
 
   private def size(vnode: VNode): Long = vnode match {
     case VNode.Comment(_)              => 1
-    case VNode.Fragment(children)      => 1 + children.map(size).sum
     case VNode.Text(_)                 => 1
     case VNode.Element(_, _, children) => 1 + children.map(size).sum
   }
@@ -237,8 +224,7 @@ object VNodeGen {
       case VNode.Comment(_) => Set.empty
       case VNode.Element(_, data, children) =>
         data.key.toSet.union(children.map(keys).toList.flatten.toSet)
-      case VNode.Fragment(_) => Set.empty
-      case VNode.Text(_)     => Set.empty
+      case VNode.Text(_) => Set.empty
     }
 
   private def depth(vnode: VNode): Long =
@@ -246,8 +232,7 @@ object VNodeGen {
       case VNode.Comment(_) => 1
       case VNode.Element(_, _, children) =>
         1 + children.map(depth).maxOption.getOrElse(0L)
-      case VNode.Fragment(_) => 1
-      case VNode.Text(_)     => 1
+      case VNode.Text(_) => 1
     }
 
 }

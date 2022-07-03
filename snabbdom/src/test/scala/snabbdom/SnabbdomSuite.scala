@@ -296,24 +296,6 @@ class SnabbdomSuite extends BaseSuite {
 
   }
 
-  group("created document fragment") {
-
-    vnode0.test("is an instance of DocumentFragment") { vnode0 =>
-      // fragments need a parent
-      val root = dom.document.createElement("div")
-      root.appendChild(vnode0)
-
-      val vnode1 =
-        fragment(
-          List[VNode]("I am", h("span", List[VNode](" a", " fragment")))
-        )
-      val elm = patch(vnode0, vnode1).node
-      assertEquals(elm.nodeType, dom.Node.DOCUMENT_FRAGMENT_NODE)
-      assertEquals(root.textContent, "I am a fragment")
-    }
-
-  }
-
   group("patching an element") {
     vnode0.test("changes the elements classes") { vnode0 =>
       val vnode1 = h(
@@ -479,59 +461,6 @@ class SnabbdomSuite extends BaseSuite {
       )
       assertEquals(
         elm.childNodes(0).textContent,
-        "Hi"
-      )
-    }
-
-    // We do not support fragments in root position.
-    // Once a fragment has been inserted into the DOM, it becomes
-    // empty and its children become the children of the parent
-    // of the fragment.
-    // See also https://developer.mozilla.org/en-US/docs/Web/API/DocumentFragment#usage_notes
-    test("can support patching in a DocumentFragment".ignore) {
-      val prevElm = dom.document.createDocumentFragment()
-      val nextVNode = VNode.fragment(
-        List(h("div#id.class", List(h("span", "Hi"))))
-      )
-
-      val vnode = toVNode(prevElm)
-
-      val elm =
-        patch(vnode, nextVNode).node
-          .asInstanceOf[dom.DocumentFragment]
-
-      assertEquals(elm, prevElm)
-      assertEquals(elm.nodeType, 11)
-      assertEquals(elm.childNodes.length, 1)
-      assertEquals(
-        elm.childNodes(0).asInstanceOf[dom.HTMLElement].tagName,
-        "DIV"
-      )
-      assertEquals(elm.childNodes(0).asInstanceOf[dom.HTMLElement].id, "id")
-      assertEquals(
-        elm.childNodes(0).asInstanceOf[dom.HTMLElement].className,
-        "class"
-      )
-      assertEquals(
-        elm.childNodes(0).asInstanceOf[dom.HTMLElement].childNodes.length,
-        1
-      )
-      assertEquals(
-        elm
-          .childNodes(0)
-          .asInstanceOf[dom.HTMLElement]
-          .childNodes(0)
-          .asInstanceOf[dom.HTMLElement]
-          .tagName,
-        "SPAN"
-      )
-      assertEquals(
-        elm
-          .childNodes(0)
-          .asInstanceOf[dom.HTMLElement]
-          .childNodes(0)
-          .asInstanceOf[dom.HTMLElement]
-          .textContent,
         "Hi"
       )
     }
@@ -1332,87 +1261,6 @@ class SnabbdomSuite extends BaseSuite {
         List("Three", "One", "Two")
       )
     }
-  }
-
-  group("patching a fragment") {
-    vnode0.test("can patch on document fragments") { vnode0 =>
-      val root =
-        dom.document.createElement("div") // need a parent for fragments
-
-      root.appendChild(vnode0)
-
-      val vnode1 = fragment(
-        List(
-          "I am",
-          h("span", List(VNode.text(" a"), VNode.text(" fragment")))
-        )
-      )
-      val vnode2 = h("div", List(VNode.text("I am an element")))
-      val vnode3 = fragment(List("fragment ", "again"))
-
-      val vnode1p = patch(vnode0, vnode1)
-      var elm = vnode1p.node
-      assertEquals(elm.nodeType, dom.Node.DOCUMENT_FRAGMENT_NODE)
-
-      val vnode2p = patch(vnode1p, vnode2)
-      elm = vnode2p.node
-      assertEquals(elm.asInstanceOf[dom.Element].tagName, "DIV")
-      assertEquals(elm.textContent, "I am an element")
-
-      val vnode3p = patch(vnode2p, vnode3)
-      elm = vnode3p.node
-      assertEquals(elm.nodeType, dom.Node.DOCUMENT_FRAGMENT_NODE)
-      assertEquals(root.firstChild.textContent, "fragment ")
-      assertEquals(root.textContent, "fragment again")
-    }
-
-    test("patching from and to fragments should not fail") {
-
-      val elm = dom.document.createElement("div")
-      val vnode0 = h("div", List(h("span", "blah")))
-      val vnode1 =
-        h("div", List(fragment(List(h("span", "foo"), h("span", "bar")))))
-      val vnode2 = h("div", List(h("span", "foo1")))
-
-      val pvnode0 = patch(elm, vnode0)
-      val pvnode1 = patch(pvnode0, vnode1)
-      patch(pvnode1, vnode2)
-
-    }
-
-    test(
-      "patching from and to fragments should result in correct order of child nodes"
-    ) {
-
-      val elm = dom.document.createElement("div")
-      val vnode0 = h(
-        "button",
-        List(fragment(List(h("span", "foo"))), h("button", "bar"))
-      )
-
-      val vnode1 = h(
-        "button",
-        List(
-          fragment(List(h("span", "foobar"), h("span", "baz"))),
-          h("div", "qux"),
-          h("button", "barbaz")
-        )
-      )
-
-      val pvnode0 = patch(elm, vnode0)
-      val pvnode1 = patch(pvnode0, vnode1)
-
-      val refElm =
-        patch(dom.document.createElement("div"), vnode1).node
-          .asInstanceOf[dom.Element]
-
-      val a = pvnode1.node.asInstanceOf[dom.Element].innerHTML
-      val b = refElm.innerHTML
-
-      assertEquals(a, b)
-
-    }
-
   }
 
   group("element hooks") {

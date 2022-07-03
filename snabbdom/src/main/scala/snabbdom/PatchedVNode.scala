@@ -32,18 +32,6 @@ object PatchedVNode {
     case _                      => None
   }
 
-  // This is needed for inserting a node before a fragment b/c the
-  // fragment itself is not actually part of the DOM so we have to find the
-  // first child that is not a fragment and insert before that.
-  private[snabbdom] def firstNonFragmentNode(
-      vnode: PatchedVNode
-  ): Option[PatchedVNode] =
-    vnode match {
-      case Fragment(_, children, _) =>
-        children.headOption.flatMap(firstNonFragmentNode)
-      case _ => Some(vnode)
-    }
-
   final case class Element(
       sel: String,
       data: VNodeData,
@@ -89,22 +77,6 @@ object PatchedVNode {
   }
 
   def text(content: String, node: dom.Text): PatchedVNode = Text(content, node)
-
-  final case class Fragment(
-      parent: dom.Node,
-      children: List[PatchedVNode],
-      node: dom.DocumentFragment
-  ) extends PatchedVNode {
-
-    override def toVNode: VNode = VNode.Fragment(children.map(_.toVNode))
-
-  }
-
-  def fragment(
-      parent: dom.Node,
-      children: List[PatchedVNode],
-      node: dom.DocumentFragment
-  ): PatchedVNode = Fragment(parent, children, node)
 
   final case class Comment(content: String, node: dom.Comment)
       extends PatchedVNode {

@@ -47,8 +47,6 @@ object VNode {
   final case class Element(sel: String, data: VNodeData, children: List[VNode])
       extends VNode
 
-  final case class Fragment(children: List[VNode]) extends VNode
-
   final case class Comment(content: String) extends VNode
 
   val empty: VNode = Text("")
@@ -57,8 +55,6 @@ object VNode {
 
   def element(sel: String, data: VNodeData, children: List[VNode]): VNode =
     Element(sel, data, children)
-
-  def fragment(children: List[VNode]): VNode = Fragment(children)
 
   def comment(content: String): VNode = Comment(content)
 
@@ -76,7 +72,6 @@ object VNode {
     case Text(_)             => None
     case Element(_, data, _) => data.key
     case Comment(_)          => None
-    case Fragment(_)         => None
   }
 
   // TODO: include attributes
@@ -87,13 +82,7 @@ object VNode {
         case Element(sel, data, children) =>
           s"""|${" " * indent}<$sel${data.key.fold("")(key => s" key=$key")}>
               |${children.map(go(indent + 2, _)).mkString("\n")}
-              |${" " * indent}</$sel>
-              |""".stripMargin
-        case Fragment(children) =>
-          s"""|${" " * indent}<>
-              |${children.map(go(indent + 2, _)).mkString("\n")}
-              |${" " * indent}</>
-              |""".stripMargin
+              |${" " * indent}</$sel>""".stripMargin
         case Comment(content) => s"""<!--${content}-->"""
       }
     }
@@ -103,17 +92,7 @@ object VNode {
   private[snabbdom] def applyInitHook(vnode: VNode): VNode = vnode match {
     case Text(_)             => vnode
     case Element(_, data, _) => data.hook.flatMap(_.init).fold(vnode)(_(vnode))
-    case Fragment(_)         => vnode
     case Comment(_)          => vnode
   }
-
-  private[snabbdom] def recursivelyRemoveKeys(vnode: VNode): VNode =
-    vnode match {
-      case Text(content) => Text(content)
-      case Element(sel, data, children) =>
-        Element(sel, data.copy(key = None), children.map(recursivelyRemoveKeys))
-      case Fragment(children) => Fragment(children.map(recursivelyRemoveKeys))
-      case Comment(content)   => Comment(content)
-    }
 
 }

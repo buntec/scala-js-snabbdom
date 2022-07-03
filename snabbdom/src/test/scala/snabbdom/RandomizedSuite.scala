@@ -25,10 +25,10 @@ import scala.concurrent.Future
 
 class RandomizedSuite extends BaseSuite {
 
-  val nSamples = 20000 // all sufficiently large values will result in timeouts
-
   // generous timeout for scalacheck-based tests with large number of samples
   override val munitTimeout = 5.minutes
+
+  val nSamples = 2500
 
   val patch = init(
     Seq(
@@ -57,14 +57,13 @@ class RandomizedSuite extends BaseSuite {
         attrs = true,
         classes = false,
         style = false,
-        dataset = true,
-        fragments = true
+        dataset = true
       )
 
       val vnodeGen = VNodeGen(config)
 
       val nodesGen = for {
-        n <- Gen.choose(2, 10)
+        n <- Gen.choose(2, 5)
         vnodes <- Gen.listOfN(n, vnodeGen.gen)
       } yield vnodes
 
@@ -85,6 +84,14 @@ class RandomizedSuite extends BaseSuite {
 
                 val a = vnode.node.asInstanceOf[dom.Element].innerHTML
                 val b = refElm.innerHTML
+
+                if (a != b) {
+                  println(vnodes.map(_.prettyPrint).mkString("\n\n"))
+                  println()
+                  println(a)
+                  println()
+                  println(b)
+                }
 
                 assertEquals(a, b)
 
@@ -107,14 +114,13 @@ class RandomizedSuite extends BaseSuite {
         classes = true,
         style =
           false, // doesn't work here b/c adding and removing a CSS property results in an empty-string attribute value
-        dataset = true,
-        fragments = true
+        dataset = true
       )
 
       val vnodeGen = VNodeGen(config)
 
       val nodesGen = for {
-        n <- Gen.choose(2, 10)
+        n <- Gen.choose(2, 5)
         vnodes <- Gen.listOfN(n, vnodeGen.gen)
       } yield vnodes
 
@@ -134,6 +140,14 @@ class RandomizedSuite extends BaseSuite {
 
               val v1 = toVNode(vnode.node).toVNode
               val v2 = toVNode(refElm).toVNode
+
+              if (v1 != v2) {
+                println(vnodes.map(_.prettyPrint).mkString("\n\n"))
+                println()
+                println(s"v1: ${v1.prettyPrint}")
+                println()
+                println(s"v2: ${v2.prettyPrint}")
+              }
 
               assertEquals(v1, v2)
 
