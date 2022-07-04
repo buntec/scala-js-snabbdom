@@ -40,6 +40,6 @@ package snabbdom
 
 trait PostPatchHook {
 
-  def apply(oldVNode: VNode, vNode: VNode): Any
+  def apply(oldVNode: PatchedVNode, vNode: PatchedVNode): Unit
 
 }

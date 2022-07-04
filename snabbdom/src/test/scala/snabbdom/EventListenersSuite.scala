@@ -41,7 +41,7 @@ package snabbdom
 import snabbdom.modules._
 
 import org.scalajs.dom
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.ListBuffer
 
 class EventListenersSuite extends BaseSuite {
 
@@ -64,9 +64,9 @@ class EventListenersSuite extends BaseSuite {
     val vnode = h(
       "div",
       VNodeData(on = Map("click" -> clicked)),
-      Array(h("a", "Click my parent"))
+      List(h("a", "Click my parent"))
     )
-    val elm = patch(vnode0, vnode).elm.get
+    val elm = patch(vnode0, vnode).node
     elm.asInstanceOf[dom.HTMLElement].click()
     assertEquals(result.result().length, 1)
   }
@@ -79,23 +79,24 @@ class EventListenersSuite extends BaseSuite {
       VNodeData(on =
         Map("click" -> EventHandler((_: dom.Event) => result += 1))
       ),
-      Array(h("a", "Click my parent"))
+      List(h("a", "Click my parent"))
     )
     val vnode2 = h(
       "div",
       VNodeData(on = Map("click" -> EventHandler(_ => result += 2))),
-      Array(h("a", "Click my parent"))
+      List(h("a", "Click my parent"))
     )
-    val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+    val vnode1p = patch(vnode0, vnode1)
+    val elm1 = vnode1p.node.asInstanceOf[dom.HTMLElement]
     elm1.click()
-    val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+    val elm2 = patch(vnode1p, vnode2).node.asInstanceOf[dom.HTMLElement]
     elm2.click()
     val result0 = result.result()
     assertEquals(result0, List(1, 2))
   }
 
   vnode0.test("detach attached click event handler to element") { vnode0 =>
-    val result = ArrayBuffer[dom.Event]()
+    val result = ListBuffer[dom.Event]()
     val clicked = (ev: dom.Event) => {
       result += ev
       ()
@@ -103,13 +104,14 @@ class EventListenersSuite extends BaseSuite {
     val vnode1 = h(
       "div",
       VNodeData(on = Map("click" -> clicked)),
-      Array(h("a", "Click my parent"))
+      List(h("a", "Click my parent"))
     )
-    val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+    val vnode1p = patch(vnode0, vnode1)
+    val elm1 = vnode1p.node.asInstanceOf[dom.HTMLElement]
     elm1.click()
     assertEquals(result.length, 1)
-    val vnode2 = h("div", VNodeData(), Array(h("a", "Click my parent")))
-    val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+    val vnode2 = h("div", VNodeData(), List(h("a", "Click my parent")))
+    val elm2 = patch(vnode1p, vnode2).node.asInstanceOf[dom.HTMLElement]
     elm2.click()
     assertEquals(result.length, 1)
   }
@@ -120,7 +122,8 @@ class EventListenersSuite extends BaseSuite {
       val clicked = (ev: dom.Event, vnode: VNode) => {
         called += 1
         assert(ev.target != null)
-        assertEquals(vnode.sel, Some("div"))
+        val div = vnode.asInstanceOf[VNode.Element]
+        assertEquals(div.sel, "div")
       }
 
       val vnode1 = h(
@@ -128,9 +131,10 @@ class EventListenersSuite extends BaseSuite {
         VNodeData(on =
           Map("click" -> EventHandler.usingVNode(clicked, clicked, clicked))
         ),
-        Array(h("a", "Click my parent"))
+        List(h("a", "Click my parent"))
       )
-      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+      val vnode1p = patch(vnode0, vnode1)
+      val elm1 = vnode1p.node.asInstanceOf[dom.HTMLElement]
       elm1.click()
       assertEquals(called, 3)
       val vnode2 = h(
@@ -138,15 +142,15 @@ class EventListenersSuite extends BaseSuite {
         VNodeData(on =
           Map("click" -> EventHandler.usingVNode(clicked, clicked))
         ),
-        Array(h("a", "Click my parent"))
+        List(h("a", "Click my parent"))
       )
-      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+      val elm2 = patch(vnode1p, vnode2).node.asInstanceOf[dom.HTMLElement]
       elm2.click()
       assertEquals(called, 5)
   }
 
   vnode0.test("access to virtual node in event handler") { vnode0 =>
-    val result = ArrayBuffer[VNode]()
+    val result = ListBuffer[VNode]()
     val clicked = (_: dom.Event, vnode: VNode) => {
       result += vnode
       ()
@@ -154,16 +158,17 @@ class EventListenersSuite extends BaseSuite {
     val vnode1 = h(
       "div",
       VNodeData(on = Map("click" -> clicked)),
-      Array(h("a", "Click my parent"))
+      List(h("a", "Click my parent"))
     )
-    val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+    val vnode1p = patch(vnode0, vnode1)
+    val elm1 = vnode1p.node.asInstanceOf[dom.HTMLElement]
     elm1.click()
     assertEquals(result.length, 1)
-    assertEquals(result(0), vnode1)
+    assertEquals(result(0), vnode1p.toVNode)
   }
 
   vnode0.test("shared handlers in parent and child nodes") { vnode0 =>
-    val result = ArrayBuffer[dom.Event]()
+    val result = ListBuffer[dom.Event]()
     val clicked = (ev: dom.Event) => {
       result += ev
       ()
@@ -171,7 +176,7 @@ class EventListenersSuite extends BaseSuite {
     val vnode1 = h(
       "div",
       VNodeData(on = Map("click" -> clicked)),
-      Array(
+      List(
         h(
           "a",
           VNodeData(on = Map("click" -> clicked)),
@@ -179,7 +184,7 @@ class EventListenersSuite extends BaseSuite {
         )
       )
     )
-    val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLDivElement]
+    val elm1 = patch(vnode0, vnode1).node.asInstanceOf[dom.HTMLDivElement]
     elm1.click()
     assertEquals(result.length, 1)
     elm1.firstChild.asInstanceOf[dom.HTMLElement].click()

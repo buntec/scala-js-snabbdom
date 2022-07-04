@@ -42,41 +42,51 @@ object thunk {
 
   def apply(
       sel: String,
-      fn: Seq[Any] => VNode,
-      args: Seq[Any]
-  ): VNode = apply(sel, None, fn, args)
+      fn: Any => VNode.Element,
+      args: Any
+  ): VNode.Element = apply(sel, None, fn, args)
 
   def apply(
       sel: String,
       key: String,
-      fn: Seq[Any] => VNode,
-      args: Seq[Any]
-  ): VNode = apply(sel, Some(key), fn, args)
+      fn: Any => VNode.Element,
+      args: Any
+  ): VNode.Element = apply(sel, Some(key), fn, args)
 
   private def apply(
       sel: String,
       key: Option[String],
-      fn: Seq[Any] => VNode,
-      args: Seq[Any]
-  ): VNode = {
+      fn: Any => VNode.Element,
+      args: Any
+  ): VNode.Element = {
     val hook = Hooks().copy(
-      init = Some((vNode: VNode) => init0(vNode)),
-      prepatch =
-        Some((oldVNode: VNode, vNode: VNode) => prepatch0(oldVNode, vNode))
+      init = Some((vNode: VNode) => init0(vNode.asInstanceOf[VNode.Element])),
+      prepatch = Some((oldVNode: PatchedVNode, vNode: VNode) =>
+        prepatch0(
+          oldVNode.asInstanceOf[PatchedVNode.Element],
+          vNode.asInstanceOf[VNode.Element]
+        )
+      )
     )
     val data =
       VNodeData(key = key, fn = Some(fn), args = Some(args), hook = Some(hook))
-    h(sel, data)
+    VNode.Element(sel, data, Nil)
   }
 
-  private def init0(thunk: VNode): Unit = {
-    val data = thunk.data
-    val fn = data.fn.get
-    val args = data.args.get
-    copyToThunk(fn(args), thunk)
+  private def init0(thunk: VNode.Element): VNode = {
+    val fn = thunk.data.fn.get
+    val args = thunk.data.args.get
+    val vnode = fn(args)
+    thunk.copy(
+      children = vnode.children,
+      data = vnode.data.copy(fn = Some(fn), args = Some(args))
+    )
   }
 
-  private def prepatch0(oldVnode: VNode, thunk: VNode): Unit = {
+  private def prepatch0(
+      oldVnode: PatchedVNode.Element,
+      thunk: VNode.Element
+  ): VNode = {
     val old = oldVnode.data
     val cur = thunk.data
     val oldArgs = old.args
@@ -84,22 +94,14 @@ object thunk {
     val oldFn = old.fn
     val curFn = cur.fn
     if (oldFn != curFn || oldArgs != args) {
-      copyToThunk(curFn.get(args.get), thunk)
+      val vnode = curFn.get(args.get)
+      thunk.copy(
+        children = vnode.children,
+        data = vnode.data.copy(fn = curFn, args = args)
+      )
     } else {
-      copyToThunk(oldVnode, thunk)
+      oldVnode.toVNode
     }
-  }
-
-  private def copyToThunk(vnode: VNode, thunk: VNode): Unit = {
-    val ns = thunk.data.ns
-    val fn = thunk.data.fn
-    val args = thunk.data.args
-    vnode.data = vnode.data.copy(fn = fn, args = args)
-    thunk.data = vnode.data
-    thunk.children = vnode.children
-    thunk.text = vnode.text
-    thunk.elm = vnode.elm
-    ns.foreach(_ => h.addNS(thunk))
   }
 
 }

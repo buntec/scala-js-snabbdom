@@ -40,5 +40,5 @@ package snabbdom
 
 trait InitHook {
 
-  def apply(vNode: VNode): Any
+  def apply(vNode: VNode): VNode
 }

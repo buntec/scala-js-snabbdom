@@ -39,50 +39,62 @@
 package snabbdom.modules
 
 import snabbdom._
-import org.scalajs.dom
 
 object Classes {
 
   val module: Module = Module().copy(
-    create = Some(new CreateHook {
-      override def apply(emptyVNode: VNode, vNode: VNode): Any =
-        updateClasses(emptyVNode, vNode)
+    create = Some((vNode: PatchedVNode) => {
+      vNode match {
+        case elm: PatchedVNode.Element =>
+          if (elm.data.classes.nonEmpty) {
+            setClasses(elm)
+          }
+        case _ => ()
+      }
     }),
-    update = Some(new UpdateHook {
-      override def apply(oldVNode: VNode, vNode: VNode): Any =
-        updateClasses(oldVNode, vNode)
+    update = Some((oldVNode: PatchedVNode, vNode: VNode) => {
+      (oldVNode, vNode) match {
+        case (a: PatchedVNode.Element, b: VNode.Element) =>
+          if (a.data.classes != b.data.classes) {
+            updateClasses(a, b)
+          }
+        case _ => ()
+      }
     })
   )
 
-  private def updateClasses(oldVnode: VNode, vnode: VNode): Unit = {
-
-    val elm = vnode.elm.get.asInstanceOf[dom.Element]
-
-    def update(
-        oldClass: Map[String, Boolean],
-        klass: Map[String, Boolean]
-    ): Unit = {
-      oldClass.foreach { case (name, flag) =>
-        if (flag && !klass.contains(name)) {
-          elm.classList.remove(name)
-        }
-      }
-      klass.foreach { case (name, cur) =>
-        if (oldClass.get(name).forall(_ != cur)) {
-          if (cur) {
-            elm.classList.add(name)
-          } else {
-            elm.classList.remove(name)
-          }
-        }
+  private def setClasses(vnode: PatchedVNode.Element): Unit = {
+    val elm = vnode.node
+    vnode.data.classes.foreach { case (name, cur) =>
+      if (cur) {
+        elm.classList.add(name)
+      } else {
+        elm.classList.remove(name)
       }
     }
+  }
 
+  private def updateClasses(
+      oldVnode: PatchedVNode.Element,
+      vnode: VNode.Element
+  ): Unit = {
+    val elm = oldVnode.node
     val oldClasses = oldVnode.data.classes
     val classes = vnode.data.classes
 
-    if (oldClasses != classes) {
-      update(oldClasses, classes)
+    oldClasses.foreach { case (name, flag) =>
+      if (flag && !classes.contains(name)) {
+        elm.classList.remove(name)
+      }
+    }
+    classes.foreach { case (name, cur) =>
+      if (oldClasses.get(name).forall(_ != cur)) {
+        if (cur) {
+          elm.classList.add(name)
+        } else {
+          elm.classList.remove(name)
+        }
+      }
     }
 
   }

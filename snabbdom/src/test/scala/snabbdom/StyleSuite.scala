@@ -70,7 +70,7 @@ class StyleSuite extends BaseSuite {
       val elm = patch(
         vnode0,
         h("div", VNodeData(style = Map("fontSize" -> "12px")))
-      ).elm.get.asInstanceOf[dom.HTMLElement]
+      ).node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm.style.fontSize, "12px")
     }
 
@@ -79,10 +79,11 @@ class StyleSuite extends BaseSuite {
         VNodeData(style = Map("fontSize" -> "14px", "display" -> "inline"))
       val vnode1 = h("i", cachedStyles)
       val vnode2 = h("i", cachedStyles)
-      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+      val vnode1p = patch(vnode0, vnode1)
+      val elm1 = vnode1p.node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm1.style.fontSize, "14px")
       assertEquals(elm1.style.display, "inline")
-      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+      val elm2 = patch(vnode1p, vnode2).node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm2.style.fontSize, "14px")
       assertEquals(elm2.style.display, "inline")
     }
@@ -103,13 +104,15 @@ class StyleSuite extends BaseSuite {
         VNodeData(style = Map("fontSize" -> "10px", "display" -> "block"))
       )
 
-      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+      val vnode1p = patch(vnode0, vnode1)
+      val elm1 = vnode1p.node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm1.style.fontSize, "14px")
       assertEquals(elm1.style.display, "inline")
-      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+      val vnode2p = patch(vnode1p, vnode2)
+      val elm2 = vnode2p.node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm2.style.fontSize, "12px")
       assertEquals(elm2.style.display, "block")
-      val elm3 = patch(vnode2, vnode3).elm.get.asInstanceOf[dom.HTMLElement]
+      val elm3 = patch(vnode2p, vnode3).node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm3.style.fontSize, "10px")
       assertEquals(elm3.style.display, "block")
 
@@ -122,11 +125,13 @@ class StyleSuite extends BaseSuite {
         h("i", VNodeData(style = Map("fontSize" -> "")))
       val vnode3 =
         h("i", VNodeData(style = Map("fontSize" -> "10px")))
-      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+      val vnode1p = patch(vnode0, vnode1)
+      val elm1 = vnode1p.node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm1.style.fontSize, "14px")
-      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+      val vnode2p = patch(vnode1p, vnode2)
+      val elm2 = vnode2p.node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm2.style.fontSize, "")
-      val elm3 = patch(vnode2, vnode3).elm.get.asInstanceOf[dom.HTMLElement]
+      val elm3 = patch(vnode2p, vnode3).node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm3.style.fontSize, "10px")
     }
 
@@ -134,11 +139,13 @@ class StyleSuite extends BaseSuite {
       val vnode1 = h("i", VNodeData(style = Map("fontSize" -> "14px")))
       val vnode2 = h("i", VNodeData())
       val vnode3 = h("i", VNodeData(style = Map("fontSize" -> "10px")))
-      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+      val vnode1p = patch(vnode0, vnode1)
+      val elm1 = vnode1p.node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm1.style.fontSize, "14px")
-      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+      val vnode2p = patch(vnode1p, vnode2)
+      val elm2 = vnode2p.node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm2.style.fontSize, "")
-      val elm3 = patch(vnode2, vnode3).elm.get.asInstanceOf[dom.HTMLElement]
+      val elm3 = patch(vnode2p, vnode3).node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm3.style.fontSize, "10px")
     }
 
@@ -149,11 +156,13 @@ class StyleSuite extends BaseSuite {
       val vnode2 = h("div", VNodeData(style = Map("--myVar" -> "2")))
       val vnode3 = h("div", VNodeData(style = Map("--myVar" -> "3")))
 
-      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+      val vnode1p = patch(vnode0, vnode1)
+      val elm1 = vnode1p.node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm1.style.getPropertyValue("--myVar"), "1")
-      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+      val vnode2p = patch(vnode1p, vnode2)
+      val elm2 = vnode2p.node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm2.style.getPropertyValue("--myVar"), "2")
-      val elm3 = patch(vnode2, vnode3).elm.get.asInstanceOf[dom.HTMLElement]
+      val elm3 = patch(vnode2p, vnode3).node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm3.style.getPropertyValue("--myVar"), "3")
 
     }
@@ -165,11 +174,13 @@ class StyleSuite extends BaseSuite {
       val vnode2 = h("i", VNodeData(style = Map("--myVar" -> "")))
       val vnode3 = h("i", VNodeData(style = Map("--myVar" -> "3")))
 
-      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+      val vnode1p = patch(vnode0, vnode1)
+      val elm1 = vnode1p.node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm1.style.getPropertyValue("--myVar"), "1")
-      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+      val vnode2p = patch(vnode1p, vnode2)
+      val elm2 = vnode2p.node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm2.style.getPropertyValue("--myVar"), "")
-      val elm3 = patch(vnode2, vnode3).elm.get.asInstanceOf[dom.HTMLElement]
+      val elm3 = patch(vnode2p, vnode3).node.asInstanceOf[dom.HTMLElement]
       assertEquals(elm3.style.getPropertyValue("--myVar"), "3")
 
     }
@@ -180,17 +191,18 @@ class StyleSuite extends BaseSuite {
       val vnode1 =
         h(
           "div",
-          Array(h("i", VNodeData(style = Map("--myVar" -> "1"))))
+          List(h("i", VNodeData(style = Map("--myVar" -> "1"))))
         )
       val vnode2 =
-        h("div", Array(h("i", VNodeData())))
+        h("div", List(h("i", VNodeData())))
       val vnode3 =
         h(
           "div",
-          Array(h("i", VNodeData(style = Map("--myVar" -> "3"))))
+          List(h("i", VNodeData(style = Map("--myVar" -> "3"))))
         )
 
-      val elm1 = patch(vnode0, vnode1).elm.get.asInstanceOf[dom.HTMLElement]
+      val vnode1p = patch(vnode0, vnode1)
+      val elm1 = vnode1p.node.asInstanceOf[dom.HTMLElement]
       assertEquals(
         elm1.firstChild
           .asInstanceOf[dom.HTMLElement]
@@ -198,7 +210,8 @@ class StyleSuite extends BaseSuite {
           .getPropertyValue("--myVar"),
         "1"
       )
-      val elm2 = patch(vnode1, vnode2).elm.get.asInstanceOf[dom.HTMLElement]
+      val vnode2p = patch(vnode1p, vnode2)
+      val elm2 = vnode2p.node.asInstanceOf[dom.HTMLElement]
       assertEquals(
         elm2.firstChild
           .asInstanceOf[dom.HTMLElement]
@@ -206,7 +219,7 @@ class StyleSuite extends BaseSuite {
           .getPropertyValue("--myVar"),
         ""
       )
-      val elm3 = patch(vnode2, vnode3).elm.get.asInstanceOf[dom.HTMLElement]
+      val elm3 = patch(vnode2p, vnode3).node.asInstanceOf[dom.HTMLElement]
       assertEquals(
         elm3.firstChild
           .asInstanceOf[dom.HTMLElement]

@@ -40,8 +40,10 @@ object Example {
 
     val vnode = h(
       "div",
-      VNodeData(on = Map("click" -> ((_: dom.Event) => println("foo")))),
-      Array[VNode](
+      VNodeData(on =
+        Map("click" -> ((_: dom.Event) => dom.console.log("foo")))
+      ),
+      List[VNode](
         h(
           "span",
           VNodeData(style = Map("fontWeight" -> "bold")),
@@ -56,12 +58,14 @@ object Example {
       )
     )
     // Patch into empty DOM element this modifies the DOM as a side effect
-    patch(container, vnode);
+    val vnodep = patch(container, vnode);
 
     val newVnode = h(
       "div#container.two.classes",
-      VNodeData(on = Map("click" -> ((_: dom.Event) => println("bar")))),
-      Array[VNode](
+      VNodeData(on =
+        Map("click" -> ((_: dom.Event) => dom.console.log("bar")))
+      ),
+      List[VNode](
         h(
           "span",
           VNodeData(style =
@@ -79,7 +83,7 @@ object Example {
     )
 
     // Second `patch` invocation
-    patch(vnode, newVnode)
+    patch(vnodep, newVnode)
 
     ()
 

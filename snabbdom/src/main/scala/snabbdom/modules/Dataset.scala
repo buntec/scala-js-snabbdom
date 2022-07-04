@@ -45,60 +45,83 @@ import scalajs.js
 object Dataset {
 
   val module: Module = Module().copy(
-    create = Some(new CreateHook {
-      override def apply(emptyVNode: VNode, vNode: VNode): Any =
-        updateDataset(emptyVNode, vNode)
+    create = Some((vNode: PatchedVNode) => {
+      vNode match {
+        case elm: PatchedVNode.Element =>
+          if (elm.data.dataset.nonEmpty) {
+            setDataset(elm)
+          }
+        case _ => ()
+      }
     }),
-    update = Some(new UpdateHook {
-      override def apply(oldVNode: VNode, vNode: VNode): Any =
-        updateDataset(oldVNode, vNode)
+    update = Some((oldVNode: PatchedVNode, vNode: VNode) => {
+      (oldVNode, vNode) match {
+        case (a: PatchedVNode.Element, b: VNode.Element) =>
+          if (a.data.dataset != b.data.dataset) {
+            updateDataset(a, b)
+          }
+        case _ => ()
+      }
     })
   )
 
   private val CAPS_REGEX = "[A-Z]"
 
-  private def updateDataset(oldVnode: VNode, vnode: VNode): Unit = {
+  private def setDataset(vnode: PatchedVNode.Element): Unit = {
 
-    val elm = vnode.elm.get.asInstanceOf[dom.HTMLElement]
+    val elm = vnode.node.asInstanceOf[dom.HTMLElement]
+    val d = elm.dataset
+    val dataset = vnode.data.dataset
+
+    dataset.foreach { case (key, value) =>
+      if (!js.isUndefined(d)) { // TODO: does this make sense?
+        d += (key -> value)
+      } else {
+        elm.setAttribute(
+          "data-" + key.replaceAll(CAPS_REGEX, "-$&").toLowerCase(),
+          value
+        )
+      }
+
+    }
+
+  }
+
+  private def updateDataset(
+      oldVnode: PatchedVNode.Element,
+      vnode: VNode.Element
+  ): Unit = {
+
+    val elm = oldVnode.node.asInstanceOf[dom.HTMLElement]
     val oldDataset = oldVnode.data.dataset
     val dataset = vnode.data.dataset
     val d = elm.dataset
 
-    def update(
-        oldDataset: Map[String, String],
-        dataset: Map[String, String]
-    ): Unit = {
-
-      oldDataset.foreach { case (key, _) =>
-        dataset.get(key) match {
-          case None =>
-            if (!js.isUndefined(d)) { // TODO: does this make sense?
-              d -= key
-            } else {
-              elm.removeAttribute(
-                "data-" + key.replaceAll(CAPS_REGEX, "-$&").toLowerCase()
-              )
-            }
-          case Some(_) => ()
-        }
-      }
-
-      dataset.foreach { case (key, value) =>
-        if (oldDataset.get(key).forall(_ != value)) {
+    oldDataset.foreach { case (key, _) =>
+      dataset.get(key) match {
+        case None =>
           if (!js.isUndefined(d)) { // TODO: does this make sense?
-            d += (key -> value)
+            d -= key
           } else {
-            elm.setAttribute(
-              "data-" + key.replaceAll(CAPS_REGEX, "-$&").toLowerCase(),
-              value
+            elm.removeAttribute(
+              "data-" + key.replaceAll(CAPS_REGEX, "-$&").toLowerCase()
             )
           }
-        }
+        case Some(_) => ()
       }
     }
 
-    if (oldDataset != dataset) {
-      update(oldDataset, dataset)
+    dataset.foreach { case (key, value) =>
+      if (oldDataset.get(key).forall(_ != value)) {
+        if (!js.isUndefined(d)) { // TODO: does this make sense?
+          d += (key -> value)
+        } else {
+          elm.setAttribute(
+            "data-" + key.replaceAll(CAPS_REGEX, "-$&").toLowerCase(),
+            value
+          )
+        }
+      }
     }
 
   }

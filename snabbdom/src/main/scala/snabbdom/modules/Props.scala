@@ -44,37 +44,52 @@ import scalajs.js
 object Props {
 
   val module: Module = Module().copy(
-    create = Some(new CreateHook {
-      override def apply(emptyVNode: VNode, vNode: VNode): Any =
-        updateProps(emptyVNode, vNode)
+    create = Some((vNode: PatchedVNode) => {
+      vNode match {
+        case elm: PatchedVNode.Element =>
+          setProps(elm)
+        case _ => ()
+      }
     }),
-    update = Some(new UpdateHook {
-      override def apply(oldVNode: VNode, vNode: VNode): Any =
-        updateProps(oldVNode, vNode)
+    update = Some((oldVNode: PatchedVNode, vNode: VNode) => {
+      (oldVNode, vNode) match {
+        case (a: PatchedVNode.Element, b: VNode.Element) =>
+          if (a.data.props != b.data.props) {
+            updateProps(a, b)
+          }
+        case _ => ()
+      }
     })
   )
 
-  private def updateProps(oldVnode: VNode, vnode: VNode): Unit = {
-    val elm = vnode.elm.get
+  private def setProps(vnode: PatchedVNode.Element): Unit = {
+    vnode match {
+      case elm: PatchedVNode.Element =>
+        elm.data.props.foreach { case (key, cur) =>
+          elm.node.asInstanceOf[js.Dictionary[Any]] += (key -> cur)
+        }
+    }
+  }
+
+  private def updateProps(
+      oldVnode: PatchedVNode.Element,
+      vnode: VNode.Element
+  ): Unit = {
+
+    val elm = oldVnode.node
     val oldProps = oldVnode.data.props
     val props = vnode.data.props
 
-    def update(
-        oldProps: Map[String, PropValue],
-        props: Map[String, PropValue]
-    ): Unit = {
-      props.foreach { case (key, cur) =>
-        if (
-          oldProps.get(key).forall(_ != cur) && (key != "value" || elm
-            .asInstanceOf[js.Dictionary[Any]]
-            .get(key)
-            .forall(_ != cur))
-        ) { elm.asInstanceOf[js.Dictionary[Any]](key) = cur }
+    props.foreach { case (key, cur) =>
+      if (oldProps.get(key).forall(_ != cur)) {
+        elm.asInstanceOf[js.Dictionary[Any]] += (key -> cur)
       }
     }
 
-    if (oldProps != props) {
-      update(oldProps, props) // TODO: remove old props
+    oldProps.foreach { case (key, _) =>
+      if (!props.contains(key)) {
+        elm.asInstanceOf[js.Dictionary[Any]] -= key
+      }
     }
 
   }

@@ -40,6 +40,6 @@ package snabbdom
 
 trait InsertHook {
 
-  def apply(vNode: VNode): Any
+  def apply(vNode: PatchedVNode): Unit
 
 }

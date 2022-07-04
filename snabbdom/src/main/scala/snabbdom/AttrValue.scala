@@ -38,10 +38,20 @@
 
 package snabbdom
 
-object fragment {
+sealed trait AttrValue
 
-  def apply(children: Array[VNode]): VNode = {
-    VNode.create(None, VNodeData.empty, Some(children), None, None)
-  }
+object AttrValue {
+
+  def apply(s: String): AttrValue = StringAttrValue(s)
+  def apply(b: Boolean): AttrValue = BooleanAttrValue(b)
+
+  final case class StringAttrValue(value: String) extends AttrValue
+  final case class BooleanAttrValue(value: Boolean) extends AttrValue
+
+  implicit def stringToAttrValue(value: String): AttrValue =
+    StringAttrValue(value)
+
+  implicit def booleanToAttrValue(value: Boolean): AttrValue =
+    BooleanAttrValue(value)
 
 }

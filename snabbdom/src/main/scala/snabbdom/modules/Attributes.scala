@@ -39,67 +39,99 @@
 package snabbdom.modules
 
 import snabbdom._
-import org.scalajs.dom
 
 object Attributes {
 
   val module: Module = Module().copy(
     create = Some(new CreateHook {
-      override def apply(emptyVNode: VNode, vNode: VNode): Any =
-        updateAttrs(emptyVNode, vNode)
+      override def apply(vNode: PatchedVNode): Unit = {
+        vNode match {
+          case elm: PatchedVNode.Element =>
+            if (elm.data.attrs.nonEmpty) {
+              setAttrs(elm)
+            }
+          case _ => ()
+        }
+      }
     }),
     update = Some(new UpdateHook {
-      override def apply(oldVNode: VNode, vNode: VNode): Any =
-        updateAttrs(oldVNode, vNode)
+      override def apply(
+          oldVNode: PatchedVNode,
+          vNode: VNode
+      ): Unit = {
+        (oldVNode, vNode) match {
+          case (a: PatchedVNode.Element, b: VNode.Element) =>
+            if (a.data.attrs != b.data.attrs) {
+              updateAttrs(a, b)
+            }
+          case _ => ()
+        }
+      }
     })
   )
 
   private val xlinkNS = "http://www.w3.org/1999/xlink"
   private val xmlNS = "http://www.w3.org/XML/1998/namespace"
 
-  private def updateAttrs(oldVnode: VNode, vnode: VNode): Unit = {
-
-    val elm = vnode.elm.get.asInstanceOf[dom.Element]
-
-    def update(
-        oldAttrs: Map[String, AttrValue],
-        attrs: Map[String, AttrValue]
-    ) = {
-      attrs.foreach { case (key, cur) =>
-        val old = oldAttrs.get(key)
-        if (old.forall(_ != cur)) {
-          if (cur == true) {
-            elm.setAttribute(key, "")
-          } else if (cur == false) {
-            elm.removeAttribute(key)
-          } else {
-            if (key.charAt(0) != 'x') {
-              elm.setAttribute(key, cur.toString)
-            } else if (key.length > 3 && key.charAt(3) == ':') {
-              elm.setAttributeNS(xmlNS, key, cur.toString)
-            } else if (key.length > 5 && key.charAt(5) == ':') {
-              elm.setAttributeNS(xlinkNS, key, cur.toString)
-            } else {
-              elm.setAttribute(key, cur.toString)
-            }
-          }
-        }
-      }
-
-      oldAttrs.foreach { case (key, _) =>
-        if (!attrs.contains(key)) {
+  private def setAttrs(vnode: PatchedVNode.Element): Unit = {
+    val elm = vnode.node
+    vnode.data.attrs.foreach {
+      case (key, AttrValue.BooleanAttrValue(value)) =>
+        if (value) {
+          elm.setAttribute(key, "")
+        } else {
           elm.removeAttribute(key)
         }
-      }
+      case (key, AttrValue.StringAttrValue(value)) =>
+        if (key.charAt(0) != 'x') {
+          elm.setAttribute(key, value)
+        } else if (key.length > 3 && key.charAt(3) == ':') {
+          elm.setAttributeNS(xmlNS, key, value)
+        } else if (key.length > 5 && key.charAt(5) == ':') {
+          elm.setAttributeNS(xlinkNS, key, value)
+        } else {
+          elm.setAttribute(key, value)
+        }
     }
+  }
 
+  private def updateAttrs(
+      oldVnode: PatchedVNode.Element,
+      vnode: VNode.Element
+  ): Unit = {
+
+    val elm = oldVnode.node
     val oldAttrs = oldVnode.data.attrs
     val attrs = vnode.data.attrs
 
-    if (oldAttrs != attrs) {
-      update(oldAttrs, attrs)
+    attrs.foreach { case (key, cur) =>
+      if (oldAttrs.get(key).forall(_ != cur)) {
+        cur match {
+          case AttrValue.BooleanAttrValue(value) =>
+            if (value) {
+              elm.setAttribute(key, "")
+            } else {
+              elm.removeAttribute(key)
+            }
+          case AttrValue.StringAttrValue(value) =>
+            if (key.charAt(0) != 'x') {
+              elm.setAttribute(key, value)
+            } else if (key.length > 3 && key.charAt(3) == ':') {
+              elm.setAttributeNS(xmlNS, key, value)
+            } else if (key.length > 5 && key.charAt(5) == ':') {
+              elm.setAttributeNS(xlinkNS, key, value)
+            } else {
+              elm.setAttribute(key, cur.toString)
+            }
+        }
+      }
     }
 
+    oldAttrs.foreach { case (key, _) =>
+      if (!attrs.contains(key)) {
+        elm.removeAttribute(key)
+      }
+    }
   }
 
 }

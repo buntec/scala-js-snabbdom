@@ -37,65 +37,90 @@
  */
 
 package snabbdom
+import snabbdom.PatchedVNode.Comment
 
 object h {
 
-  type VNodes = Array[VNode]
+  def comment(content: String): VNode.Comment = VNode.Comment(content)
 
-  def apply(sel: String): VNode = h(sel, None, None, None)
-
-  def apply(sel: String, data: VNodeData): VNode = {
-    apply(sel, Some(data), None, None)
+  def apply(sel: String): VNode.Element = {
+    val data =
+      if (isSvg(sel)) VNodeData(ns = Some(svgNamespace)) else VNodeData.empty
+    VNode.Element(sel, data, Nil)
   }
 
-  def apply(sel: String, children: Array[VNode]): VNode = {
-    apply(sel, None, Some(children), None)
+  def apply(sel: String, data: VNodeData): VNode.Element = {
+    val data0 = if (isSvg(sel)) data.copy(ns = Some(svgNamespace)) else data
+    VNode.Element(sel, data0, Nil)
   }
 
-  def apply(sel: String, text: String): VNode = {
-    apply(sel, None, None, Some(text))
+  def apply(sel: String, children: List[VNode]): VNode.Element = {
+    val data =
+      if (isSvg(sel)) VNodeData(ns = Some(svgNamespace)) else VNodeData.empty
+    VNode.Element(
+      sel,
+      data,
+      if (isSvg(sel)) children.map(addNS) else children
+    )
   }
 
-  def apply(sel: String, data: VNodeData, text: String): VNode = {
-    apply(sel, Some(data), None, Some(text))
+  def apply(sel: String, text: String): VNode.Element = {
+    val data =
+      if (isSvg(sel)) VNodeData(ns = Some(svgNamespace)) else VNodeData.empty
+    VNode.Element(sel, data, List(VNode.text(text)))
   }
 
-  def apply(sel: String, data: VNodeData, children: Array[VNode]): VNode = {
-    apply(sel, Some(data), Some(children), None)
+  def apply(sel: String, data: VNodeData, text: String): VNode.Element = {
+    val data0 = if (isSvg(sel)) data.copy(ns = Some(svgNamespace)) else data
+    VNode.Element(sel, data0, List(VNode.text(text)))
   }
 
-  def apply(sel: String, data: VNodeData, child: VNode): VNode = {
-    apply(sel, Some(data), Some(Array(child)), None)
-  }
-
-  private def apply(
+  def apply(
       sel: String,
-      data: Option[VNodeData],
-      children: Option[Array[VNode]],
-      text: Option[String]
-  ): VNode = {
-    val vnode =
-      VNode.create(
-        Some(sel),
-        data.getOrElse(VNodeData.empty),
-        children,
-        text,
-        None
-      )
-    if (
-      sel.startsWith("svg") &&
-      (sel.length == 3 || sel(3) == '.' || sel(3) == '#')
-    ) {
-      addNS(vnode)
-    }
-    vnode
+      data: VNodeData,
+      children: List[VNode]
+  ): VNode.Element =
+    VNode.Element(sel, data, children)
+
+  def apply(sel: String, data: VNodeData, child: VNode): VNode.Element = {
+    val data0 = if (isSvg(sel)) data.copy(ns = Some(svgNamespace)) else data
+    VNode.Element(
+      sel,
+      data0,
+      List(if (isSvg(sel)) addNS(child) else child)
+    )
   }
 
-  private[snabbdom] def addNS(vnode: VNode): Unit = {
-    val ns = "http://www.w3.org/2000/svg"
-    vnode.data = vnode.data.copy(ns = Some(ns))
-    if (vnode.sel.forall(_ != "foreignObject")) {
-      vnode.children.foreach(_.map(addNS))
+  private def isSvg(sel: String): Boolean = {
+    sel.startsWith("svg") && (sel.length == 3 || sel(3) == '.' || sel(3) == '#')
+  }
+
+  private val svgNamespace = "http://www.w3.org/2000/svg"
+
+  private[snabbdom] def addNS(vnode: PatchedVNode): PatchedVNode = {
+    vnode match {
+      case Comment(_, _)           => vnode
+      case PatchedVNode.Text(_, _) => vnode
+      case PatchedVNode.Element(sel, data, children, elm) =>
+        PatchedVNode.Element(
+          sel,
+          data.copy(ns = Some(svgNamespace)),
+          if (sel != "foreignObject") children.map(addNS) else children,
+          elm
+        )
+    }
+  }
+
+  private[snabbdom] def addNS(vnode: VNode): VNode = {
+    vnode match {
+      case VNode.Comment(_) => vnode
+      case VNode.Text(_)    => vnode
+      case VNode.Element(sel, data, children) =>
+        VNode.Element(
+          sel,
+          data.copy(ns = Some(svgNamespace)),
+          if (sel != "foreignObject") children.map(addNS) else children
+        )
     }
   }
 

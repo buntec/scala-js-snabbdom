@@ -46,65 +46,70 @@ import org.scalajs.dom
 object Styles {
 
   val module: Module = Module().copy(
-    create = Some(new CreateHook {
-      override def apply(emptyVNode: VNode, vNode: VNode): Any =
-        updateStyle(emptyVNode, vNode)
+    create = Some((vNode: PatchedVNode) => {
+      vNode match {
+        case elm: PatchedVNode.Element => setStyle(elm)
+        case _                         => ()
+      }
     }),
-    update = Some(new UpdateHook {
-      override def apply(oldVNode: VNode, vNode: VNode): Any =
-        updateStyle(oldVNode, vNode)
+    update = Some((oldVNode: PatchedVNode, vNode: VNode) => {
+      (oldVNode, vNode) match {
+        case (a: PatchedVNode.Element, b: VNode.Element) =>
+          if (a.data.style != b.data.style) {
+            updateStyle(a, b)
+          }
+        case _ => ()
+      }
     })
   )
 
-  private def updateStyle(oldVnode: VNode, vnode: VNode): Unit = {
-
-    val elm = vnode.elm.get
-
-    def update(
-        oldStyle: Map[String, StyleValue],
-        style: Map[String, StyleValue]
-    ): Unit = {
-
-      oldStyle.foreach { case (name, _) =>
-        style.get(name) match {
-          case Some(_) =>
-          case None =>
-            if (name(0) == '-' && name(1) == '-') {
-              elm.asInstanceOf[dom.HTMLElement].style.removeProperty(name)
-            } else {
-              elm
-                .asInstanceOf[dom.HTMLElement]
-                .style
-                .asInstanceOf[js.Dictionary[String]](name) = ""
-            }
-        }
+  private def setStyle(vnode: PatchedVNode.Element): Unit = {
+    vnode.data.style.foreach { case (name, cur) =>
+      if (name.startsWith("--")) {
+        vnode.node.asInstanceOf[dom.HTMLElement].style.setProperty(name, cur)
+      } else {
+        vnode.node
+          .asInstanceOf[dom.HTMLElement]
+          .style
+          .asInstanceOf[js.Dictionary[String]](name) = cur
       }
-
-      style.foreach { case (name, cur) =>
-        if (oldStyle.get(name).forall(_ != cur)) {
-
-          if (name(0) == '-' && name(1) == '-') {
-
-            elm.asInstanceOf[dom.HTMLElement].style.setProperty(name, cur)
-
-          } else {
-
-            elm
-              .asInstanceOf[dom.HTMLElement]
-              .style
-              .asInstanceOf[js.Dictionary[String]](name) = cur
-
-          }
-        }
-      }
-
     }
 
+  }
+
+  private def updateStyle(
+      oldVnode: PatchedVNode.Element,
+      vnode: VNode.Element
+  ): Unit = {
+
+    val elm = oldVnode.node
     val oldStyle = oldVnode.data.style
     val style = vnode.data.style
 
-    if (oldStyle != style) {
-      update(oldStyle, style)
+    oldStyle.foreach { case (name, _) =>
+      if (!style.contains(name)) {
+        if (name.startsWith("--")) {
+          elm.asInstanceOf[dom.HTMLElement].style.removeProperty(name)
+        } else {
+          elm
+            .asInstanceOf[dom.HTMLElement]
+            .style
+            .asInstanceOf[js.Dictionary[String]](name) = ""
+        }
+      }
+    }
+
+    style.foreach { case (name, cur) =>
+      if (oldStyle.get(name).forall(_ != cur)) {
+        if (name.startsWith("--")) {
+          elm.asInstanceOf[dom.HTMLElement].style.setProperty(name, cur)
+        } else {
+          elm
+            .asInstanceOf[dom.HTMLElement]
+            .style
+            .asInstanceOf[js.Dictionary[String]](name) = cur
+        }
+      }
     }
 
   }

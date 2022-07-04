@@ -56,7 +56,7 @@ class DatasetSuite extends BaseSuite {
     val elm = patch(
       vnode0,
       h("div", VNodeData(dataset = Map("foo" -> "foo")))
-    ).elm.get.asInstanceOf[dom.HTMLElement]
+    ).node.asInstanceOf[dom.HTMLElement]
     assertEquals(elm.dataset("foo"), "foo")
   }
 

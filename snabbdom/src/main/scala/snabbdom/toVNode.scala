@@ -44,7 +44,7 @@ import scala.collection.mutable
 
 object toVNode {
 
-  def apply(node: dom.Node, domApi: Option[DomApi] = None): VNode = {
+  def apply(node: dom.Node, domApi: Option[DomApi] = None): PatchedVNode = {
 
     val api = domApi.getOrElse(DomApi.apply)
 
@@ -57,7 +57,7 @@ object toVNode {
       val attrs = mutable.Map.empty[String, String]
       val datasets = mutable.Map.empty[String, String]
 
-      val children = new mutable.ArrayBuffer[VNode]
+      val children = new mutable.ArrayBuffer[PatchedVNode]
       val elmAttrs = elm.attributes
       val elmChildren = elm.childNodes
       elmAttrs.foreach { case (_, attr) =>
@@ -75,16 +75,17 @@ object toVNode {
 
       val data =
         VNodeData(
-          attrs = if (attrs.nonEmpty) attrs.toMap else Map.empty,
+          attrs = attrs.toMap.map { case (key, value) =>
+            key -> AttrValue(value)
+          },
           dataset = if (datasets.nonEmpty) datasets.toMap else Map.empty
         )
 
-      val vnode = VNode.create(
-        Some(sel),
+      val vnode = PatchedVNode.Element(
+        sel,
         data,
-        Some(children.toArray),
-        None,
-        Some(node)
+        children.toList,
+        node.asInstanceOf[dom.Element]
       )
 
       if (
@@ -93,18 +94,21 @@ object toVNode {
         ) == '#')
       ) {
         h.addNS(vnode)
+      } else {
+        vnode
       }
-
-      vnode
 
     } else if (api.isText(node)) {
       val text = api.getTextContent(node).getOrElse("")
-      VNode.create(None, VNodeData.empty, None, Some(text), Some(node))
+      PatchedVNode.text(text, node.asInstanceOf[dom.Text])
     } else if (api.isComment(node)) {
       val text = api.getTextContent(node).getOrElse("")
-      VNode.create(Some("!"), VNodeData.empty, None, Some(text), Some(node))
+      PatchedVNode.comment(
+        text,
+        node.asInstanceOf[dom.Comment]
+      )
     } else {
-      VNode.create(Some(""), VNodeData.empty, None, None, Some(node))
+      throw new IllegalArgumentException(s"Unexpected node type: $node")
     }
 
   }

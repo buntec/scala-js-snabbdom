@@ -41,6 +41,7 @@ package snabbdom
 final case class ModuleHooks(
     create: List[CreateHook],
     update: List[UpdateHook],
+    postPatch: List[PostPatchHook],
     remove: List[RemoveHook],
     destroy: List[DestroyHook],
     pre: List[PreHook],
@@ -49,6 +50,6 @@ final case class ModuleHooks(
 
 object ModuleHooks {
 
-  def empty = ModuleHooks(Nil, Nil, Nil, Nil, Nil, Nil)
+  def empty = ModuleHooks(Nil, Nil, Nil, Nil, Nil, Nil, Nil)
 
 }

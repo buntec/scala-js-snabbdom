@@ -40,6 +40,6 @@ package snabbdom
 
 trait PostHook {
 
-  def apply(): Any
+  def apply(): Unit
 
 }

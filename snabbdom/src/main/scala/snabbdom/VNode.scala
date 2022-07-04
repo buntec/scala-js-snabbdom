@@ -38,45 +38,61 @@
 
 package snabbdom
 
-import org.scalajs.dom
-
-class VNode private (
-    var sel: Option[String],
-    var data: VNodeData,
-    var children: Option[Array[VNode]],
-    var elm: Option[
-      dom.Node
-    ], // can't be `dom.Element` unfortunately b/c of fragments
-    var text: Option[String],
-    val key: Option[KeyValue],
-    private[snabbdom] var listener: Option[Listener]
-) {
-
-  override def toString: String =
-    s"sel=$sel, data=$data, text=$text, key=$key, children=$children, elm=$elm"
-
-  private[snabbdom] def isTextNode: Boolean =
-    sel.isEmpty && children.isEmpty && text.isDefined
-
-}
+sealed trait VNode
 
 object VNode {
 
-  def empty() =
-    new VNode(None, VNodeData.empty, None, None, Some(""), None, None)
+  final case class Text(content: String) extends VNode
 
-  def create(
-      sel: Option[String],
-      data: VNodeData,
-      children: Option[Array[VNode]],
-      text: Option[String],
-      elm: Option[dom.Node]
-  ) =
-    new VNode(sel, data, children.filter(_.nonEmpty), elm, text, data.key, None)
+  final case class Element(sel: String, data: VNodeData, children: List[VNode])
+      extends VNode
 
-  def text(text: String) =
-    new VNode(None, VNodeData.empty, None, None, Some(text), None, None)
+  final case class Comment(content: String) extends VNode
+
+  val empty: VNode = Text("")
+
+  def text(content: String): VNode = Text(content)
+
+  def element(sel: String, data: VNodeData, children: List[VNode]): VNode =
+    Element(sel, data, children)
+
+  def comment(content: String): VNode = Comment(content)
 
   implicit def fromString(s: String): VNode = text(s)
+
+  implicit class VNodeOps(val vnode: VNode) extends AnyVal {
+
+    def prettyPrint: String = VNode.prettyPrint(vnode)
+
+    def key: Option[String] = VNode.key(vnode)
+
+  }
+
+  private def key(vnode: VNode): Option[String] = vnode match {
+    case Text(_)             => None
+    case Element(_, data, _) => data.key
+    case Comment(_)          => None
+  }
+
+  // TODO: include attributes
+  private def prettyPrint(vnode: VNode): String = {
+    def go(indent: Int, vnode: VNode): String = {
+      vnode match {
+        case Text(content) => s"${" " * indent}$content"
+        case Element(sel, data, children) =>
+          s"""|${" " * indent}<$sel${data.key.fold("")(key => s" key=$key")}>
+              |${children.map(go(indent + 2, _)).mkString("\n")}
+              |${" " * indent}</$sel>""".stripMargin
+        case Comment(content) => s"""<!--${content}-->"""
+      }
+    }
+    go(0, vnode)
+  }
+
+  private[snabbdom] def applyInitHook(vnode: VNode): VNode = vnode match {
+    case Text(_)             => vnode
+    case Element(_, data, _) => data.hook.flatMap(_.init).fold(vnode)(_(vnode))
+    case Comment(_)          => vnode
+  }
 
 }

@@ -1,4 +1,4 @@
-ThisBuild / tlBaseVersion := "0.1"
+ThisBuild / tlBaseVersion := "0.2"
 
 val scala213 = "2.13.8"
 ThisBuild / scalaVersion := scala213
@@ -68,9 +68,10 @@ ThisBuild / Test / jsEnv := {
 }
 
 lazy val scalajsDomVersion = "2.1.0"
+lazy val scalacheckVersion = "1.16.0"
 lazy val munitVersion = "1.0.0-M5"
 
-lazy val root = tlCrossRootProject.aggregate(snabbdom, examples)
+lazy val root = tlCrossRootProject.aggregate(snabbdom, examples, benchmarks)
 
 lazy val snabbdom = (project
   .in(file("snabbdom")))
@@ -79,7 +80,9 @@ lazy val snabbdom = (project
     name := "scala-js-snabbdom",
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % scalajsDomVersion,
-      "org.scalameta" %%% "munit" % munitVersion % Test
+      "org.scalameta" %%% "munit" % munitVersion % Test,
+      "org.scalacheck" %%% "scalacheck" % scalacheckVersion % Test,
+      "org.scala-js" %%% "scala-js-macrotask-executor" % "1.0.0" % Test
     )
   )
 
@@ -99,5 +102,14 @@ lazy val examples = (project
           )
         )
     }
+  )
+  .dependsOn(snabbdom)
+
+lazy val benchmarks = (project
+  .in(file("benchmarks")))
+  .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
+  .settings(
+    name := "scala-js-snabbdom-benchmarks",
+    scalaJSUseMainModuleInitializer := false
   )
   .dependsOn(snabbdom)
