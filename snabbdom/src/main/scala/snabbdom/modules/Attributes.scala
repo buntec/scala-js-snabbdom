@@ -121,7 +121,7 @@ object Attributes {
             } else if (key.length > 5 && key.charAt(5) == ':') {
               elm.setAttributeNS(xlinkNS, key, value)
             } else {
-              elm.setAttribute(key, cur.toString)
+              elm.setAttribute(key, value)
             }
         }
       }
