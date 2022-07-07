@@ -44,50 +44,65 @@ object h {
   def comment(content: String): VNode.Comment = VNode.Comment(content)
 
   def apply(sel: String): VNode.Element = {
-    val data =
-      if (isSvg(sel)) VNodeData(ns = Some(svgNamespace)) else VNodeData.empty
-    VNode.Element(sel, data, Nil)
+    VNode.Element(
+      sel,
+      if (isSvg(sel)) VNodeData(ns = Some(svgNamespace)) else VNodeData.empty,
+      Nil
+    )
   }
 
   def apply(sel: String, data: VNodeData): VNode.Element = {
-    val data0 = if (isSvg(sel)) data.copy(ns = Some(svgNamespace)) else data
-    VNode.Element(sel, data0, Nil)
+    VNode.Element(
+      sel,
+      if (isSvg(sel)) data.copy(ns = Some(svgNamespace)) else data,
+      Nil
+    )
   }
 
   def apply(sel: String, children: List[VNode]): VNode.Element = {
-    val data =
-      if (isSvg(sel)) VNodeData(ns = Some(svgNamespace)) else VNodeData.empty
+    val svg = isSvg(sel)
     VNode.Element(
       sel,
-      data,
-      if (isSvg(sel)) children.map(addNS) else children
+      if (svg) VNodeData(ns = Some(svgNamespace)) else VNodeData.empty,
+      if (svg) children.map(addNS) else children
     )
   }
 
   def apply(sel: String, text: String): VNode.Element = {
-    val data =
-      if (isSvg(sel)) VNodeData(ns = Some(svgNamespace)) else VNodeData.empty
-    VNode.Element(sel, data, List(VNode.text(text)))
+    VNode.Element(
+      sel,
+      if (isSvg(sel)) VNodeData(ns = Some(svgNamespace)) else VNodeData.empty,
+      List(VNode.text(text))
+    )
   }
 
   def apply(sel: String, data: VNodeData, text: String): VNode.Element = {
-    val data0 = if (isSvg(sel)) data.copy(ns = Some(svgNamespace)) else data
-    VNode.Element(sel, data0, List(VNode.text(text)))
+    VNode.Element(
+      sel,
+      if (isSvg(sel)) data.copy(ns = Some(svgNamespace)) else data,
+      List(VNode.text(text))
+    )
   }
 
   def apply(
       sel: String,
       data: VNodeData,
       children: List[VNode]
-  ): VNode.Element =
-    VNode.Element(sel, data, children)
-
-  def apply(sel: String, data: VNodeData, child: VNode): VNode.Element = {
-    val data0 = if (isSvg(sel)) data.copy(ns = Some(svgNamespace)) else data
+  ): VNode.Element = {
+    val svg = isSvg(sel)
     VNode.Element(
       sel,
-      data0,
-      List(if (isSvg(sel)) addNS(child) else child)
+      if (svg) data.copy(ns = Some(svgNamespace)) else data,
+      if (svg) children.map(addNS) else children
+    )
+  }
+
+  def apply(sel: String, data: VNodeData, child: VNode): VNode.Element = {
+    val svg = isSvg(sel)
+    VNode.Element(
+      sel,
+      if (svg) data.copy(ns = Some(svgNamespace)) else data,
+      List(if (svg) addNS(child) else child)
     )
   }
 
