@@ -13,11 +13,16 @@ ThisBuild / developers := List(
   tlGitHubDev("davesmith00000", "Dave Smith")
 )
 
-ThisBuild / githubWorkflowBuildMatrixAdditions += "browser" -> List(
-  "Chrome",
-  "Firefox"
-)
+ThisBuild / githubWorkflowBuildMatrixAdditions +=
+  "browser" -> List("Chrome", "Firefox")
 ThisBuild / githubWorkflowBuildSbtStepPreamble += s"set Global / useJSEnv := JSEnv.$${{ matrix.browser }}"
+
+ThisBuild / githubWorkflowBuild +=
+  WorkflowStep.Sbt(
+    List("bundleMon"),
+    name = Some("Monitor artifact size"),
+    cond = Some("matrix.project == 'rootJS'")
+  )
 
 ThisBuild / githubWorkflowAddedJobs +=
   WorkflowJob(
@@ -88,7 +93,7 @@ lazy val snabbdom = (project
 
 lazy val examples = (project
   .in(file("examples")))
-  .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
+  .enablePlugins(ScalaJSPlugin, BundleMonPlugin, NoPublishPlugin)
   .settings(
     name := "scala-js-snabbdom-examples",
     coverageEnabled := false,
