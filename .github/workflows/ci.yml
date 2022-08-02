@@ -90,7 +90,7 @@ jobs:
         run: 'sbt ''project ${{ matrix.project }}'' ''++${{ matrix.scala }}'' ''set Global / useJSEnv := JSEnv.${{ matrix.browser }}'' doc'
 
       - name: Monitor artifact size
-        if: matrix.project == 'rootJS'
+        if: matrix.project == 'rootJS' && matrix.browser == 'Chrome'
         run: 'sbt ''project ${{ matrix.project }}'' ''++${{ matrix.scala }}'' ''set Global / useJSEnv := JSEnv.${{ matrix.browser }}'' bundleMon'
 
       - name: Make target directories

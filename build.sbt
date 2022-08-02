@@ -21,7 +21,7 @@ ThisBuild / githubWorkflowBuild +=
   WorkflowStep.Sbt(
     List("bundleMon"),
     name = Some("Monitor artifact size"),
-    cond = Some("matrix.project == 'rootJS'")
+    cond = Some("matrix.project == 'rootJS' && matrix.browser == 'Chrome'")
   )
 
 ThisBuild / githubWorkflowAddedJobs +=
