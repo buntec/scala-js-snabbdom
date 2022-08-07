@@ -4,3 +4,4 @@ libraryDependencies += "org.scala-js" %% "scalajs-env-selenium" % "1.1.1"
 libraryDependencies += "org.scala-js" %% "scalajs-env-jsdom-nodejs" % "1.1.0"
 
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.0.0")
+addSbtPlugin("com.armanbilge" % "sbt-bundlemon" % "0.1.2")
