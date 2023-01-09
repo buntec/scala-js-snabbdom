@@ -5,6 +5,7 @@ ThisBuild / scalaVersion := scala213
 ThisBuild / crossScalaVersions := Seq(scala213, "3.1.2")
 ThisBuild / organization := "io.github.buntec"
 ThisBuild / organizationName := "buntec"
+ThisBuild / startYear := Some(2022)
 ThisBuild / tlSonatypeUseLegacyHost := false
 
 ThisBuild / developers := List(
