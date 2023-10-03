@@ -1,4 +1,4 @@
-addSbtPlugin("org.typelevel" % "sbt-typelevel" % "0.5.3")
+addSbtPlugin("org.typelevel" % "sbt-typelevel" % "0.4.11")
 addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.10.0")
 libraryDependencies += "org.scala-js" %% "scalajs-env-selenium" % "1.1.1"
 libraryDependencies += "org.scala-js" %% "scalajs-env-jsdom-nodejs" % "1.1.0"
