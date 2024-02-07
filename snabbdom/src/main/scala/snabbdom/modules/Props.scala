@@ -86,6 +86,13 @@ object Props {
       }
     }
 
+    // TODO: remove altogether?
+    // This is mostly futile b/c it only removes
+    // Own properties while properties of
+    // DOM elements are typically inherited.
+    // E.g., a prop like `id` cannot be deleted
+    // (removing the corresponding (reflected) attribute
+    // sets this property to the empty string).
     oldProps.foreach { case (key, _) =>
       if (!props.contains(key)) {
         elm.asInstanceOf[js.Dictionary[Any]] -= key
