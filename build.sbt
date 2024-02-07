@@ -2,7 +2,7 @@ ThisBuild / tlBaseVersion := "0.2"
 
 val scala213 = "2.13.8"
 ThisBuild / scalaVersion := scala213
-ThisBuild / crossScalaVersions := Seq(scala213, "3.1.2")
+ThisBuild / crossScalaVersions := Seq(scala213, "3.1.3")
 ThisBuild / organization := "io.github.buntec"
 ThisBuild / organizationName := "buntec"
 ThisBuild / startYear := Some(2022)
