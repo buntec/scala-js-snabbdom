@@ -1,6 +1,6 @@
 ThisBuild / tlBaseVersion := "0.2"
 
-val scala213 = "2.13.8"
+val scala213 = "2.13.13"
 ThisBuild / scalaVersion := scala213
 ThisBuild / crossScalaVersions := Seq(scala213, "3.1.2")
 ThisBuild / organization := "io.github.buntec"
