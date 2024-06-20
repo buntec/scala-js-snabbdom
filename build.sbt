@@ -88,7 +88,7 @@ lazy val snabbdom = (project
       "org.scala-js" %%% "scalajs-dom" % scalajsDomVersion,
       "org.scalameta" %%% "munit" % munitVersion % Test,
       "org.scalacheck" %%% "scalacheck" % scalacheckVersion % Test,
-      "org.scala-js" %%% "scala-js-macrotask-executor" % "1.0.0" % Test
+      "org.scala-js" %%% "scala-js-macrotask-executor" % "1.1.1" % Test
     )
   )
 
