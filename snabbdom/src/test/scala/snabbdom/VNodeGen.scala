@@ -221,7 +221,7 @@ object VNodeGen {
 
   private def keys(vnode: VNode): Set[String] =
     vnode match {
-      case VNode.Comment(_) => Set.empty
+      case VNode.Comment(_)                 => Set.empty
       case VNode.Element(_, data, children) =>
         data.key.toSet.union(children.map(keys).toList.flatten.toSet)
       case VNode.Text(_) => Set.empty
@@ -229,7 +229,7 @@ object VNodeGen {
 
   private def depth(vnode: VNode): Long =
     vnode match {
-      case VNode.Comment(_) => 1
+      case VNode.Comment(_)              => 1
       case VNode.Element(_, _, children) =>
         1 + children.map(depth).maxOption.getOrElse(0L)
       case VNode.Text(_) => 1
