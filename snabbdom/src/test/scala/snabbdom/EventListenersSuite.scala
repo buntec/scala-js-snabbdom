@@ -191,4 +191,57 @@ class EventListenersSuite extends BaseSuite {
     assertEquals(result.length, 3)
   }
 
+  vnode0.test("detaches listeners when element is destroyed") { vnode0 =>
+    var count = 0
+    val handler = EventHandler((_: dom.Event) => count += 1)
+    val vnode1 = h(
+      "div",
+      List(h("button", VNodeData(on = Map("click" -> handler)), "Click"))
+    )
+    val vnode2 = h("div")
+    val p1 = patch(vnode0, vnode1)
+    val button = p1.node.childNodes(0).asInstanceOf[dom.HTMLElement]
+    button.click()
+    assertEquals(count, 1)
+    patch(p1, vnode2)
+    button.click()
+    assertEquals(count, 1)
+  }
+
+  vnode0.test("uses the latest handler after patching") { vnode0 =>
+    val calls = ListBuffer.empty[String]
+    val vnode1 = h(
+      "div",
+      VNodeData(on =
+        Map("click" -> EventHandler((_: dom.Event) => calls += "first"))
+      )
+    )
+    val vnode2 = h(
+      "div",
+      VNodeData(on =
+        Map("click" -> EventHandler((_: dom.Event) => calls += "second"))
+      )
+    )
+    val p1 = patch(vnode0, vnode1)
+    val elm = p1.node.asInstanceOf[dom.HTMLElement]
+    elm.click()
+    patch(p1, vnode2)
+    elm.click()
+    assertEquals(calls.toList, List("first", "second"))
+  }
+
+  vnode0.test("adds and removes listeners for different events") { vnode0 =>
+    val calls = ListBuffer.empty[String]
+    val click = EventHandler((_: dom.Event) => calls += "click")
+    val focus = EventHandler((_: dom.Event) => calls += "custom")
+    val vnode1 = h("div", VNodeData(on = Map("click" -> click)))
+    val vnode2 = h("div", VNodeData(on = Map("custom" -> focus)))
+    val p1 = patch(vnode0, vnode1)
+    val elm = p1.node.asInstanceOf[dom.HTMLElement]
+    patch(p1, vnode2)
+    elm.click()
+    elm.dispatchEvent(new dom.Event("custom"))
+    assertEquals(calls.toList, List("custom"))
+  }
+
 }

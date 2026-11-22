@@ -60,4 +60,82 @@ class DatasetSuite extends BaseSuite {
     assertEquals(elm.dataset("foo"), "foo")
   }
 
+  vnode0.test("updates dataset") { vnode0 =>
+    val vnode1 =
+      h("i", VNodeData(dataset = Map("foo" -> "foo", "bar" -> "bar")))
+    val vnode2 =
+      h("i", VNodeData(dataset = Map("baz" -> "baz", "bar" -> "qux")))
+    val p1 = patch(vnode0, vnode1)
+    val elm = p1.node.asInstanceOf[dom.HTMLElement]
+    assertEquals(elm.dataset("foo"), "foo")
+    assertEquals(elm.dataset("bar"), "bar")
+    patch(p1, vnode2)
+    assert(!elm.dataset.contains("foo"))
+    assertEquals(elm.dataset("bar"), "qux")
+    assertEquals(elm.dataset("baz"), "baz")
+    assert(!elm.hasAttribute("data-foo"))
+  }
+
+  vnode0.test("can be memoized") { vnode0 =>
+    val cachedDataset = Map("foo" -> "foo", "bar" -> "bar")
+    val vnode1 = h("i", VNodeData(dataset = cachedDataset))
+    val vnode2 = h("i", VNodeData(dataset = cachedDataset))
+    val p1 = patch(vnode0, vnode1)
+    val elm = p1.node.asInstanceOf[dom.HTMLElement]
+    assertEquals(elm.dataset("foo"), "foo")
+    assertEquals(elm.dataset("bar"), "bar")
+    patch(p1, vnode2)
+    assertEquals(elm.dataset("foo"), "foo")
+    assertEquals(elm.dataset("bar"), "bar")
+  }
+
+  vnode0.test("handles string conversions") { vnode0 =>
+    val vnode1 = h(
+      "i",
+      VNodeData(dataset =
+        Map(
+          "empty" -> "",
+          "dash" -> "-",
+          "dashed" -> "foo-bar",
+          "camel" -> "fooBar",
+          "integer" -> "0",
+          "float" -> "0.1"
+        )
+      )
+    )
+    val elm = patch(vnode0, vnode1).node.asInstanceOf[dom.HTMLElement]
+    assertEquals(elm.getAttribute("data-empty"), "")
+    assertEquals(elm.getAttribute("data-dash"), "-")
+    assertEquals(elm.getAttribute("data-dashed"), "foo-bar")
+    assertEquals(elm.getAttribute("data-camel"), "fooBar")
+    assertEquals(elm.getAttribute("data-integer"), "0")
+    assertEquals(elm.getAttribute("data-float"), "0.1")
+  }
+
+  vnode0.test("maps camelCase keys to kebab-case attributes") { vnode0 =>
+    val vnode1 = h("i", VNodeData(dataset = Map("fooBarBaz" -> "x")))
+    val vnode2 = h("i")
+    val p1 = patch(vnode0, vnode1)
+    val elm = p1.node.asInstanceOf[dom.HTMLElement]
+    assertEquals(elm.getAttribute("data-foo-bar-baz"), "x")
+    patch(p1, vnode2)
+    assert(!elm.hasAttribute("data-foo-bar-baz"))
+  }
+
+  test("round-trips dashed data attributes through `toVNode`") {
+    val elm = dom.document.createElement("div").asInstanceOf[dom.HTMLElement]
+    elm.setAttribute("data-foo-bar", "1")
+    elm.setAttribute("data-baz", "2")
+    val vnode = toVNode(elm)
+    vnode match {
+      case PatchedVNode.Element(_, data, _, _) =>
+        assertEquals(data.dataset, Map("fooBar" -> "1", "baz" -> "2"))
+      case other => fail(s"expected element, got $other")
+    }
+    // patching to a vnode without dataset removes the attributes
+    patch(vnode, h("div"))
+    assert(!elm.hasAttribute("data-foo-bar"))
+    assert(!elm.hasAttribute("data-baz"))
+  }
+
 }

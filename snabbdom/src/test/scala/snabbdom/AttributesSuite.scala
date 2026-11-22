@@ -203,4 +203,70 @@ class AttributesSuite extends BaseSuite {
 
   }
 
+  group("updating attributes") {
+
+    vnode0.test("changes, adds and removes attributes") { vnode0 =>
+      val vnode1 =
+        h("div", VNodeData(attrs = Map("href" -> "/foo", "title" -> "t")))
+      val vnode2 =
+        h("div", VNodeData(attrs = Map("href" -> "/bar", "lang" -> "en")))
+      val p1 = patch(vnode0, vnode1)
+      val elm = p1.node.asInstanceOf[dom.Element]
+      patch(p1, vnode2)
+      assertEquals(elm.getAttribute("href"), "/bar")
+      assertEquals(elm.getAttribute("lang"), "en")
+      assert(!elm.hasAttribute("title"))
+    }
+
+    vnode0.test("toggles boolean attributes") { vnode0 =>
+      val on = h("input", VNodeData(attrs = Map("disabled" -> true)))
+      val off = h("input", VNodeData(attrs = Map("disabled" -> false)))
+      val p1 = patch(vnode0, on)
+      val elm = p1.node.asInstanceOf[dom.Element]
+      assertEquals(elm.getAttribute("disabled"), "")
+      val p2 = patch(p1, off)
+      assert(!elm.hasAttribute("disabled"))
+      patch(p2, on)
+      assertEquals(elm.getAttribute("disabled"), "")
+    }
+
+    vnode0.test("updates namespaced attributes") { vnode0 =>
+      val xlinkNS = "http://www.w3.org/1999/xlink"
+      val xmlNS = "http://www.w3.org/XML/1998/namespace"
+      def vnode(href: String, lang: String) =
+        h(
+          "svg",
+          VNodeData(),
+          List(
+            h(
+              "use",
+              VNodeData(attrs =
+                Map(
+                  "xlink:href" -> href,
+                  "xml:lang" -> lang,
+                  "xyz" -> href
+                )
+              )
+            )
+          )
+        )
+      val p1 = patch(vnode0, vnode("#a", "en"))
+      val use = p1.node.childNodes(0).asInstanceOf[dom.Element]
+      patch(p1, vnode("#b", "de"))
+      assertEquals(use.getAttributeNS(xlinkNS, "href"), "#b")
+      assertEquals(use.getAttributeNS(xmlNS, "lang"), "de")
+      assertEquals(use.getAttribute("xyz"), "#b")
+    }
+
+    vnode0.test("sets non-namespaced attributes starting with `x`") { vnode0 =>
+      val elm = patch(
+        vnode0,
+        h("div", VNodeData(attrs = Map("xyz" -> "1", "xmlfoo" -> "2")))
+      ).node.asInstanceOf[dom.Element]
+      assertEquals(elm.getAttribute("xyz"), "1")
+      assertEquals(elm.getAttribute("xmlfoo"), "2")
+    }
+
+  }
+
 }
