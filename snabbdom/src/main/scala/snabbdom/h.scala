@@ -37,7 +37,6 @@
  */
 
 package snabbdom
-import snabbdom.PatchedVNode.Comment
 
 object h {
 
@@ -106,35 +105,29 @@ object h {
     )
   }
 
-  private def isSvg(sel: String): Boolean = {
-    sel.startsWith("svg") && (sel.length == 3 || sel(3) == '.' || sel(3) == '#')
-  }
+  private def isSvg(sel: String): Boolean = hasTag(sel, "svg")
 
-  private val svgNamespace = "http://www.w3.org/2000/svg"
+  private def hasTag(sel: String, tag: String): Boolean =
+    sel.startsWith(tag) &&
+      (sel.length == tag.length || sel(tag.length) == '.' || sel(
+        tag.length
+      ) == '#')
 
-  private[snabbdom] def addNS(vnode: PatchedVNode): PatchedVNode = {
-    vnode match {
-      case Comment(_, _)                                  => vnode
-      case PatchedVNode.Text(_, _)                        => vnode
-      case PatchedVNode.Element(sel, data, children, elm) =>
-        PatchedVNode.Element(
-          sel,
-          data.copy(ns = Some(svgNamespace)),
-          if (sel != "foreignObject") children.map(addNS) else children,
-          elm
-        )
-    }
-  }
+  private[snabbdom] val svgNamespace = "http://www.w3.org/2000/svg"
 
   private[snabbdom] def addNS(vnode: VNode): VNode = {
     vnode match {
-      case VNode.Comment(_)                   => vnode
-      case VNode.Text(_)                      => vnode
+      case VNode.Comment(_) => vnode
+      case VNode.Text(_)    => vnode
+      // An explicit namespace is kept; a non-SVG one (e.g. HTML or MathML)
+      // also applies to the element's children, so stop descending there.
+      case VNode.Element(_, data, _) if data.ns.exists(_ != svgNamespace) =>
+        vnode
       case VNode.Element(sel, data, children) =>
         VNode.Element(
           sel,
-          data.copy(ns = Some(svgNamespace)),
-          if (sel != "foreignObject") children.map(addNS) else children
+          if (data.ns.isDefined) data else data.copy(ns = Some(svgNamespace)),
+          if (hasTag(sel, "foreignObject")) children else children.map(addNS)
         )
     }
   }

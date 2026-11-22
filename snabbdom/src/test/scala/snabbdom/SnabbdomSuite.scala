@@ -750,6 +750,35 @@ class SnabbdomSuite extends BaseSuite {
   }
 
   group("element reordering") {
+    vnode0.test("calls removal hooks of duplicate keys in DOM order") {
+      vnode0 =>
+        val calls = ListBuffer.empty[String]
+        def child(key: String, label: String) =
+          h(
+            "span",
+            VNodeData(
+              key = Some(key),
+              hook = Some(
+                Hooks(
+                  destroy = Some(_ => calls += s"destroy $label"),
+                  remove = Some((_, rm) => { calls += s"remove $label"; rm() })
+                )
+              )
+            ),
+            label
+          )
+        val first = patch(
+          vnode0,
+          h("div", List(child("a", "a1"), child("b", "b"), child("a", "a2")))
+        )
+        val second = patch(first, h("div", List(child("c", "c"))))
+        assertEquals(second.node.textContent, "c")
+        assertEquals(
+          calls.toList,
+          List("a1", "b", "a2").flatMap(l => List(s"destroy $l", s"remove $l"))
+        )
+    }
+
     vnode0.test("moves element forward") { vnode0 =>
       val vnode1 = h("span", List("1", "2", "3", "4").map(spanNum))
       val vnode2 = h("span", List("2", "3", "1", "4").map(spanNum))
@@ -1807,10 +1836,30 @@ class SnabbdomSuite extends BaseSuite {
           h("span", "there")
         )
       )
-      val vnode2 = h("div").copy(children = vnode1.children)
+      val vnode2 = vnode1.copy(data = VNodeData(props = Map("updated" -> true)))
       val vnode1p = patch(vnode0, vnode1)
-      patch(vnode1p, vnode2)
+      val vnode2p = patch(vnode1p, vnode2)
+      assertEquals(vnode2p.toVNode, vnode2)
       assertEquals(result.result().size, 0)
+    }
+
+    vnode0.test("updates only the changed path of a deep tree") { vnode0 =>
+      var updates = 0
+      val cb: UpdateHook = (_, _) => updates += 1
+      val data = VNodeData(hook = Some(Hooks(update = Some(cb))))
+      // Each level has an unchanged sibling before the changed branch.
+      def tree(leaf: String): VNode =
+        (0 until 50).foldLeft(VNode.text(leaf)) { (child, i) =>
+          h("div", data, List(h("span", data, s"same $i"), child))
+        }
+      val first = patch(vnode0, tree("before"))
+      updates = 0
+      val second = patch(first, tree("after"))
+      assertEquals(updates, 50)
+      assertEquals(second.toVNode, tree("after"))
+      assertEquals(second.node.textContent.endsWith("after"), true)
+      patch(second, tree("after"))
+      assertEquals(updates, 50)
     }
   }
 

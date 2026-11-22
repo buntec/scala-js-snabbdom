@@ -38,53 +38,113 @@
 
 package snabbdom.modules
 
+import org.scalajs.dom
 import snabbdom._
 
+import scala.scalajs.js
+import scala.scalajs.js.annotation.JSGlobal
+
 object EventListeners {
+
+  @js.native
+  @JSGlobal("WeakMap")
+  private class WeakMap[K <: js.Any, V] extends js.Object {
+    def get(key: K): js.UndefOr[V] = js.native
+    def set(key: K, value: V): this.type = js.native
+    def delete(key: K): Boolean = js.native
+  }
+
+  // One per DOM node with handlers. Its callback stays registered across
+  // patches and dispatches to the handlers of the latest patched vnode.
+  private final class Listener(var vnode: PatchedVNode.Element) {
+    // The `on` map whose event names are currently registered on the node.
+    var on: Map[String, EventHandler] = Map.empty
+    val callback: js.Function1[dom.Event, Unit] = (event: dom.Event) => {
+      val current = vnode
+      current.data.on.get(event.`type`).foreach { handler =>
+        val snapshot = current.toVNode
+        handler.cbs.foreach(_(event, snapshot))
+      }
+    }
+  }
+
+  // Listener state is keyed by DOM node, so every `PatchedVNode` for that node
+  // (including stale or copied ones) resolves to the same callback. A private
+  // WeakMap keeps it out of reach of application properties on the node.
+  private val listeners = new WeakMap[dom.Node, Listener]
+
+  private def listenerOf(node: dom.Node): Listener =
+    listeners.get(node).getOrElse(null)
+
+  private def setListener(
+      node: dom.Node,
+      listener: Listener
+  ): Unit = { listeners.set(node, listener); () }
+
+  private def clearListener(node: dom.Node): Unit = {
+    listeners.delete(node); ()
+  }
 
   val module: Module = Module().copy(
     create = Some((vNode: PatchedVNode) => {
       vNode match {
-        case elm: PatchedVNode.Element =>
-          if (elm.data.on.nonEmpty) {
-            elm.data.on.foreach { case (name, _) =>
-              elm.node.addEventListener(name, elm.listener, false)
-            }
-          }
+        case elm: PatchedVNode.Element if elm.data.on.nonEmpty =>
+          sync(elm)
         case _ => ()
       }
     }),
-    postPatch = Some((oldVNode: PatchedVNode, vNode: PatchedVNode) =>
-      (oldVNode, vNode) match {
-        case (a: PatchedVNode.Element, b: PatchedVNode.Element) =>
-          updateEventListeners(a, b)
-        case _ => ()
+    postPatch = Some((_: PatchedVNode, vNode: PatchedVNode) =>
+      vNode match {
+        case elm: PatchedVNode.Element => sync(elm)
+        case _                         => ()
       }
     ),
     destroy = Some((vnode: PatchedVNode) => {
       vnode match {
         case elm: PatchedVNode.Element =>
-          elm.data.on.foreach { case (name, _) =>
-            elm.node.removeEventListener(name, elm.listener, false)
+          val listener = listenerOf(elm.node)
+          if (listener != null) {
+            listener.on.keysIterator.foreach { name =>
+              elm.node.removeEventListener(name, listener.callback, false)
+            }
+            clearListener(elm.node)
           }
         case _ => ()
       }
     })
   )
 
-  private def updateEventListeners(
-      oldVnode: PatchedVNode.Element,
-      vnode: PatchedVNode.Element
-  ): Unit = {
+  // Brings the node's registered events in line with `vnode.data.on`,
+  // diffing against what is actually registered rather than an old vnode.
+  private def sync(vnode: PatchedVNode.Element): Unit = {
+    val elm = vnode.node
+    val on = vnode.data.on
+    val existing = listenerOf(elm)
 
-    val elm = oldVnode.node
-    oldVnode.data.on.foreach { case (name, _) =>
-      elm.removeEventListener(name, oldVnode.listener, false)
+    if (existing == null) {
+      if (on.nonEmpty) {
+        val listener = new Listener(vnode)
+        listener.on = on
+        setListener(elm, listener)
+        on.keysIterator.foreach { name =>
+          elm.addEventListener(name, listener.callback, false)
+        }
+      }
+    } else {
+      existing.vnode = vnode
+      val registered = existing.on
+      // The callback stays registered for events present in both versions.
+      if (registered ne on) {
+        registered.keysIterator.filterNot(on.contains).foreach { name =>
+          elm.removeEventListener(name, existing.callback, false)
+        }
+        on.keysIterator.filterNot(registered.contains).foreach { name =>
+          elm.addEventListener(name, existing.callback, false)
+        }
+        existing.on = on
+      }
+      if (on.isEmpty) clearListener(elm)
     }
-    vnode.data.on.foreach { case (name, _) =>
-      elm.addEventListener(name, vnode.listener, false)
-    }
-
   }
 
 }

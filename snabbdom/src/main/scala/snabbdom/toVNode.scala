@@ -50,11 +50,7 @@ object toVNode {
 
     if (api.isElement(node)) {
       val elm = node.asInstanceOf[dom.Element]
-      val id = Option(elm.id).filter(_.nonEmpty).fold("")("#" + _)
-      val cn = Option(elm.getAttribute("class"))
-        .fold(List.empty[String])(classNames)
-      val c = if (cn.nonEmpty) cn.mkString(".", ".", "") else ""
-      val sel = api.tagName(elm).toLowerCase + id + c
+      val (sel, ns) = elementIdentity(elm, api)
       val attrs = mutable.Map.empty[String, String]
       val datasets = mutable.Map.empty[String, String]
 
@@ -79,25 +75,16 @@ object toVNode {
           attrs = attrs.toMap.map { case (key, value) =>
             key -> AttrValue(value)
           },
-          dataset = if (datasets.nonEmpty) datasets.toMap else Map.empty
+          dataset = if (datasets.nonEmpty) datasets.toMap else Map.empty,
+          ns = ns
         )
 
-      val vnode = PatchedVNode.Element(
+      PatchedVNode.Element(
         sel,
         data,
         children.toList,
-        node.asInstanceOf[dom.Element]
+        elm
       )
-
-      if (
-        sel.startsWith("svg") && (sel.length == 3 || sel(3) == '.' || sel(
-          3
-        ) == '#')
-      ) {
-        h.addNS(vnode)
-      } else {
-        vnode
-      }
 
     } else if (api.isText(node)) {
       val text = api.getTextContent(node).getOrElse("")
@@ -112,6 +99,24 @@ object toVNode {
       throw new IllegalArgumentException(s"Unexpected node type: $node")
     }
 
+  }
+
+  private[snabbdom] def elementIdentity(
+      elm: dom.Element,
+      api: DomApi
+  ): (String, Option[String]) = {
+    val namespace = elm.namespaceURI
+    val html = namespace == "http://www.w3.org/1999/xhtml"
+    // Elements without a namespace (`createElementNS(null, ...)`) map to
+    // `Some("")`: `createElementNS("", tag)` recreates exactly such an
+    // element, whereas `None` would create an HTML element instead.
+    val ns = if (html) None else Some(Option(namespace).getOrElse(""))
+    val tag = api.tagName(elm)
+    val id = Option(elm.id).filter(_.nonEmpty).fold("")("#" + _)
+    val classes =
+      Option(elm.getAttribute("class")).fold(List.empty[String])(classNames)
+    val suffix = if (classes.nonEmpty) classes.mkString(".", ".", "") else ""
+    ((if (html) tag.toLowerCase else tag) + id + suffix, ns)
   }
 
   // Splits a class attribute on HTML whitespace (space, tab, LF, FF, CR).

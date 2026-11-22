@@ -59,28 +59,42 @@ object thunk {
       fn: Any => VNode.Element,
       args: Any
   ): VNode.Element = {
-    val hook = Hooks().copy(
-      init = Some((vNode: VNode) => init0(vNode.asInstanceOf[VNode.Element])),
-      prepatch = Some((oldVNode: PatchedVNode, vNode: VNode) =>
-        prepatch0(
-          oldVNode.asInstanceOf[PatchedVNode.Element],
-          vNode.asInstanceOf[VNode.Element]
-        )
-      )
-    )
     val data =
       VNodeData(key = key, fn = Some(fn), args = Some(args), hook = Some(hook))
-    VNode.Element(sel, data, Nil)
+    h(sel, data)
   }
 
-  private def init0(thunk: VNode.Element): VNode = {
-    val fn = thunk.data.fn.get
-    val args = thunk.data.args.get
-    val vnode = fn(args)
-    thunk.copy(
-      children = vnode.children,
-      data = vnode.data.copy(fn = Some(fn), args = Some(args))
+  // Shared instances: `patchVnode` recognises the library's own prepatch hook
+  // by reference and may then skip it for unchanged thunks. A caller-supplied
+  // wrapper is a different instance and therefore always runs.
+  private[snabbdom] val prepatchHook: PrePatchHook =
+    (oldVNode: PatchedVNode, vNode: VNode) =>
+      prepatch0(
+        oldVNode.asInstanceOf[PatchedVNode.Element],
+        vNode.asInstanceOf[VNode.Element]
+      )
+
+  private val hook = Hooks(
+    init = Some((vNode: VNode) => render(vNode.asInstanceOf[VNode.Element])),
+    prepatch = Some(prepatchHook)
+  )
+
+  private def render(thunk: VNode.Element): VNode = {
+    val data = thunk.data
+    val vnode = data.fn.get(data.args.get)
+    val rendered = vnode.copy(
+      sel = thunk.sel,
+      data = vnode.data.copy(
+        key = data.key,
+        // A thunk's own `ns` is only ever inherited from `h("svg", ...)`,
+        // so a namespace the render function names takes precedence.
+        ns = vnode.data.ns.orElse(data.ns),
+        fn = data.fn,
+        args = data.args
+      )
     )
+    if (rendered.data.ns.contains(h.svgNamespace)) h.addNS(rendered)
+    else rendered
   }
 
   private def prepatch0(
@@ -94,11 +108,7 @@ object thunk {
     val oldFn = old.fn
     val curFn = cur.fn
     if (oldFn != curFn || oldArgs != args) {
-      val vnode = curFn.get(args.get)
-      thunk.copy(
-        children = vnode.children,
-        data = vnode.data.copy(fn = curFn, args = args)
-      )
+      render(thunk)
     } else {
       oldVnode.toVNode
     }

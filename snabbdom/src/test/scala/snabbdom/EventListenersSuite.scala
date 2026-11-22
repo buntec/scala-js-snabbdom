@@ -230,6 +230,39 @@ class EventListenersSuite extends BaseSuite {
     assertEquals(calls.toList, List("first", "second"))
   }
 
+  vnode0.test("retains listener order and supplies the latest vnode") { root =>
+    val calls = ListBuffer.empty[String]
+    val handler = EventHandler.usingVNode((_: dom.Event, vnode: VNode) => {
+      calls += vnode
+        .asInstanceOf[VNode.Element]
+        .children
+        .head
+        .asInstanceOf[VNode.Text]
+        .content
+      ()
+    })
+    val data = VNodeData(on = Map("click" -> handler))
+    val first = patch(root, h("div", data, "first"))
+    val element = first.node.asInstanceOf[dom.HTMLElement]
+    element.addEventListener(
+      "click",
+      (_: dom.Event) => { calls += "native"; () }
+    )
+
+    val second = patch(first, h("div", data, "second"))
+    element.click()
+    assertEquals(calls.toList, List("second", "native"))
+
+    val removed = patch(second, h("div", "third"))
+    element.click()
+    patch(removed, h("div", data, "fourth"))
+    element.click()
+    assertEquals(
+      calls.toList,
+      List("second", "native", "native", "native", "fourth")
+    )
+  }
+
   vnode0.test("adds and removes listeners for different events") { vnode0 =>
     val calls = ListBuffer.empty[String]
     val click = EventHandler((_: dom.Event) => calls += "click")
@@ -242,6 +275,55 @@ class EventListenersSuite extends BaseSuite {
     elm.click()
     elm.dispatchEvent(new dom.Event("custom"))
     assertEquals(calls.toList, List("custom"))
+  }
+
+  vnode0.test("patching twice from a stale vnode keeps one listener") {
+    vnode0 =>
+      var calls = 0
+      def vnode(label: String) = h(
+        "button",
+        VNodeData(on =
+          Map("click" -> EventHandler((_: dom.Event) => calls += 1))
+        ),
+        label
+      )
+      val p0 = patch(vnode0, vnode("a"))
+      patch(p0, vnode("b"))
+      patch(p0, vnode("c"))
+      p0.node.asInstanceOf[dom.HTMLElement].click()
+      assertEquals(calls, 1)
+  }
+
+  vnode0.test("patching from a copied vnode keeps one listener") { vnode0 =>
+    var calls = 0
+    def vnode(label: String) = h(
+      "button",
+      VNodeData(on =
+        Map("click" -> EventHandler((_: dom.Event) => calls += 1))
+      ),
+      label
+    )
+    val p = patch(vnode0, vnode("a")).asInstanceOf[PatchedVNode.Element]
+    patch(p.copy(), vnode("b"))
+    p.node.asInstanceOf[dom.HTMLElement].click()
+    assertEquals(calls, 1)
+  }
+
+  vnode0.test("keeps listener state separate from DOM properties") { vnode0 =>
+    val patchWithProps = init(Seq(Props.module, EventListeners.module))
+    var calls = 0
+    def vnode(label: String) = h(
+      "button",
+      VNodeData(
+        props = Map("__snabbdomListener" -> "app"),
+        on = Map("click" -> EventHandler((_: dom.Event) => calls += 1))
+      ),
+      label
+    )
+    val first = patchWithProps(vnode0, vnode("a"))
+    val second = patchWithProps(first, vnode("b"))
+    second.node.asInstanceOf[dom.HTMLElement].click()
+    assertEquals(calls, 1)
   }
 
 }

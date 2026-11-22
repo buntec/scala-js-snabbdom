@@ -95,7 +95,14 @@ lazy val snabbdom = (project
       "org.scalameta" %%% "munit" % munitVersion % Test,
       "org.scalacheck" %%% "scalacheck" % scalacheckVersion % Test,
       "org.scala-js" %%% "scala-js-macrotask-executor" % "1.1.1" % Test
-    )
+    ),
+    mimaBinaryIssueFilters ++= {
+      import com.typesafe.tools.mima.core._
+      // Package-private: Scala 3 emits it as public, but it was never API.
+      Seq(
+        ProblemFilters.exclude[DirectMissingMethodProblem]("snabbdom.h.addNS")
+      )
+    }
   )
 
 lazy val examples = (project

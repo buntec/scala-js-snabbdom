@@ -17,7 +17,6 @@
 package snabbdom
 
 import org.scalajs.dom
-import scalajs.js
 
 /** A `VNode` that has been patched into the DOM. */
 sealed trait PatchedVNode {
@@ -38,16 +37,6 @@ object PatchedVNode {
       children: List[PatchedVNode],
       node: dom.Element
   ) extends PatchedVNode {
-
-    private def handleEvent(event: dom.Event): Unit = {
-      val name = event.`type`
-      data.on.get(name).foreach { handler =>
-        handler.cbs.foreach(_(event, this.toVNode))
-      }
-    }
-
-    private[snabbdom] lazy val listener: js.Function1[dom.Event, Unit] =
-      handleEvent _
 
     override def toVNode: VNode =
       VNode.Element(sel, data, children.map(_.toVNode))

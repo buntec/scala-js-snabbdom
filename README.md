@@ -24,3 +24,12 @@ See the test suites for usage examples.
 ## Contributing
 
 Don't hesitate to open issues or pull requests!
+
+### Benchmarks
+
+Run `sbt benchmarks/fullLinkJS`, serve the repository with
+`python3 -m http.server 8000 --bind 127.0.0.1`, and open
+`http://127.0.0.1:8000/benchmarks/`. The browser console reports median patch times
+for keyed reordering, a text update in a deep tree, and updates to elements with
+event listeners. Each timed sample reuses prebuilt VNodes and excludes the
+initial mount.
