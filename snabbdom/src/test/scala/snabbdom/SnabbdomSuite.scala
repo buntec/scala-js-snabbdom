@@ -1813,6 +1813,25 @@ class SnabbdomSuite extends BaseSuite {
       assertEquals(vnode2p.toVNode, vnode2)
       assertEquals(result.result().size, 0)
     }
+
+    vnode0.test("updates only the changed path of a deep tree") { vnode0 =>
+      var updates = 0
+      val cb: UpdateHook = (_, _) => updates += 1
+      val data = VNodeData(hook = Some(Hooks(update = Some(cb))))
+      // Each level has an unchanged sibling before the changed branch.
+      def tree(leaf: String): VNode =
+        (0 until 50).foldLeft(VNode.text(leaf)) { (child, i) =>
+          h("div", data, List(h("span", data, s"same $i"), child))
+        }
+      val first = patch(vnode0, tree("before"))
+      updates = 0
+      val second = patch(first, tree("after"))
+      assertEquals(updates, 50)
+      assertEquals(second.toVNode, tree("after"))
+      assertEquals(second.node.textContent.endsWith("after"), true)
+      patch(second, tree("after"))
+      assertEquals(updates, 50)
+    }
   }
 
 }

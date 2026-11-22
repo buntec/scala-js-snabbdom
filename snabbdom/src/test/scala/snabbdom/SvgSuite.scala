@@ -203,6 +203,45 @@ class SvgSuite extends BaseSuite {
     assertEquals(button.textContent, "new")
   }
 
+  vnode0.test("replaces a detached SVG root with an HTML element") { vnode0 =>
+    val svg = patch(vnode0, h("svg"))
+    assertEquals(svg.node.namespaceURI, svgNS)
+    val div = patch(svg, h("div", List(h("span", "HTML"))))
+    assertEquals(div.node.namespaceURI, htmlNS)
+    assertEquals(div.node.firstChild.namespaceURI, htmlNS)
+  }
+
+  vnode0.test("replaces a detached SVG root when the tag matches") { vnode0 =>
+    val svgA = patch(vnode0, h("a", VNodeData(ns = Some(svgNS)), "SVG"))
+    val htmlA = patch(svgA, h("a", "HTML"))
+    assert(!(htmlA.node eq svgA.node))
+    assertEquals(htmlA.node.namespaceURI, htmlNS)
+  }
+
+  test("mounts a vnode without ns onto a detached SVG element in place") {
+    val g = dom.document.createElementNS(svgNS, "g")
+    val patched = patch(g, h("g", List(h("circle"))))
+    assert(patched.node eq g)
+    assertEquals(g.firstChild.namespaceURI, svgNS)
+  }
+
+  vnode0.test("keeps explicit namespaces of descendants inside svg") { vnode0 =>
+    val result = patch(
+      vnode0,
+      h(
+        "svg",
+        List(
+          h("div", VNodeData(ns = Some(htmlNS)), List(h("span", "HTML"))),
+          h("g")
+        )
+      )
+    )
+    val div = result.node.firstChild
+    assertEquals(div.namespaceURI, htmlNS)
+    assertEquals(div.firstChild.namespaceURI, htmlNS)
+    assertEquals(result.node.lastChild.namespaceURI, svgNS)
+  }
+
   vnode0.test("removes child svg elements") { vnode0 =>
     val a = h("svg", VNodeData(), List(h("g"), h("g")))
     val b = h("svg", VNodeData(), List(h("g")))

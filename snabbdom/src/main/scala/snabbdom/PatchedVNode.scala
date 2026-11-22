@@ -17,7 +17,6 @@
 package snabbdom
 
 import org.scalajs.dom
-import scalajs.js
 
 /** A `VNode` that has been patched into the DOM. */
 sealed trait PatchedVNode {
@@ -42,20 +41,6 @@ object PatchedVNode {
     override def toVNode: VNode =
       VNode.Element(sel, data, children.map(_.toVNode))
 
-  }
-
-  // Attached to the DOM node rather than to a `PatchedVNode`, so patching from
-  // a stale or copied `PatchedVNode` still finds the registered callback.
-  private[snabbdom] final class Listener(var vnode: Element) {
-    // The `on` map whose event names are currently registered on the node.
-    var on: Map[String, EventHandler] = Map.empty
-    val callback: js.Function1[dom.Event, Unit] = (event: dom.Event) => {
-      val current = vnode
-      current.data.on.get(event.`type`).foreach { handler =>
-        val snapshot = current.toVNode
-        handler.cbs.foreach(_(event, snapshot))
-      }
-    }
   }
 
   def element(

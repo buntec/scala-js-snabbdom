@@ -54,17 +54,31 @@ object EventListeners {
     def delete(key: K): Boolean = js.native
   }
 
+  // One per DOM node with handlers. Its callback stays registered across
+  // patches and dispatches to the handlers of the latest patched vnode.
+  private final class Listener(var vnode: PatchedVNode.Element) {
+    // The `on` map whose event names are currently registered on the node.
+    var on: Map[String, EventHandler] = Map.empty
+    val callback: js.Function1[dom.Event, Unit] = (event: dom.Event) => {
+      val current = vnode
+      current.data.on.get(event.`type`).foreach { handler =>
+        val snapshot = current.toVNode
+        handler.cbs.foreach(_(event, snapshot))
+      }
+    }
+  }
+
   // Listener state is keyed by DOM node, so every `PatchedVNode` for that node
   // (including stale or copied ones) resolves to the same callback. A private
   // WeakMap keeps it out of reach of application properties on the node.
-  private val listeners = new WeakMap[dom.Node, PatchedVNode.Listener]
+  private val listeners = new WeakMap[dom.Node, Listener]
 
-  private def listenerOf(node: dom.Node): PatchedVNode.Listener =
+  private def listenerOf(node: dom.Node): Listener =
     listeners.get(node).getOrElse(null)
 
   private def setListener(
       node: dom.Node,
-      listener: PatchedVNode.Listener
+      listener: Listener
   ): Unit = { listeners.set(node, listener); () }
 
   private def clearListener(node: dom.Node): Unit = {
@@ -109,7 +123,7 @@ object EventListeners {
 
     if (existing == null) {
       if (on.nonEmpty) {
-        val listener = new PatchedVNode.Listener(vnode)
+        val listener = new Listener(vnode)
         listener.on = on
         setListener(elm, listener)
         on.keysIterator.foreach { name =>

@@ -43,6 +43,8 @@ import snabbdom.modules._
 
 import scala.annotation.tailrec
 import scala.collection.mutable
+import scala.scalajs.js
+import scala.scalajs.js.annotation.JSGlobal
 
 object init {
 
@@ -67,6 +69,13 @@ object init {
     type VNodeQueue = mutable.ArrayBuffer[PatchedVNode]
 
     val api = domApi.getOrElse(DomApi.apply)
+
+    // Old elements whose children a `sameTree` walk, while patching an
+    // ancestor, found to differ from those of the paired new vnode. Lets
+    // `patchVnode` skip walking them again, which would otherwise make a
+    // change deep in the tree cost quadratic time in its depth. Allocated
+    // lazily and scoped to a single `patch` call.
+    var childrenDiffer: IdentityMap[PatchedVNode, VNode] = null
 
     val cbs: ModuleHooks = modules.foldLeft(ModuleHooks.empty) {
       case (hooks, module) =>
@@ -188,18 +197,51 @@ object init {
       replacement
     }
 
-    // The namespace a root vnode without `ns` inherits: that of the DOM
-    // parent's children or, for a detached node, the node's own namespace.
-    def rootContext(oldVnode: PatchedVNode): Option[String] =
+    // The namespace a root vnode without `ns` inherits from the DOM parent's
+    // children, or `None` if the old node has no parent element.
+    def parentContext(oldVnode: PatchedVNode): Option[Option[String]] =
       api.parentNode(oldVnode.node) match {
         case Some(parent: dom.Element) =>
-          childContext(domNs(parent), parent.localName)
-        case _ =>
-          oldVnode match {
-            case PatchedVNode.Element(_, _, _, elm) => domNs(elm)
-            case _                                  => None
-          }
+          Some(childContext(domNs(parent), parent.localName))
+        case _ => None
       }
+
+    def knownChildrenDiffer(
+        old: PatchedVNode.Element,
+        next: VNode.Element
+    ): Boolean = {
+      val marks = childrenDiffer
+      marks != null && marks.get(old).exists(_ eq next)
+    }
+
+    @tailrec def sameChildren(
+        old: List[PatchedVNode],
+        next: List[VNode]
+    ): Boolean = {
+      (old, next) match {
+        case (Nil, Nil)                                 => true
+        case (oldHead :: oldTail, nextHead :: nextTail) =>
+          sameTree(oldHead, nextHead) && sameChildren(oldTail, nextTail)
+        case _ => false
+      }
+    }
+
+    def sameTree(old: PatchedVNode, next: VNode): Boolean = {
+      (old, next) match {
+        case (old: PatchedVNode.Element, next: VNode.Element) =>
+          old.sel == next.sel && old.data == next.data && {
+            val same = sameChildren(old.children, next.children)
+            if (!same) {
+              if (childrenDiffer == null) childrenDiffer = new IdentityMap()
+              childrenDiffer.set(old, next)
+            }
+            same
+          }
+        case (PatchedVNode.Text(old, _), VNode.Text(next))       => old == next
+        case (PatchedVNode.Comment(old, _), VNode.Comment(next)) => old == next
+        case _                                                   => false
+      }
+    }
 
     def invokeDestroyHook(vnode: PatchedVNode): Unit = {
       vnode match {
@@ -482,6 +524,7 @@ object init {
 
       val childrenUnchanged = (oldVnode, vnode) match {
         case (old: PatchedVNode.Element, next: VNode.Element) =>
+          !((vnode eq vnode00) && knownChildrenDiffer(old, next)) &&
           sameChildren(old.children, next.children)
         case _ => false
       }
@@ -553,18 +596,43 @@ object init {
 
     }
 
-    def patch(oldVnode: PatchedVNode, vnode: VNode): PatchedVNode = {
+    // `mount` is true when `oldVnode` is a placeholder for an element the
+    // caller passed in directly.
+    def patch(
+        oldVnode: PatchedVNode,
+        vnode: VNode,
+        mount: Boolean
+    ): PatchedVNode = {
+      val saved = childrenDiffer
+      childrenDiffer = null
+      try patch0(oldVnode, vnode, mount)
+      finally childrenDiffer = saved
+    }
+
+    def patch0(
+        oldVnode: PatchedVNode,
+        vnode: VNode,
+        mount: Boolean
+    ): PatchedVNode = {
 
       val insertedVNodeQueue: VNodeQueue =
         mutable.ArrayBuffer.empty[PatchedVNode]
 
       cbs.pre.foreach(_())
 
-      val ctx = rootContext(oldVnode)
-      val vnode0 = if (sameVnode(oldVnode, vnode, ctx)) {
-        patchVnode(oldVnode, vnode, ctx, insertedVNodeQueue)
+      // A detached root behaves as if it were in an HTML parent, except that
+      // a vnode without `ns` mounted directly onto an element matches that
+      // element's own namespace, so it is patched in place.
+      val parentCtx = parentContext(oldVnode)
+      val matchCtx = parentCtx.getOrElse(oldVnode match {
+        case PatchedVNode.Element(_, _, _, elm) if mount => domNs(elm)
+        case _                                           => None
+      })
+      val vnode0 = if (sameVnode(oldVnode, vnode, matchCtx)) {
+        patchVnode(oldVnode, vnode, matchCtx, insertedVNodeQueue)
       } else {
-        replaceVnode(oldVnode)(createElm(vnode, ctx, insertedVNodeQueue))
+        val createCtx = parentCtx.getOrElse(None)
+        replaceVnode(oldVnode)(createElm(vnode, createCtx, insertedVNodeQueue))
       }
 
       insertedVNodeQueue.foreach {
@@ -580,10 +648,18 @@ object init {
     }
 
     Patch(
-      (oldVnode, vnode) => patch(oldVnode, vnode),
-      (elm, vnode) => patch(emptyNodeAt(elm), vnode)
+      (oldVnode, vnode) => patch(oldVnode, vnode, mount = false),
+      (elm, vnode) => patch(emptyNodeAt(elm), vnode, mount = true)
     )
 
+  }
+
+  // An ES2015 Map: keys are compared by identity, not by structural equality.
+  @js.native
+  @JSGlobal("Map")
+  private class IdentityMap[K, V <: AnyRef] extends js.Object {
+    def get(key: K): js.UndefOr[V] = js.native
+    def set(key: K, value: V): this.type = js.native
   }
 
   private val htmlNamespace = "http://www.w3.org/1999/xhtml"
@@ -630,31 +706,6 @@ object init {
           // `patchVnode` checks it after the hook has run.
           (next.data.ns.isEmpty && next.data.hook.exists(_.prepatch.isDefined)))
       case _ => false
-    }
-  }
-
-  @tailrec private def sameChildren(
-      old: List[PatchedVNode],
-      next: List[VNode]
-  ): Boolean = {
-    (old, next) match {
-      case (Nil, Nil)                                 => true
-      case (oldHead :: oldTail, nextHead :: nextTail) =>
-        sameTree(oldHead, nextHead) && sameChildren(oldTail, nextTail)
-      case _ => false
-    }
-  }
-
-  private def sameTree(old: PatchedVNode, next: VNode): Boolean = {
-    (old, next) match {
-      case (old: PatchedVNode.Element, next: VNode.Element) =>
-        old.sel == next.sel && old.data == next.data && sameChildren(
-          old.children,
-          next.children
-        )
-      case (PatchedVNode.Text(old, _), VNode.Text(next))       => old == next
-      case (PatchedVNode.Comment(old, _), VNode.Comment(next)) => old == next
-      case _                                                   => false
     }
   }
 

@@ -117,12 +117,16 @@ object h {
 
   private[snabbdom] def addNS(vnode: VNode): VNode = {
     vnode match {
-      case VNode.Comment(_)                   => vnode
-      case VNode.Text(_)                      => vnode
+      case VNode.Comment(_) => vnode
+      case VNode.Text(_)    => vnode
+      // An explicit namespace is kept; a non-SVG one (e.g. HTML or MathML)
+      // also applies to the element's children, so stop descending there.
+      case VNode.Element(_, data, _) if data.ns.exists(_ != svgNamespace) =>
+        vnode
       case VNode.Element(sel, data, children) =>
         VNode.Element(
           sel,
-          data.copy(ns = Some(svgNamespace)),
+          if (data.ns.isDefined) data else data.copy(ns = Some(svgNamespace)),
           if (hasTag(sel, "foreignObject")) children else children.map(addNS)
         )
     }
