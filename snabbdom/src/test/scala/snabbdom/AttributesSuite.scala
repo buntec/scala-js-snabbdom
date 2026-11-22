@@ -258,6 +258,19 @@ class AttributesSuite extends BaseSuite {
       assertEquals(use.getAttribute("xyz"), "#b")
     }
 
+    vnode0.test("sets and updates xmlns namespace declarations") { vnode0 =>
+      val xmlnsNS = "http://www.w3.org/2000/xmlns/"
+      val xlinkNS = "http://www.w3.org/1999/xlink"
+      def vnode(ns: String) =
+        h("svg", VNodeData(attrs = Map("xmlns:xlink" -> AttrValue(ns))))
+      val p1 = patch(vnode0, vnode(xlinkNS))
+      val svg = p1.node.asInstanceOf[dom.Element]
+      assertEquals(svg.getAttribute("xmlns:xlink"), xlinkNS)
+      assertEquals(svg.getAttributeNS(xmlnsNS, "xlink"), xlinkNS)
+      patch(p1, vnode("urn:other"))
+      assertEquals(svg.getAttributeNS(xmlnsNS, "xlink"), "urn:other")
+    }
+
     vnode0.test("sets non-namespaced attributes starting with `x`") { vnode0 =>
       val elm = patch(
         vnode0,

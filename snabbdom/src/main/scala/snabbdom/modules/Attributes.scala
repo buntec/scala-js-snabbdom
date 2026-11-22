@@ -38,6 +38,7 @@
 
 package snabbdom.modules
 
+import org.scalajs.dom
 import snabbdom._
 
 object Attributes {
@@ -72,6 +73,25 @@ object Attributes {
 
   private val xlinkNS = "http://www.w3.org/1999/xlink"
   private val xmlNS = "http://www.w3.org/XML/1998/namespace"
+  private val xmlnsNS = "http://www.w3.org/2000/xmlns/"
+
+  // `xml:*` and `xmlns:*` attributes must be set in their reserved
+  // namespaces, and `x?????:*` ones are assumed to be `xlink:*`.
+  private def setStringAttr(
+      elm: dom.Element,
+      key: String,
+      value: String
+  ): Unit =
+    if (key.charAt(0) != 'x') {
+      elm.setAttribute(key, value)
+    } else if (key.length > 3 && key.charAt(3) == ':') {
+      elm.setAttributeNS(xmlNS, key, value)
+    } else if (key.length > 5 && key.charAt(5) == ':') {
+      if (key.startsWith("xmlns:")) elm.setAttributeNS(xmlnsNS, key, value)
+      else elm.setAttributeNS(xlinkNS, key, value)
+    } else {
+      elm.setAttribute(key, value)
+    }
 
   private def setAttrs(vnode: PatchedVNode.Element): Unit = {
     val elm = vnode.node
@@ -83,15 +103,7 @@ object Attributes {
           elm.removeAttribute(key)
         }
       case (key, AttrValue.StringAttrValue(value)) =>
-        if (key.charAt(0) != 'x') {
-          elm.setAttribute(key, value)
-        } else if (key.length > 3 && key.charAt(3) == ':') {
-          elm.setAttributeNS(xmlNS, key, value)
-        } else if (key.length > 5 && key.charAt(5) == ':') {
-          elm.setAttributeNS(xlinkNS, key, value)
-        } else {
-          elm.setAttribute(key, value)
-        }
+        setStringAttr(elm, key, value)
     }
   }
 
@@ -114,15 +126,7 @@ object Attributes {
               elm.removeAttribute(key)
             }
           case AttrValue.StringAttrValue(value) =>
-            if (key.charAt(0) != 'x') {
-              elm.setAttribute(key, value)
-            } else if (key.length > 3 && key.charAt(3) == ':') {
-              elm.setAttributeNS(xmlNS, key, value)
-            } else if (key.length > 5 && key.charAt(5) == ':') {
-              elm.setAttributeNS(xlinkNS, key, value)
-            } else {
-              elm.setAttribute(key, value)
-            }
+            setStringAttr(elm, key, value)
         }
       }
     }

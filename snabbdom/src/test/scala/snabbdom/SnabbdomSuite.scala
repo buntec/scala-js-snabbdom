@@ -443,6 +443,25 @@ class SnabbdomSuite extends BaseSuite {
 
   group("using `toVNode`") {
 
+    test("can replace non-empty children with an innerHTML prop") {
+      val prevElm = dom.document.createElement("div")
+      prevElm.id = "id"
+      prevElm.setAttribute("class", "class")
+      val h2 = dom.document.createElement("h2")
+      h2.textContent = "Hello"
+      prevElm.appendChild(h2)
+      prevElm.appendChild(dom.document.createTextNode("text"))
+      prevElm.appendChild(dom.document.createComment("comment"))
+      val nextVNode =
+        h(
+          "div#id.class",
+          VNodeData(props = Map("innerHTML" -> "<span>Hi</span>"))
+        )
+      val elm = patch(toVNode(prevElm), nextVNode).node
+      assert(elm eq prevElm)
+      assertEquals(prevElm.innerHTML, "<span>Hi</span>")
+    }
+
     test("can remove previous children of the root element") {
       val h2 = dom.document.createElement("h2")
       h2.textContent = "Hello"
