@@ -40,10 +40,28 @@ package snabbdom
 
 import org.scalajs.dom
 
-trait Patch {
+/** Patches the DOM. Obtain an instance via [[init]]. */
+sealed trait Patch {
 
   def apply(oldVnode: PatchedVNode, vnode: VNode): PatchedVNode
 
   def apply(elm: dom.Element, vnode: VNode): PatchedVNode
+
+}
+
+private[snabbdom] object Patch {
+
+  def apply(
+      patchVNode: (PatchedVNode, VNode) => PatchedVNode,
+      patchElement: (dom.Element, VNode) => PatchedVNode
+  ): Patch = new Patch {
+
+    override def apply(oldVnode: PatchedVNode, vnode: VNode): PatchedVNode =
+      patchVNode(oldVnode, vnode)
+
+    override def apply(elm: dom.Element, vnode: VNode): PatchedVNode =
+      patchElement(elm, vnode)
+
+  }
 
 }

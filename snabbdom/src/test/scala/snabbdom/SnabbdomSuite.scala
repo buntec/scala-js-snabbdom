@@ -422,16 +422,22 @@ class SnabbdomSuite extends BaseSuite {
 
     }
 
-    // this test seems to assert the opposite of "removes custom props" ???
-    vnode0.test("does not delete custom props".ignore) { vnode0 =>
-      val vnode1 = h("p", VNodeData(props = Map("a" -> "foo")))
-      val vnode2 = h("p")
+    // Upstream snabbdom never deletes props (see its "does not delete custom
+    // props" test), but its "removes custom props" test passes only by accident
+    // (https://github.com/snabbdom/snabbdom/pull/1019). This port deliberately
+    // deletes own (custom) props that are no longer present, while inherited
+    // native props are left untouched (see "cannot remove native props").
+    vnode0.test("deletes custom props no longer present") { vnode0 =>
+      val vnode1 = h("p", VNodeData(props = Map("a" -> "foo", "b" -> "bar")))
+      val vnode2 = h("p", VNodeData(props = Map("b" -> "baz")))
       val vnode1p = patch(vnode0, vnode1)
-      val elm = vnode1p.node
-      assert(elm.isInstanceOf[dom.HTMLParagraphElement])
-      assertEquals(elm.asInstanceOf[js.Dictionary[String]]("a"), "foo")
-      val elm2 = patch(vnode1p, vnode2).node
-      assertEquals(elm2.asInstanceOf[js.Dictionary[String]]("a"), "foo")
+      val elm = vnode1p.node.asInstanceOf[js.Dictionary[String]]
+      assertEquals(elm("a"), "foo")
+      assertEquals(elm("b"), "bar")
+      val elm2 = patch(vnode1p, vnode2).node.asInstanceOf[js.Dictionary[String]]
+      assert(elm eq elm2)
+      assert(!elm2.contains("a"))
+      assertEquals(elm2("b"), "baz")
     }
   }
 

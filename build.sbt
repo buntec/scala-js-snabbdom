@@ -1,12 +1,15 @@
 ThisBuild / tlBaseVersion := "0.2"
 
-val scala213 = "2.13.8"
+val scala213 = "2.13.18"
+val scala3 = "3.3.9"
 ThisBuild / scalaVersion := scala213
-ThisBuild / crossScalaVersions := Seq(scala213, "3.1.2")
+ThisBuild / crossScalaVersions := Seq(scala213, scala3)
 ThisBuild / organization := "io.github.buntec"
 ThisBuild / organizationName := "buntec"
 ThisBuild / startYear := Some(2022)
-ThisBuild / tlSonatypeUseLegacyHost := false
+
+// The Scala.js linker (1.20+) no longer runs on Java 8
+ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("21"))
 
 ThisBuild / developers := List(
   tlGitHubDev("buntec", "Christoph Bunte"),
@@ -36,8 +39,8 @@ ThisBuild / githubWorkflowAddedJobs +=
       ++ githubWorkflowGeneratedCacheSteps.value
       ++ List(
         WorkflowStep.Use(
-          UseRef.Public("actions", "setup-node", "v3"),
-          params = Map("node-version" -> "16", "cache" -> "npm")
+          UseRef.Public("actions", "setup-node", "v6"),
+          params = Map("node-version" -> "22", "cache" -> "npm")
         ),
         WorkflowStep.Run(List("npm install")),
         WorkflowStep.Sbt(
@@ -48,7 +51,10 @@ ThisBuild / githubWorkflowAddedJobs +=
             "coverageAggregate"
           )
         ),
-        WorkflowStep.Run(List("bash <(curl -s https://codecov.io/bash)"))
+        WorkflowStep.Use(
+          UseRef.Public("codecov", "codecov-action", "v5"),
+          params = Map("token" -> "${{ secrets.CODECOV_TOKEN }}")
+        )
       )
   )
 
@@ -62,20 +68,20 @@ ThisBuild / Test / jsEnv := {
   useJSEnv.value match {
     case JSEnv.Chrome =>
       val options = new ChromeOptions()
-      options.setHeadless(true)
+      options.addArguments("--headless=new")
       new SeleniumJSEnv(options)
     case JSEnv.Firefox =>
       val options = new FirefoxOptions()
-      options.setHeadless(true)
+      options.addArguments("-headless")
       new SeleniumJSEnv(options)
     case JSEnv.JSDOM =>
       new JSDOMNodeJSEnv()
   }
 }
 
-lazy val scalajsDomVersion = "2.8.0"
-lazy val scalacheckVersion = "1.17.0"
-lazy val munitVersion = "1.0.0-M11"
+lazy val scalajsDomVersion = "2.8.1"
+lazy val scalacheckVersion = "1.19.0"
+lazy val munitVersion = "1.3.6"
 
 lazy val root = tlCrossRootProject.aggregate(snabbdom, examples, benchmarks)
 
@@ -88,7 +94,7 @@ lazy val snabbdom = (project
       "org.scala-js" %%% "scalajs-dom" % scalajsDomVersion,
       "org.scalameta" %%% "munit" % munitVersion % Test,
       "org.scalacheck" %%% "scalacheck" % scalacheckVersion % Test,
-      "org.scala-js" %%% "scala-js-macrotask-executor" % "1.0.0" % Test
+      "org.scala-js" %%% "scala-js-macrotask-executor" % "1.1.1" % Test
     )
   )
 

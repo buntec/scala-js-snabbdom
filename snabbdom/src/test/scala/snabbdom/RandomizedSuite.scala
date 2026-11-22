@@ -71,7 +71,7 @@ class RandomizedSuite extends BaseSuite {
         (0 until nSamples).map { _ =>
           Future(nodesGen.sample)
             .map {
-              case None => Future.unit
+              case None         => Future.unit
               case Some(vnodes) =>
                 val elm = dom.document.createElement("div")
                 val vnode = vnodes.tail.foldLeft(patch(elm, vnodes.head)) {
@@ -127,7 +127,7 @@ class RandomizedSuite extends BaseSuite {
       Future.sequence {
         (0 until nSamples).map { _ =>
           Future(nodesGen.sample).map {
-            case None => Future.unit
+            case None         => Future.unit
             case Some(vnodes) =>
               val elm = dom.document.createElement("div")
 

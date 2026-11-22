@@ -18,7 +18,7 @@ package snabbdom
 
 import org.scalajs.dom
 
-class EventHandler(
+final class EventHandler private (
     val cbs: Seq[(dom.Event, VNode) => Unit]
 )
 

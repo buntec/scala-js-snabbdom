@@ -51,8 +51,9 @@ object toVNode {
     if (api.isElement(node)) {
       val elm = node.asInstanceOf[dom.Element]
       val id = Option(elm.id).filter(_.nonEmpty).fold("")("#" + _)
-      val cn = Option(elm.getAttribute("class")).getOrElse("")
-      val c = if (cn != "") "." + cn.split(" ").mkString(".") else ""
+      val cn = Option(elm.getAttribute("class"))
+        .fold(List.empty[String])(classNames)
+      val c = if (cn.nonEmpty) cn.mkString(".", ".", "") else ""
       val sel = api.tagName(elm).toLowerCase + id + c
       val attrs = mutable.Map.empty[String, String]
       val datasets = mutable.Map.empty[String, String]
@@ -63,7 +64,7 @@ object toVNode {
       elmAttrs.foreach { case (_, attr) =>
         val name = attr.nodeName
         if (name.startsWith("data-")) {
-          datasets += name.drop(5) -> Option(attr.nodeValue).getOrElse("")
+          datasets += datasetKey(name) -> Option(attr.nodeValue).getOrElse("")
         } else if (name != "id" && name != "class") {
           attrs += name -> Option(attr.nodeValue).getOrElse("")
         }
@@ -111,6 +112,32 @@ object toVNode {
       throw new IllegalArgumentException(s"Unexpected node type: $node")
     }
 
+  }
+
+  // Splits a class attribute on HTML whitespace (space, tab, LF, FF, CR).
+  private def classNames(cn: String): List[String] =
+    cn.split("[\\t\\r\\n\\f ]+").toList.filter(_.nonEmpty)
+
+  // Transforms a `data-` attribute name into a dataset property key, see
+  // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dataset#name_conversion
+  private def datasetKey(attributeName: String): String = {
+    val name = attributeName.drop(5)
+    val sb = new java.lang.StringBuilder(name.length)
+    var i = 0
+    while (i < name.length) {
+      val ch = name.charAt(i)
+      if (
+        ch == '-' && i + 1 < name.length && name.charAt(i + 1) >= 'a' && name
+          .charAt(i + 1) <= 'z'
+      ) {
+        sb.append(name.charAt(i + 1).toUpper)
+        i += 2
+      } else {
+        sb.append(ch)
+        i += 1
+      }
+    }
+    sb.toString
   }
 
 }

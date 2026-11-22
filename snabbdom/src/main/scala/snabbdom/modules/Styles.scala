@@ -89,7 +89,7 @@ object Styles {
     oldStyle.foreach { case (name, _) =>
       if (!style.contains(name)) {
         if (name.startsWith("--")) {
-          elm.asInstanceOf[dom.HTMLElement].style.removeProperty(name)
+          elm.asInstanceOf[dom.HTMLElement].style.removeProperty(name): Unit
         } else {
           elm
             .asInstanceOf[dom.HTMLElement]

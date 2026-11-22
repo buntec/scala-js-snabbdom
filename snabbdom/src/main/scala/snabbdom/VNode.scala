@@ -78,7 +78,7 @@ object VNode {
   private def prettyPrint(vnode: VNode): String = {
     def go(indent: Int, vnode: VNode): String = {
       vnode match {
-        case Text(content) => s"${" " * indent}$content"
+        case Text(content)                => s"${" " * indent}$content"
         case Element(sel, data, children) =>
           s"""|${" " * indent}<$sel${data.key.fold("")(key => s" key=$key")}>
               |${children.map(go(indent + 2, _)).mkString("\n")}

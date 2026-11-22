@@ -114,8 +114,8 @@ object h {
 
   private[snabbdom] def addNS(vnode: PatchedVNode): PatchedVNode = {
     vnode match {
-      case Comment(_, _)           => vnode
-      case PatchedVNode.Text(_, _) => vnode
+      case Comment(_, _)                                  => vnode
+      case PatchedVNode.Text(_, _)                        => vnode
       case PatchedVNode.Element(sel, data, children, elm) =>
         PatchedVNode.Element(
           sel,
@@ -128,8 +128,8 @@ object h {
 
   private[snabbdom] def addNS(vnode: VNode): VNode = {
     vnode match {
-      case VNode.Comment(_) => vnode
-      case VNode.Text(_)    => vnode
+      case VNode.Comment(_)                   => vnode
+      case VNode.Text(_)                      => vnode
       case VNode.Element(sel, data, children) =>
         VNode.Element(
           sel,

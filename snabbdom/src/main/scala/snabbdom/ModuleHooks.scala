@@ -38,7 +38,7 @@
 
 package snabbdom
 
-final case class ModuleHooks(
+private[snabbdom] final case class ModuleHooks(
     create: List[CreateHook],
     update: List[UpdateHook],
     postPatch: List[PostPatchHook],
@@ -48,7 +48,7 @@ final case class ModuleHooks(
     post: List[PostHook]
 )
 
-object ModuleHooks {
+private[snabbdom] object ModuleHooks {
 
   def empty = ModuleHooks(Nil, Nil, Nil, Nil, Nil, Nil, Nil)
 
