@@ -178,17 +178,13 @@ class ThunkSuite extends BaseSuite {
   }
 
   vnode0.test("supports leaving out the `key` argument") { vnode0 =>
-    assume(
-      !dom.window.navigator.userAgent.contains("jsdom"),
-      "This test is broken on JSDOM"
-    )
     val vnodeFn = (args: Any) => {
       val s = args.asInstanceOf[String]
       h("span.number", s"Hello $s")
     }
     val vnode1 = thunk("span.number", vnodeFn, "World!")
     val elm = patch(vnode0, vnode1).node
-    assertEquals(elm.innerText, "Hello World!")
+    assertEquals(elm.textContent, "Hello World!")
   }
 
   vnode0.test("renders correctly when root") { vnode0 =>
