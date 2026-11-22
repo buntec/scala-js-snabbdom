@@ -750,6 +750,35 @@ class SnabbdomSuite extends BaseSuite {
   }
 
   group("element reordering") {
+    vnode0.test("calls removal hooks of duplicate keys in DOM order") {
+      vnode0 =>
+        val calls = ListBuffer.empty[String]
+        def child(key: String, label: String) =
+          h(
+            "span",
+            VNodeData(
+              key = Some(key),
+              hook = Some(
+                Hooks(
+                  destroy = Some(_ => calls += s"destroy $label"),
+                  remove = Some((_, rm) => { calls += s"remove $label"; rm() })
+                )
+              )
+            ),
+            label
+          )
+        val first = patch(
+          vnode0,
+          h("div", List(child("a", "a1"), child("b", "b"), child("a", "a2")))
+        )
+        val second = patch(first, h("div", List(child("c", "c"))))
+        assertEquals(second.node.textContent, "c")
+        assertEquals(
+          calls.toList,
+          List("a1", "b", "a2").flatMap(l => List(s"destroy $l", s"remove $l"))
+        )
+    }
+
     vnode0.test("moves element forward") { vnode0 =>
       val vnode1 = h("span", List("1", "2", "3", "4").map(spanNum))
       val vnode2 = h("span", List("2", "3", "1", "4").map(spanNum))

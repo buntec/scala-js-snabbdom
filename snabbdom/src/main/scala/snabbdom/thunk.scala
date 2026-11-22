@@ -86,12 +86,15 @@ object thunk {
       sel = thunk.sel,
       data = vnode.data.copy(
         key = data.key,
-        ns = data.ns.orElse(vnode.data.ns),
+        // A thunk's own `ns` is only ever inherited from `h("svg", ...)`,
+        // so a namespace the render function names takes precedence.
+        ns = vnode.data.ns.orElse(data.ns),
         fn = data.fn,
         args = data.args
       )
     )
-    if (data.ns.contains(h.svgNamespace)) h.addNS(rendered) else rendered
+    if (rendered.data.ns.contains(h.svgNamespace)) h.addNS(rendered)
+    else rendered
   }
 
   private def prepatch0(

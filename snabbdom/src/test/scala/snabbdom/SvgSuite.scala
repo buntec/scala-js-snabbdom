@@ -111,7 +111,7 @@ class SvgSuite extends BaseSuite {
     var renders = 0
     val render = (arg: Any) => {
       renders += 1
-      val namespace = if (arg == "SVG") Some(svgNS) else None
+      val namespace = Some(if (arg == "SVG") svgNS else htmlNS)
       h("a", VNodeData(ns = namespace), arg.toString)
     }
     def tree(arg: String) = h("div", List(thunk("a", "link", render, arg)))
@@ -253,37 +253,8 @@ class SvgSuite extends BaseSuite {
   }
 
   test("patches elements in place in a document without an HTML default") {
-    val xmlDoc = dom.document.implementation.createDocument(svgNS, "svg", null)
-    val base = DomApi.apply
-    val api = new DomApi {
-      def createElement(tagName: String): dom.HTMLElement =
-        xmlDoc.createElement(tagName).asInstanceOf[dom.HTMLElement]
-      def createElementNS(ns: String, name: String): dom.Element =
-        xmlDoc.createElementNS(ns, name)
-      def createDocumentFragment: dom.DocumentFragment =
-        xmlDoc.createDocumentFragment()
-      def createTextNode(text: String): dom.Text = xmlDoc.createTextNode(text)
-      def createComment(text: String): dom.Comment = xmlDoc.createComment(text)
-      def insertBefore(p: dom.Node, n: dom.Node, r: Option[dom.Node]): Unit =
-        base.insertBefore(p, n, r)
-      def removeChild(node: dom.Node, child: dom.Node): Unit =
-        base.removeChild(node, child)
-      def appendChild(node: dom.Node, child: dom.Node): Unit =
-        base.appendChild(node, child)
-      def parentNode(node: dom.Node): Option[dom.Node] = base.parentNode(node)
-      def nextSibling(node: dom.Node): Option[dom.Node] = base.nextSibling(node)
-      def tagName(elm: dom.Element): String = base.tagName(elm)
-      def setTextContent(node: dom.Node, text: Option[String]): Unit =
-        base.setTextContent(node, text)
-      def getTextContent(node: dom.Node): Option[String] =
-        base.getTextContent(node)
-      def isElement(node: dom.Node): Boolean = base.isElement(node)
-      def isText(node: dom.Node): Boolean = base.isText(node)
-      def isComment(node: dom.Node): Boolean = base.isComment(node)
-      def isDocumentFragement(node: dom.Node): Boolean =
-        base.isDocumentFragement(node)
-    }
-    val xmlPatch = init(Seq(Attributes.module), Some(api))
+    val xmlDoc = XmlDomApi.svgDocument()
+    val xmlPatch = init(Seq(Attributes.module), Some(XmlDomApi(xmlDoc)))
     def tree(label: String) =
       h("svg", List(h("foreignObject", List(h("div", label)))))
     val root = xmlDoc.documentElement
@@ -315,11 +286,87 @@ class SvgSuite extends BaseSuite {
     assertEquals(div.node.firstChild.namespaceURI, htmlNS)
   }
 
-  vnode0.test("replaces a detached SVG root when the tag matches") { vnode0 =>
+  vnode0.test("replaces a detached SVG root that is named HTML") { vnode0 =>
     val svgA = patch(vnode0, h("a", VNodeData(ns = Some(svgNS)), "SVG"))
-    val htmlA = patch(svgA, h("a", "HTML"))
+    val htmlA = patch(svgA, h("a", VNodeData(ns = Some(htmlNS)), "HTML"))
     assert(!(htmlA.node eq svgA.node))
     assertEquals(htmlA.node.namespaceURI, htmlNS)
+  }
+
+  vnode0.test("keeps an SVG element for a vnode without ns") { vnode0 =>
+    val first =
+      patch(vnode0, h("div", List(h("a", VNodeData(ns = Some(svgNS))))))
+    val a = first.node.firstChild
+    val second = patch(first, h("div", List(h("a", "text"))))
+    assert(second.node.firstChild eq a)
+    assertEquals(a.namespaceURI, svgNS)
+    assertEquals(a.textContent, "text")
+  }
+
+  vnode0.test("lets a thunk's render function name an HTML namespace in SVG") {
+    vnode0 =>
+      val render = (arg: Any) =>
+        h("div", VNodeData(ns = Some(htmlNS)), List(h("span", arg.toString)))
+      def tree(arg: String) = h("svg", List(thunk("div", render, arg)))
+      val first = patch(vnode0, tree("a"))
+      val div = first.node.firstChild
+      assertEquals(div.namespaceURI, htmlNS)
+      assertEquals(div.firstChild.namespaceURI, htmlNS)
+      val second = patch(first, tree("b"))
+      assert(second.node.firstChild eq div)
+      assertEquals(div.textContent, "b")
+  }
+
+  vnode0.test("checks a named namespace only after the prepatch hook") {
+    vnode0 =>
+      var prepatches = 0
+      val hook = Hooks(prepatch = Some((_: PatchedVNode, v: VNode) => {
+        prepatches += 1
+        v match {
+          case e: VNode.Element => e.copy(data = e.data.copy(ns = Some(htmlNS)))
+          case other            => other
+        }
+      }))
+      val first = patch(vnode0, h("div", List(h("a", "HTML"))))
+      val a = first.node.firstChild
+      val second = patch(
+        first,
+        h("div", List(h("a", VNodeData(ns = Some(svgNS), hook = Some(hook)))))
+      )
+      assertEquals(prepatches, 1)
+      assert(second.node.firstChild eq a)
+      assertEquals(a.namespaceURI, htmlNS)
+  }
+
+  test("creates an element named HTML in an XML document in HTML") {
+    val xmlDoc = XmlDomApi.svgDocument()
+    val xmlPatch = init(Seq(Attributes.module), Some(XmlDomApi(xmlDoc)))
+    def tree(label: String) =
+      h(
+        "svg",
+        List(
+          h(
+            "foreignObject",
+            List(h("div", VNodeData(ns = Some(htmlNS)), label))
+          )
+        )
+      )
+    val first = xmlPatch(xmlDoc.documentElement, tree("a"))
+    val div = first.node.firstChild.firstChild
+    assertEquals(div.asInstanceOf[dom.Element].namespaceURI, htmlNS)
+    val second = xmlPatch(first, tree("b"))
+    assert(second.node.firstChild.firstChild eq div)
+    assertEquals(div.textContent, "b")
+  }
+
+  test("mounts onto an SVG element whose parent is HTML in place") {
+    val parent = dom.document.createElement("div")
+    val g = dom.document.createElementNS(svgNS, "g")
+    parent.appendChild(g)
+    val patched = patch(g, h("g", List(h("circle"))))
+    assert(patched.node eq g)
+    assert(parent.firstChild eq g)
+    assertEquals(g.firstChild.namespaceURI, svgNS)
   }
 
   test("mounts a vnode without ns onto a detached SVG element in place") {
