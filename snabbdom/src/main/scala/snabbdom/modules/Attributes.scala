@@ -75,8 +75,8 @@ object Attributes {
   private val xmlNS = "http://www.w3.org/XML/1998/namespace"
   private val xmlnsNS = "http://www.w3.org/2000/xmlns/"
 
-  // `xml:*` and `xmlns:*` attributes must be set in their reserved
-  // namespaces, and `x?????:*` ones are assumed to be `xlink:*`.
+  // `xml:*`, `xmlns` and `xmlns:*` attributes are set in their reserved
+  // namespaces, and other `x?????:*` ones are assumed to be `xlink:*`.
   private def setStringAttr(
       elm: dom.Element,
       key: String,
@@ -85,13 +85,34 @@ object Attributes {
     if (key.charAt(0) != 'x') {
       elm.setAttribute(key, value)
     } else if (key.length > 3 && key.charAt(3) == ':') {
-      elm.setAttributeNS(xmlNS, key, value)
+      setAttrNS(elm, xmlNS, key, value)
+    } else if (key == "xmlns" || key.startsWith("xmlns:")) {
+      setAttrNS(elm, xmlnsNS, key, value)
     } else if (key.length > 5 && key.charAt(5) == ':') {
-      if (key.startsWith("xmlns:")) elm.setAttributeNS(xmlnsNS, key, value)
-      else elm.setAttributeNS(xlinkNS, key, value)
+      setAttrNS(elm, xlinkNS, key, value)
     } else {
       elm.setAttribute(key, value)
     }
+
+  // The HTML parser leaves most prefixed attributes, e.g. `xmlns:foo` or
+  // `xlink:foo`, in no namespace. Drop such an attribute with the same name
+  // first, so the element is not left with two that `removeAttribute` would
+  // have to remove one at a time.
+  private def setAttrNS(
+      elm: dom.Element,
+      ns: String,
+      key: String,
+      value: String
+  ): Unit = {
+    if (elm.hasAttribute(key)) {
+      val attrs = elm.attributes
+      val stale = (0 until attrs.length)
+        .map(attrs.item(_))
+        .filter(a => a.name == key && a.namespaceURI != ns)
+      stale.foreach(elm.removeAttributeNode(_))
+    }
+    elm.setAttributeNS(ns, key, value)
+  }
 
   private def setAttrs(vnode: PatchedVNode.Element): Unit = {
     val elm = vnode.node

@@ -443,6 +443,15 @@ class SnabbdomSuite extends BaseSuite {
 
   group("using `toVNode`") {
 
+    vnode0.test("replaces innerHTML markup with vnode children") { vnode0 =>
+      val p1 = patch(
+        vnode0,
+        h("div", VNodeData(props = Map("innerHTML" -> "<span>raw</span>")))
+      )
+      val elm = patch(p1, h("div", List(h("b", "child")))).node
+      assertEquals(elm.asInstanceOf[dom.Element].innerHTML, "<b>child</b>")
+    }
+
     test("can replace non-empty children with an innerHTML prop") {
       val prevElm = dom.document.createElement("div")
       prevElm.id = "id"

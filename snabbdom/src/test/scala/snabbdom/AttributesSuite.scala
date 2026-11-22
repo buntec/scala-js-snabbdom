@@ -271,6 +271,58 @@ class AttributesSuite extends BaseSuite {
       assertEquals(svg.getAttributeNS(xmlnsNS, "xlink"), "urn:other")
     }
 
+    test("replaces prefixed attributes of parsed SVG instead of duplicating") {
+      val xmlnsNS = "http://www.w3.org/2000/xmlns/"
+      val xlinkNS = "http://www.w3.org/1999/xlink"
+      val container = dom.document.createElement("div")
+      container.innerHTML =
+        """<svg xmlns:foo="urn:old" xlink:foo="old" xml:foo="old"></svg>"""
+      val svg = container.firstChild.asInstanceOf[dom.Element]
+      def named(key: String) =
+        (0 until svg.attributes.length)
+          .map(svg.attributes.item(_))
+          .filter(_.name == key)
+      val keys = List("xmlns:foo", "xlink:foo", "xml:foo")
+      // The parser leaves these in no namespace.
+      keys.foreach(key =>
+        assertEquals(named(key).map(_.namespaceURI).toList, List[String](null))
+      )
+
+      val p1 = patch(
+        toVNode(svg),
+        h(
+          "svg",
+          VNodeData(attrs =
+            Map[String, AttrValue](
+              "xmlns:foo" -> "urn:new",
+              "xlink:foo" -> "new",
+              "xml:foo" -> "new"
+            )
+          )
+        )
+      )
+      assert(p1.node eq svg)
+      keys.foreach(key => assertEquals(named(key).size, 1, key))
+      assertEquals(svg.getAttributeNS(xmlnsNS, "foo"), "urn:new")
+      assertEquals(svg.getAttributeNS(xlinkNS, "foo"), "new")
+      assertEquals(svg.getAttribute("xmlns:foo"), "urn:new")
+
+      patch(p1, h("svg"))
+      keys.foreach(key => assertEquals(named(key).size, 0, key))
+    }
+
+    vnode0.test("sets a default xmlns declaration in the XMLNS namespace") {
+      vnode0 =>
+        val xmlnsNS = "http://www.w3.org/2000/xmlns/"
+        val svgNS = "http://www.w3.org/2000/svg"
+        val p1 =
+          patch(vnode0, h("svg", VNodeData(attrs = Map("xmlns" -> svgNS))))
+        val svg = p1.node.asInstanceOf[dom.Element]
+        assertEquals(svg.getAttributeNS(xmlnsNS, "xmlns"), svgNS)
+        patch(p1, h("svg"))
+        assert(!svg.hasAttribute("xmlns"))
+    }
+
     vnode0.test("sets non-namespaced attributes starting with `x`") { vnode0 =>
       val elm = patch(
         vnode0,

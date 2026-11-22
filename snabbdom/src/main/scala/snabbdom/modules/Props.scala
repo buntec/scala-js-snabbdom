@@ -95,7 +95,13 @@ object Props {
     // sets this property to the empty string).
     oldProps.foreach { case (key, _) =>
       if (!props.contains(key)) {
-        elm.asInstanceOf[js.Dictionary[Any]] -= key
+        if (key == "innerHTML" || key == "textContent") {
+          // These are accessors, so deleting them does nothing. Clear the
+          // markup they set so that it does not stay next to new children.
+          elm.asInstanceOf[js.Dictionary[Any]] += (key -> "")
+        } else {
+          elm.asInstanceOf[js.Dictionary[Any]] -= key
+        }
       }
     }
 
