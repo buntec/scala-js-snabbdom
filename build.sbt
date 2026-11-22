@@ -8,6 +8,9 @@ ThisBuild / organization := "io.github.buntec"
 ThisBuild / organizationName := "buntec"
 ThisBuild / startYear := Some(2022)
 
+// The Scala.js linker (1.20+) no longer runs on Java 8
+ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("21"))
+
 ThisBuild / developers := List(
   tlGitHubDev("buntec", "Christoph Bunte"),
   tlGitHubDev("armanbilge", "Arman Bilge"),
