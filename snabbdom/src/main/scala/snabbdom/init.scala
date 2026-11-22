@@ -263,7 +263,10 @@ object init {
             hook(child, rm); ()
           }
         case child =>
-          api.removeChild(parentElm, child.node)
+          // The node may already be gone, e.g. replaced via `innerHTML`.
+          if (api.parentNode(child.node).exists(_ eq parentElm)) {
+            api.removeChild(parentElm, child.node)
+          }
 
       }
 

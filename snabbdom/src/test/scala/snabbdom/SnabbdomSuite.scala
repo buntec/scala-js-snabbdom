@@ -443,6 +443,53 @@ class SnabbdomSuite extends BaseSuite {
 
   group("using `toVNode`") {
 
+    vnode0.test("replaces innerHTML markup with vnode children") { vnode0 =>
+      val p1 = patch(
+        vnode0,
+        h("div", VNodeData(props = Map("innerHTML" -> "<span>raw</span>")))
+      )
+      val elm = patch(p1, h("div", List(h("b", "child")))).node
+      assertEquals(elm.asInstanceOf[dom.Element].innerHTML, "<b>child</b>")
+    }
+
+    vnode0.test("replaces innerText with vnode children") { vnode0 =>
+      val p1 =
+        patch(vnode0, h("p", VNodeData(props = Map("innerText" -> "old"))))
+      val elm = patch(p1, h("p", List(h("b", "new")))).node
+      assertEquals(elm.asInstanceOf[dom.Element].innerHTML, "<b>new</b>")
+    }
+
+    vnode0.test("switches from innerHTML to textContent") { vnode0 =>
+      val p1 = patch(
+        vnode0,
+        h("div", VNodeData(props = Map("innerHTML" -> "<span>raw</span>")))
+      )
+      val elm = patch(
+        p1,
+        h("div", VNodeData(props = Map("textContent" -> "text")))
+      ).node
+      assertEquals(elm.asInstanceOf[dom.Element].innerHTML, "text")
+    }
+
+    test("can replace non-empty children with an innerHTML prop") {
+      val prevElm = dom.document.createElement("div")
+      prevElm.id = "id"
+      prevElm.setAttribute("class", "class")
+      val h2 = dom.document.createElement("h2")
+      h2.textContent = "Hello"
+      prevElm.appendChild(h2)
+      prevElm.appendChild(dom.document.createTextNode("text"))
+      prevElm.appendChild(dom.document.createComment("comment"))
+      val nextVNode =
+        h(
+          "div#id.class",
+          VNodeData(props = Map("innerHTML" -> "<span>Hi</span>"))
+        )
+      val elm = patch(toVNode(prevElm), nextVNode).node
+      assert(elm eq prevElm)
+      assertEquals(prevElm.innerHTML, "<span>Hi</span>")
+    }
+
     test("can remove previous children of the root element") {
       val h2 = dom.document.createElement("h2")
       h2.textContent = "Hello"
