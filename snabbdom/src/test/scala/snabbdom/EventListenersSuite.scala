@@ -309,4 +309,21 @@ class EventListenersSuite extends BaseSuite {
     assertEquals(calls, 1)
   }
 
+  vnode0.test("keeps listener state separate from DOM properties") { vnode0 =>
+    val patchWithProps = init(Seq(Props.module, EventListeners.module))
+    var calls = 0
+    def vnode(label: String) = h(
+      "button",
+      VNodeData(
+        props = Map("__snabbdomListener" -> "app"),
+        on = Map("click" -> EventHandler((_: dom.Event) => calls += 1))
+      ),
+      label
+    )
+    val first = patchWithProps(vnode0, vnode("a"))
+    val second = patchWithProps(first, vnode("b"))
+    second.node.asInstanceOf[dom.HTMLElement].click()
+    assertEquals(calls, 1)
+  }
+
 }

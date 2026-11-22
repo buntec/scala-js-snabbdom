@@ -82,15 +82,8 @@ object init {
         )
     }
 
-    def emptyNodeAt(elm: dom.Element, vnode: VNode): PatchedVNode = {
-      val (sel, elmNs) = toVNode.elementIdentity(elm, api)
-      // A root vnode without an explicit namespace adopts the container's
-      // namespace, so mounting `h("g", ...)` onto an existing SVG <g> patches
-      // it in place instead of replacing it with an HTML-namespace element.
-      val ns = vnode match {
-        case VNode.Element(_, data, _) if data.ns.isEmpty => None
-        case _                                            => elmNs
-      }
+    def emptyNodeAt(elm: dom.Element): PatchedVNode = {
+      val (sel, ns) = toVNode.elementIdentity(elm, api)
       PatchedVNode.Element(
         sel,
         if (ns.isEmpty) VNodeData.empty else VNodeData(ns = ns),
@@ -113,12 +106,14 @@ object init {
 
     def createElm(
         vnode: VNode,
+        ctx: Option[String],
         insertedVNodeQueue: VNodeQueue
     ): PatchedVNode =
-      createInitializedElm(VNode.applyInitHook(vnode), insertedVNodeQueue)
+      createInitializedElm(VNode.applyInitHook(vnode), ctx, insertedVNodeQueue)
 
     def createInitializedElm(
         vnode: VNode,
+        ctx: Option[String],
         insertedVNodeQueue: VNodeQueue
     ): PatchedVNode = {
       vnode match {
@@ -142,16 +137,18 @@ object init {
           } else {
             sel
           }
-          val elm = data.ns match {
+          val ns = effectiveNs(data, ctx)
+          val elm = ns match {
             case Some(ns) =>
               api.createElementNS(ns, tag) // TODO what about data?
             case None =>
               api.createElement(tag) // TODO what about data argument?
           }
+          val childCtx = childContext(ns, tag)
           val pvnode0 = PatchedVNode.Element(
             sel,
             data,
-            children = children.map(createElm(_, insertedVNodeQueue)),
+            children = children.map(createElm(_, childCtx, insertedVNodeQueue)),
             node = elm
           )
           if (hash < dot) elm.setAttribute("id", sel.slice(hash + 1, dot))
@@ -190,6 +187,19 @@ object init {
       }
       replacement
     }
+
+    // The namespace a root vnode without `ns` inherits: that of the DOM
+    // parent's children or, for a detached node, the node's own namespace.
+    def rootContext(oldVnode: PatchedVNode): Option[String] =
+      api.parentNode(oldVnode.node) match {
+        case Some(parent: dom.Element) =>
+          childContext(domNs(parent), parent.localName)
+        case _ =>
+          oldVnode match {
+            case PatchedVNode.Element(_, _, _, elm) => domNs(elm)
+            case _                                  => None
+          }
+      }
 
     def invokeDestroyHook(vnode: PatchedVNode): Unit = {
       vnode match {
@@ -230,15 +240,25 @@ object init {
       val patched = List.newBuilder[PatchedVNode]
       var oldRest = oldCh
       var newRest = newCh
+      val ctx = parentElm match {
+        case elm: dom.Element => childContext(domNs(elm), elm.localName)
+        case _                => None
+      }
 
       // Walk the common prefix without building indexes or reversing siblings.
       while (
         oldRest.nonEmpty && newRest.nonEmpty && sameVnode(
           oldRest.head,
-          newRest.head
+          newRest.head,
+          ctx
         )
       ) {
-        patched += patchVnode(oldRest.head, newRest.head, insertedVNodeQueue)
+        patched += patchVnode(
+          oldRest.head,
+          newRest.head,
+          ctx,
+          insertedVNodeQueue
+        )
         oldRest = oldRest.tail
         newRest = newRest.tail
       }
@@ -247,7 +267,7 @@ object init {
         removeAllVnodes(parentElm, oldRest)
       } else if (oldRest.isEmpty) {
         newRest.foreach { vnode =>
-          val child = createElm(vnode, insertedVNodeQueue)
+          val child = createElm(vnode, ctx, insertedVNodeQueue)
           api.insertBefore(parentElm, child.node, None)
           patched += child
         }
@@ -256,6 +276,7 @@ object init {
           parentElm,
           oldRest,
           newRest,
+          ctx,
           insertedVNodeQueue
         )
       }
@@ -271,6 +292,7 @@ object init {
         parentElm: dom.Node,
         oldCh: List[PatchedVNode],
         newCh: List[VNode],
+        ctx: Option[String],
         insertedVnodeQueue: VNodeQueue
     ): List[PatchedVNode] = {
 
@@ -296,15 +318,15 @@ object init {
           )
         ) {
           case ((oh :: ot, oh2 :: ot2, acc, keyed), (newCh, i)) =>
-            if (sameVnode(oh, newCh)) {
-              val pn = patchVnode(oh, newCh, insertedVnodeQueue)
+            if (sameVnode(oh, newCh, ctx)) {
+              val pn = patchVnode(oh, newCh, ctx, insertedVnodeQueue)
               if (oh.node eq oh2.node) { // exhausted old child nodes
                 (Nil, Nil, (pn, i) :: acc, keyed)
               } else {
                 (ot, oh2 :: ot2, (pn, i) :: acc, keyed)
               }
-            } else if (sameVnode(oh2, newCh)) {
-              val pn = patchVnode(oh2, newCh, insertedVnodeQueue)
+            } else if (sameVnode(oh2, newCh, ctx)) {
+              val pn = patchVnode(oh2, newCh, ctx, insertedVnodeQueue)
               api.insertBefore(parentElm, pn.node, Some(oh.node))
               if (oh.node eq oh2.node) { // exhausted old child nodes
                 (Nil, Nil, (pn, i) :: acc, keyed)
@@ -314,18 +336,18 @@ object init {
             } else if (newCh.key.isDefined) { // node with key - try to match later
               (oh :: ot, oh2 :: ot2, acc, (newCh, i) :: keyed)
             } else { // new node without key
-              val pn = createElm(newCh, insertedVnodeQueue)
+              val pn = createElm(newCh, ctx, insertedVnodeQueue)
               api.insertBefore(parentElm, pn.node, Some(oh.node))
               (oh :: ot, oh2 :: ot2, (pn, i) :: acc, keyed)
             }
           case ((Nil, _, acc, keyed), (newCh, i)) =>
             // old nodes are exhausted - must be new node
-            val pn = createElm(newCh, insertedVnodeQueue)
+            val pn = createElm(newCh, ctx, insertedVnodeQueue)
             api.insertBefore(parentElm, pn.node, None)
             (Nil, Nil, (pn, i) :: acc, keyed)
           case ((_, Nil, acc, keyed), (newCh, i)) =>
             // old nodes are exhausted - must be new node
-            val pn = createElm(newCh, insertedVnodeQueue)
+            val pn = createElm(newCh, ctx, insertedVnodeQueue)
             api.insertBefore(parentElm, pn.node, None)
             (Nil, Nil, (pn, i) :: acc, keyed)
         }
@@ -365,11 +387,11 @@ object init {
           case (acc, (vnode, i)) =>
             val key = vnode.key.get
             oldKeyed.get(key) match {
-              case Some(pvnode) if sameVnode(pvnode, vnode) =>
+              case Some(pvnode) if sameVnode(pvnode, vnode, ctx) =>
                 oldKeyed.remove(key)
-                (patchVnode(pvnode, vnode, insertedVnodeQueue), i) :: acc
+                (patchVnode(pvnode, vnode, ctx, insertedVnodeQueue), i) :: acc
               case _ =>
-                (createElm(vnode, insertedVnodeQueue), i) :: acc
+                (createElm(vnode, ctx, insertedVnodeQueue), i) :: acc
             }
         }
 
@@ -419,15 +441,19 @@ object init {
     def patchVnode(
         oldVnode: PatchedVNode,
         vnode00: VNode,
+        ctx: Option[String],
         insertedVNodeQueue: VNodeQueue
     ): PatchedVNode = {
 
-      // A thunk whose fn and args are unchanged keeps its rendered subtree, so
-      // skip rebuilding and diffing it.
+      // A library thunk whose fn and args are unchanged would re-render to the
+      // same subtree, so skip rebuilding and diffing it. Thunks whose prepatch
+      // hook was replaced by the caller take the regular path.
       (oldVnode, vnode00) match {
         case (old: PatchedVNode.Element, VNode.Element(_, data, _))
             if data.fn.isDefined && data.fn == old.data.fn &&
-              data.args == old.data.args =>
+              data.args == old.data.args &&
+              data.hook.exists(_.prepatch.exists(_ eq thunk.prepatchHook)) &&
+              effectiveNs(old.data, ctx) == domNs(old.node) =>
           return oldVnode
         case _ => ()
       }
@@ -441,14 +467,16 @@ object init {
         case _ => vnode00
       }
 
-      val namespaceChanged = (vnode ne vnode00) && ((oldVnode, vnode) match {
+      // `sameVnode` defers the namespace check for vnodes whose prepatch hook
+      // may still supply one, so verify it against the DOM now.
+      val namespaceChanged = (oldVnode, vnode) match {
         case (old: PatchedVNode.Element, next: VNode.Element) =>
-          old.data.ns != next.data.ns
+          effectiveNs(next.data, ctx) != domNs(old.node)
         case _ => false
-      })
+      }
       if (namespaceChanged) {
         return replaceVnode(oldVnode)(
-          createInitializedElm(vnode, insertedVNodeQueue)
+          createInitializedElm(vnode, ctx, insertedVNodeQueue)
         )
       }
 
@@ -532,10 +560,11 @@ object init {
 
       cbs.pre.foreach(_())
 
-      val vnode0 = if (sameVnode(oldVnode, vnode)) {
-        patchVnode(oldVnode, vnode, insertedVNodeQueue)
+      val ctx = rootContext(oldVnode)
+      val vnode0 = if (sameVnode(oldVnode, vnode, ctx)) {
+        patchVnode(oldVnode, vnode, ctx, insertedVNodeQueue)
       } else {
-        replaceVnode(oldVnode)(createElm(vnode, insertedVNodeQueue))
+        replaceVnode(oldVnode)(createElm(vnode, ctx, insertedVNodeQueue))
       }
 
       insertedVNodeQueue.foreach {
@@ -552,20 +581,54 @@ object init {
 
     Patch(
       (oldVnode, vnode) => patch(oldVnode, vnode),
-      (elm, vnode) => patch(emptyNodeAt(elm, vnode), vnode)
+      (elm, vnode) => patch(emptyNodeAt(elm), vnode)
     )
 
   }
 
-  private def sameVnode(vnode1: PatchedVNode, vnode2: VNode): Boolean = {
+  private val htmlNamespace = "http://www.w3.org/1999/xhtml"
+
+  // Namespaces are represented with `None` for HTML; an element without a
+  // namespace (`namespaceURI == null`) is `Some("")`.
+  private def domNs(elm: dom.Element): Option[String] =
+    elm.namespaceURI match {
+      case null            => Some("")
+      case `htmlNamespace` => None
+      case ns              => Some(ns)
+    }
+
+  // The namespace an element is created in: its explicit `ns` (where an
+  // explicit HTML namespace equals the default) or else the inherited one.
+  private def effectiveNs(
+      data: VNodeData,
+      ctx: Option[String]
+  ): Option[String] =
+    data.ns match {
+      case Some(`htmlNamespace`) => None
+      case Some(ns)              => Some(ns)
+      case None                  => ctx
+    }
+
+  // The namespace inherited by children without `ns`. As in the HTML parser,
+  // children of an SVG <foreignObject> are HTML again.
+  private def childContext(ns: Option[String], tag: String): Option[String] =
+    if (ns.contains(h.svgNamespace) && tag == "foreignObject") None else ns
+
+  private def sameVnode(
+      vnode1: PatchedVNode,
+      vnode2: VNode,
+      ctx: Option[String]
+  ): Boolean = {
     (vnode1, vnode2) match {
       case (_: PatchedVNode.Text, _: VNode.Text)            => true
       case (_: PatchedVNode.Comment, _: VNode.Comment)      => true
       case (old: PatchedVNode.Element, next: VNode.Element) =>
         old.sel == next.sel && old.data.key == next.data.key &&
         old.data.is == next.data.is &&
-        // A thunk can supply its namespace when prepatch resolves it.
-        (old.data.ns == next.data.ns || (next.data.ns.isEmpty && next.data.fn.nonEmpty))
+        (effectiveNs(next.data, ctx) == domNs(old.node) ||
+          // A prepatch hook (e.g. a thunk's) may still supply the namespace;
+          // `patchVnode` checks it after the hook has run.
+          (next.data.ns.isEmpty && next.data.hook.exists(_.prepatch.isDefined)))
       case _ => false
     }
   }

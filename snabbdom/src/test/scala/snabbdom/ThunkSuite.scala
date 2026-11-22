@@ -105,6 +105,27 @@ class ThunkSuite extends BaseSuite {
     assert(second.children.head eq first.children.head)
   }
 
+  vnode0.test("runs a caller's prepatch wrapper on an unchanged thunk") {
+    vnode0 =>
+      var wrapped = 0
+      val render = (arg: Any) => h("span", arg.toString)
+      def wrappedThunk = {
+        val t = thunk("span", "t", render, 1)
+        val hook = t.data.hook.get
+        val inner = hook.prepatch.get
+        val outer: PrePatchHook = (o: PatchedVNode, v: VNode) => {
+          wrapped += 1
+          inner(o, v)
+        }
+        t.copy(data =
+          t.data.copy(hook = Some(hook.copy(prepatch = Some(outer))))
+        )
+      }
+      val first = patch(vnode0, h("div", List(wrappedThunk)))
+      patch(first, h("div", List(wrappedThunk)))
+      assertEquals(wrapped, 1)
+  }
+
   vnode0.test("calls render function once on args change") { vnode0 =>
     var called = 0
     val numberInSpan = (arg: Any) => {

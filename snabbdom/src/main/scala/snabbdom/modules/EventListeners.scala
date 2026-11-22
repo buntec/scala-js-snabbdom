@@ -42,28 +42,34 @@ import org.scalajs.dom
 import snabbdom._
 
 import scala.scalajs.js
+import scala.scalajs.js.annotation.JSGlobal
 
 object EventListeners {
 
-  // The listener lives on the DOM node so that every `PatchedVNode` for that
-  // node (including stale or copied ones) resolves to the same callback.
-  private val ListenerProperty = "__snabbdomListener"
-
-  private def listenerOf(node: dom.Node): PatchedVNode.Listener = {
-    val l = node.asInstanceOf[js.Dynamic].selectDynamic(ListenerProperty)
-    if (js.isUndefined(l)) null else l.asInstanceOf[PatchedVNode.Listener]
+  @js.native
+  @JSGlobal("WeakMap")
+  private class WeakMap[K <: js.Any, V] extends js.Object {
+    def get(key: K): js.UndefOr[V] = js.native
+    def set(key: K, value: V): this.type = js.native
+    def delete(key: K): Boolean = js.native
   }
+
+  // Listener state is keyed by DOM node, so every `PatchedVNode` for that node
+  // (including stale or copied ones) resolves to the same callback. A private
+  // WeakMap keeps it out of reach of application properties on the node.
+  private val listeners = new WeakMap[dom.Node, PatchedVNode.Listener]
+
+  private def listenerOf(node: dom.Node): PatchedVNode.Listener =
+    listeners.get(node).getOrElse(null)
 
   private def setListener(
       node: dom.Node,
       listener: PatchedVNode.Listener
-  ): Unit =
-    node
-      .asInstanceOf[js.Dynamic]
-      .updateDynamic(ListenerProperty)(listener.asInstanceOf[js.Any])
+  ): Unit = { listeners.set(node, listener); () }
 
-  private def clearListener(node: dom.Node): Unit =
-    js.special.delete(node.asInstanceOf[js.Dynamic], ListenerProperty)
+  private def clearListener(node: dom.Node): Unit = {
+    listeners.delete(node); ()
+  }
 
   val module: Module = Module().copy(
     create = Some((vNode: PatchedVNode) => {

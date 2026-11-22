@@ -59,19 +59,25 @@ object thunk {
       fn: Any => VNode.Element,
       args: Any
   ): VNode.Element = {
-    val hook = Hooks().copy(
-      init = Some((vNode: VNode) => render(vNode.asInstanceOf[VNode.Element])),
-      prepatch = Some((oldVNode: PatchedVNode, vNode: VNode) =>
-        prepatch0(
-          oldVNode.asInstanceOf[PatchedVNode.Element],
-          vNode.asInstanceOf[VNode.Element]
-        )
-      )
-    )
     val data =
       VNodeData(key = key, fn = Some(fn), args = Some(args), hook = Some(hook))
     h(sel, data)
   }
+
+  // Shared instances: `patchVnode` recognises the library's own prepatch hook
+  // by reference and may then skip it for unchanged thunks. A caller-supplied
+  // wrapper is a different instance and therefore always runs.
+  private[snabbdom] val prepatchHook: PrePatchHook =
+    (oldVNode: PatchedVNode, vNode: VNode) =>
+      prepatch0(
+        oldVNode.asInstanceOf[PatchedVNode.Element],
+        vNode.asInstanceOf[VNode.Element]
+      )
+
+  private val hook = Hooks(
+    init = Some((vNode: VNode) => render(vNode.asInstanceOf[VNode.Element])),
+    prepatch = Some(prepatchHook)
+  )
 
   private def render(thunk: VNode.Element): VNode = {
     val data = thunk.data

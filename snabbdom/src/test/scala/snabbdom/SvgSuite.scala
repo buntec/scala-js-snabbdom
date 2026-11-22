@@ -140,6 +140,69 @@ class SvgSuite extends BaseSuite {
     assertEquals(g.getAttribute("x"), "1")
   }
 
+  test("patches a converted SVG group in place from a vnode without ns") {
+    val svg = dom.document.createElementNS(svgNS, "svg")
+    val g = dom.document.createElementNS(svgNS, "g")
+    svg.appendChild(g)
+    val patched = patch(toVNode(g), h("g", List(h("circle"))))
+    assert(patched.node eq g)
+    assert(svg.firstChild eq g)
+    assertEquals(g.firstChild.namespaceURI, svgNS)
+  }
+
+  test("keeps a mounted SVG group when a later patch names its namespace") {
+    val svg = dom.document.createElementNS(svgNS, "svg")
+    val g = dom.document.createElementNS(svgNS, "g")
+    svg.appendChild(g)
+    val first = patch(g, h("g", List(h("circle"))))
+    assertEquals(g.firstChild.namespaceURI, svgNS)
+    val circle = g.firstChild
+    val second = patch(
+      first,
+      h(
+        "g",
+        VNodeData(ns = Some(svgNS)),
+        List(h("circle", VNodeData(ns = Some(svgNS))))
+      )
+    )
+    assert(second.node eq g)
+    assert(g.firstChild eq circle)
+  }
+
+  vnode0.test("lets a prepatch hook supply the namespace before replacing") {
+    vnode0 =>
+      var inits = 0
+      def withSvg(vnode: VNode): VNode = vnode match {
+        case e: VNode.Element => e.copy(data = e.data.copy(ns = Some(svgNS)))
+        case other            => other
+      }
+      val hook = Hooks(
+        init = Some((v: VNode) => { inits += 1; withSvg(v) }),
+        prepatch = Some((_: PatchedVNode, v: VNode) => withSvg(v))
+      )
+      def tree(label: String) =
+        h("div", List(h("g", VNodeData(hook = Some(hook)), label)))
+      val first = patch(vnode0, tree("a"))
+      val g = first.node.firstChild
+      assertEquals(g.namespaceURI, svgNS)
+      val second = patch(first, tree("b"))
+      assert(second.node.firstChild eq g)
+      assertEquals(g.textContent, "b")
+      assertEquals(inits, 1)
+  }
+
+  test("treats an explicit HTML namespace like an omitted one") {
+    val parent = dom.document.createElement("div")
+    val button = dom.document.createElement("button")
+    parent.appendChild(button)
+    val patched = patch(
+      toVNode(button),
+      h("button", VNodeData(ns = Some(htmlNS)), "new")
+    )
+    assert(patched.node eq button)
+    assertEquals(button.textContent, "new")
+  }
+
   vnode0.test("removes child svg elements") { vnode0 =>
     val a = h("svg", VNodeData(), List(h("g"), h("g")))
     val b = h("svg", VNodeData(), List(h("g")))
