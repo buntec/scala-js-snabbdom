@@ -37,6 +37,57 @@ object Benchmarks {
     )
   )
 
+  private def measurePatches(
+      container: dom.Element,
+      first: VNode,
+      second: VNode,
+      iterations: Int
+  ): Double = {
+    var current = patch(container, first)
+    val start = dom.window.performance.now()
+    var i = 0
+    while (i < iterations) {
+      current = patch(current, if (i % 2 == 0) second else first)
+      i += 1
+    }
+    dom.window.performance.now() - start
+  }
+
+  @JSExport
+  def keyedReorder(container: dom.Element, iterations: Int): Double = {
+    val rows = List.tabulate(128) { i =>
+      val content = h("span", List(h("b", s"Row $i"), h("i", "Details")))
+      h("div", VNodeData(key = Some(i.toString)), List(content))
+    }
+    val (head, tail) = rows.splitAt(37)
+    measurePatches(
+      container,
+      h("div", rows),
+      h("div", tail ::: head),
+      iterations
+    )
+  }
+
+  @JSExport
+  def deepUpdate(container: dom.Element, iterations: Int): Double = {
+    def tree(text: String): VNode =
+      (0 until 120).foldLeft(VNode.text(text)) { (child, _) =>
+        h("div", List(child))
+      }
+
+    measurePatches(container, tree("before"), tree("after"), iterations)
+  }
+
+  @JSExport
+  def listenerUpdates(container: dom.Element, iterations: Int): Double = {
+    val data =
+      VNodeData(on = Map("click" -> EventHandler((_: dom.Event) => ())))
+    def tree(label: String): VNode =
+      h("div", List.tabulate(128)(i => h("button", data, s"$label $i")))
+
+    measurePatches(container, tree("before"), tree("after"), iterations)
+  }
+
   @JSExport
   def benchmark1(container: dom.Element): Unit = {
 

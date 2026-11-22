@@ -253,6 +253,35 @@ class VNodeSuite extends BaseSuite {
       assertEquals(p2.toVNode, VNode.comment("second"))
     }
 
+    vnode0.test("removes comments alongside retained children") { vnode0 =>
+      val p1 = patch(vnode0, h("div", List(h.comment("remove"), h("span"))))
+      val span = p1.node.lastChild
+      val p2 = patch(p1, h("div", List(h("span"))))
+      assertEquals(p2.node.childNodes.length, 1)
+      assert(p2.node.firstChild eq span)
+    }
+
+    vnode0.test("removes comments when clearing children") { vnode0 =>
+      val p1 = patch(vnode0, h("div", List(h.comment("remove"))))
+      val p2 = patch(p1, h("div"))
+      assertEquals(p2.node.childNodes.length, 0)
+    }
+
+    test("removes a root comment when replacing it") {
+      val parent = dom.document.createElement("div")
+      val comment = dom.document.createComment("remove")
+      parent.appendChild(comment)
+      val p = patch(toVNode(comment), h("span"))
+      assertEquals(parent.childNodes.length, 1)
+      assert(parent.firstChild eq p.node)
+    }
+
+    vnode0.test("reuses a mount element with whitespace in its classes") {
+      vnode0 =>
+        vnode0.setAttribute("class", "  one\ttwo\n")
+        assert(patch(vnode0, h("div.one.two")).node eq vnode0)
+    }
+
     vnode0.test("inserts an unkeyed node before keyed siblings") { vnode0 =>
       def span(key: String) = h("span", VNodeData(key = Some(key)), key)
       val p1 = patch(vnode0, h("div", List(span("a"), span("b"))))
@@ -268,6 +297,17 @@ class VNodeSuite extends BaseSuite {
         p2.toVNode,
         h("div", List(h("i", "new"), span("a"), span("b")))
       )
+    }
+
+    vnode0.test("removes every unmatched child with a repeated key") { vnode0 =>
+      val data = VNodeData(key = Some("duplicate"))
+      val p1 = patch(
+        vnode0,
+        h("div", List(h("span", data, "a"), h("span", data, "b")))
+      )
+      val p2 = patch(p1, h("div", List(h("i", "new"))))
+      assertEquals(p2.node.childNodes.length, 1)
+      assertEquals(p2.node.textContent, "new")
     }
 
   }

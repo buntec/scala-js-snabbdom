@@ -51,6 +51,83 @@ class SvgSuite extends BaseSuite {
   )
 
   val patch = init(Seq(Attributes.module))
+  val svgNS = "http://www.w3.org/2000/svg"
+  val htmlNS = "http://www.w3.org/1999/xhtml"
+
+  vnode0.test("replaces children when their namespace changes") { vnode0 =>
+    val first = patch(vnode0, h("div", List(h("a", "HTML"))))
+    val html = first.node.firstChild
+    val second =
+      patch(first, h("div", List(h("a", VNodeData(ns = Some(svgNS)), "SVG"))))
+    assert(first.node eq second.node)
+    assert(!(second.node.firstChild eq html))
+    assertEquals(second.node.firstChild.namespaceURI, svgNS)
+    assertEquals(second.node.textContent, "SVG")
+  }
+
+  vnode0.test("creates HTML children inside a foreignObject with a selector") {
+    vnode0 =>
+      val result = patch(
+        vnode0,
+        h("svg", List(h("foreignObject#box.content", List(h("div", "HTML")))))
+      )
+      assertEquals(result.node.firstChild.namespaceURI, svgNS)
+      assertEquals(result.node.firstChild.firstChild.namespaceURI, htmlNS)
+  }
+
+  test("converts existing SVG with case-sensitive tags and HTML children") {
+    val svg = dom.document.createElementNS(svgNS, "svg")
+    val foreignObject = dom.document.createElementNS(svgNS, "foreignObject")
+    foreignObject.setAttribute("class", "content")
+    val child = dom.document.createElement("div")
+    foreignObject.appendChild(child)
+    svg.appendChild(foreignObject)
+
+    val patched = patch(
+      toVNode(svg),
+      h("svg", List(h("foreignObject.content", List(h("div", "HTML")))))
+    )
+    assert(patched.node.firstChild eq foreignObject)
+    assert(foreignObject.firstChild eq child)
+    assertEquals(child.textContent, "HTML")
+  }
+
+  vnode0.test("renders and updates thunk children in SVG") { vnode0 =>
+    val render = (arg: Any) => h("g", List(h("text", arg.toString)))
+    def tree(arg: String) = h("svg", List(thunk("g", "group", render, arg)))
+    val first = patch(vnode0, tree("before"))
+    val g = first.node.firstChild
+    val text = g.firstChild
+    assertEquals(g.namespaceURI, svgNS)
+    assertEquals(text.namespaceURI, svgNS)
+
+    val second = patch(first, tree("after"))
+    assert(second.node.firstChild eq g)
+    assert(g.firstChild eq text)
+    assertEquals(text.textContent, "after")
+  }
+
+  vnode0.test("reuses a thunk until its rendered namespace changes") { vnode0 =>
+    var renders = 0
+    val render = (arg: Any) => {
+      renders += 1
+      val namespace = if (arg == "SVG") Some(svgNS) else None
+      h("a", VNodeData(ns = namespace), arg.toString)
+    }
+    def tree(arg: String) = h("div", List(thunk("a", "link", render, arg)))
+
+    val first = patch(vnode0, tree("SVG"))
+    val svg = first.node.firstChild
+    val second = patch(first, tree("SVG"))
+    assert(second.node.firstChild eq svg)
+    assertEquals(renders, 1)
+
+    val third = patch(second, tree("HTML"))
+    assertEquals(third.node.childNodes.length, 1)
+    assertEquals(third.node.firstChild.namespaceURI, htmlNS)
+    assertEquals(third.node.textContent, "HTML")
+    assertEquals(renders, 2)
+  }
 
   vnode0.test("removes child svg elements") { vnode0 =>
     val a = h("svg", VNodeData(), List(h("g"), h("g")))

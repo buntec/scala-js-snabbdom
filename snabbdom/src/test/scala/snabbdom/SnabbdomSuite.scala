@@ -1807,9 +1807,10 @@ class SnabbdomSuite extends BaseSuite {
           h("span", "there")
         )
       )
-      val vnode2 = h("div").copy(children = vnode1.children)
+      val vnode2 = vnode1.copy(data = VNodeData(props = Map("updated" -> true)))
       val vnode1p = patch(vnode0, vnode1)
-      patch(vnode1p, vnode2)
+      val vnode2p = patch(vnode1p, vnode2)
+      assertEquals(vnode2p.toVNode, vnode2)
       assertEquals(result.result().size, 0)
     }
   }

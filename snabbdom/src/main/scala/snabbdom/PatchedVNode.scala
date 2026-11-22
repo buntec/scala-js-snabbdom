@@ -39,19 +39,21 @@ object PatchedVNode {
       node: dom.Element
   ) extends PatchedVNode {
 
-    private def handleEvent(event: dom.Event): Unit = {
-      val name = event.`type`
-      data.on.get(name).foreach { handler =>
-        handler.cbs.foreach(_(event, this.toVNode))
-      }
-    }
-
-    private[snabbdom] lazy val listener: js.Function1[dom.Event, Unit] =
-      handleEvent _
+    private[snabbdom] var eventListener: Listener = _
 
     override def toVNode: VNode =
       VNode.Element(sel, data, children.map(_.toVNode))
 
+  }
+
+  private[snabbdom] final class Listener(var vnode: Element) {
+    val callback: js.Function1[dom.Event, Unit] = (event: dom.Event) => {
+      val current = vnode
+      current.data.on.get(event.`type`).foreach { handler =>
+        val snapshot = current.toVNode
+        handler.cbs.foreach(_(event, snapshot))
+      }
+    }
   }
 
   def element(

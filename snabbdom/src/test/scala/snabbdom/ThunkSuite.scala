@@ -112,6 +112,30 @@ class ThunkSuite extends BaseSuite {
     assertEquals(called, 2)
   }
 
+  vnode0.test("uses the thunk key when the render function supplies no key") {
+    vnode0 =>
+      var called = 0
+      val render = (arg: Any) => {
+        called += 1
+        h("span", arg.toString)
+      }
+      def tree(rows: (String, Int)*): VNode =
+        h(
+          "div",
+          rows.toList.map { case (key, arg) => thunk("span", key, render, arg) }
+        )
+
+      val first = patch(vnode0, tree("a" -> 1, "b" -> 2))
+      val a = first.node.firstChild
+      val b = first.node.lastChild
+      val second = patch(first, tree("b" -> 2, "a" -> 3))
+
+      assertEquals(called, 3)
+      assert(second.node.firstChild eq b)
+      assert(second.node.lastChild eq a)
+      assertEquals(second.node.textContent, "23")
+  }
+
   vnode0.test("calls render function once on function change") { vnode0 =>
     var called = 0
     val numberInSpan = (arg: Any) => {

@@ -230,6 +230,39 @@ class EventListenersSuite extends BaseSuite {
     assertEquals(calls.toList, List("first", "second"))
   }
 
+  vnode0.test("retains listener order and supplies the latest vnode") { root =>
+    val calls = ListBuffer.empty[String]
+    val handler = EventHandler.usingVNode((_: dom.Event, vnode: VNode) => {
+      calls += vnode
+        .asInstanceOf[VNode.Element]
+        .children
+        .head
+        .asInstanceOf[VNode.Text]
+        .content
+      ()
+    })
+    val data = VNodeData(on = Map("click" -> handler))
+    val first = patch(root, h("div", data, "first"))
+    val element = first.node.asInstanceOf[dom.HTMLElement]
+    element.addEventListener(
+      "click",
+      (_: dom.Event) => { calls += "native"; () }
+    )
+
+    val second = patch(first, h("div", data, "second"))
+    element.click()
+    assertEquals(calls.toList, List("second", "native"))
+
+    val removed = patch(second, h("div", "third"))
+    element.click()
+    patch(removed, h("div", data, "fourth"))
+    element.click()
+    assertEquals(
+      calls.toList,
+      List("second", "native", "native", "native", "fourth")
+    )
+  }
+
   vnode0.test("adds and removes listeners for different events") { vnode0 =>
     val calls = ListBuffer.empty[String]
     val click = EventHandler((_: dom.Event) => calls += "click")
