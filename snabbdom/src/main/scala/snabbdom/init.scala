@@ -513,15 +513,10 @@ object init {
 
     }
 
-    new Patch {
-
-      override def apply(oldVnode: PatchedVNode, vnode: VNode): PatchedVNode =
-        patch(oldVnode, vnode)
-
-      override def apply(elm: dom.Element, vnode: VNode): PatchedVNode =
-        patch(emptyNodeAt(elm), vnode)
-
-    }
+    Patch(
+      (oldVnode, vnode) => patch(oldVnode, vnode),
+      (elm, vnode) => patch(emptyNodeAt(elm), vnode)
+    )
 
   }
 
