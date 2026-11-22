@@ -107,6 +107,9 @@ object toVNode {
   ): (String, Option[String]) = {
     val namespace = elm.namespaceURI
     val html = namespace == "http://www.w3.org/1999/xhtml"
+    // Elements without a namespace (`createElementNS(null, ...)`) map to
+    // `Some("")`: `createElementNS("", tag)` recreates exactly such an
+    // element, whereas `None` would create an HTML element instead.
     val ns = if (html) None else Some(Option(namespace).getOrElse(""))
     val tag = api.tagName(elm)
     val id = Option(elm.id).filter(_.nonEmpty).fold("")("#" + _)

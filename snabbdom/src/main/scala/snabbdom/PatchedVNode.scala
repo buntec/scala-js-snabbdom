@@ -39,14 +39,16 @@ object PatchedVNode {
       node: dom.Element
   ) extends PatchedVNode {
 
-    private[snabbdom] var eventListener: Listener = _
-
     override def toVNode: VNode =
       VNode.Element(sel, data, children.map(_.toVNode))
 
   }
 
+  // Attached to the DOM node rather than to a `PatchedVNode`, so patching from
+  // a stale or copied `PatchedVNode` still finds the registered callback.
   private[snabbdom] final class Listener(var vnode: Element) {
+    // The `on` map whose event names are currently registered on the node.
+    var on: Map[String, EventHandler] = Map.empty
     val callback: js.Function1[dom.Event, Unit] = (event: dom.Event) => {
       val current = vnode
       current.data.on.get(event.`type`).foreach { handler =>

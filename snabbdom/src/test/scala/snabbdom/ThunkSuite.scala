@@ -97,6 +97,14 @@ class ThunkSuite extends BaseSuite {
       assertEquals(called, 1)
   }
 
+  vnode0.test("reuses the patched subtree of an unchanged thunk") { vnode0 =>
+    val render = (arg: Any) => h("span", List(h("b", arg.toString)))
+    def tree = h("div", List(thunk("span", "t", render, 1)))
+    val first = patch(vnode0, tree).asInstanceOf[PatchedVNode.Element]
+    val second = patch(first, tree).asInstanceOf[PatchedVNode.Element]
+    assert(second.children.head eq first.children.head)
+  }
+
   vnode0.test("calls render function once on args change") { vnode0 =>
     var called = 0
     val numberInSpan = (arg: Any) => {

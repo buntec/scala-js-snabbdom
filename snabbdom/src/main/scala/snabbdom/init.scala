@@ -82,8 +82,15 @@ object init {
         )
     }
 
-    def emptyNodeAt(elm: dom.Element): PatchedVNode = {
-      val (sel, ns) = toVNode.elementIdentity(elm, api)
+    def emptyNodeAt(elm: dom.Element, vnode: VNode): PatchedVNode = {
+      val (sel, elmNs) = toVNode.elementIdentity(elm, api)
+      // A root vnode without an explicit namespace adopts the container's
+      // namespace, so mounting `h("g", ...)` onto an existing SVG <g> patches
+      // it in place instead of replacing it with an HTML-namespace element.
+      val ns = vnode match {
+        case VNode.Element(_, data, _) if data.ns.isEmpty => None
+        case _                                            => elmNs
+      }
       PatchedVNode.Element(
         sel,
         if (ns.isEmpty) VNodeData.empty else VNodeData(ns = ns),
@@ -340,7 +347,7 @@ object init {
       // should certainly be deleted. Those with keys we'll try to match
       // up against new children with keys - any leftovers will be deleted
       val toDeleteUnmatched = List.newBuilder[PatchedVNode]
-      val oldKeyed = mutable.Map.empty[String, PatchedVNode]
+      val oldKeyed = mutable.LinkedHashMap.empty[String, PatchedVNode]
       toDelete.foreach { vnode =>
         PatchedVNode.key(vnode) match {
           case Some(key) =>
@@ -414,6 +421,16 @@ object init {
         vnode00: VNode,
         insertedVNodeQueue: VNodeQueue
     ): PatchedVNode = {
+
+      // A thunk whose fn and args are unchanged keeps its rendered subtree, so
+      // skip rebuilding and diffing it.
+      (oldVnode, vnode00) match {
+        case (old: PatchedVNode.Element, VNode.Element(_, data, _))
+            if data.fn.isDefined && data.fn == old.data.fn &&
+              data.args == old.data.args =>
+          return oldVnode
+        case _ => ()
+      }
 
       // apply prepatch hooks
       val vnode = vnode00 match {
@@ -535,7 +552,7 @@ object init {
 
     Patch(
       (oldVnode, vnode) => patch(oldVnode, vnode),
-      (elm, vnode) => patch(emptyNodeAt(elm), vnode)
+      (elm, vnode) => patch(emptyNodeAt(elm, vnode), vnode)
     )
 
   }

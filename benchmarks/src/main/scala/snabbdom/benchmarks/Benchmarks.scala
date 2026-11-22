@@ -80,10 +80,16 @@ object Benchmarks {
 
   @JSExport
   def listenerUpdates(container: dom.Element, iterations: Int): Double = {
-    val data =
-      VNodeData(on = Map("click" -> EventHandler((_: dom.Event) => ())))
+    val handler = EventHandler((_: dom.Event) => ())
+    // Build a fresh `on` map per element so updates take the diffing path
+    // instead of short-circuiting on a shared map instance.
     def tree(label: String): VNode =
-      h("div", List.tabulate(128)(i => h("button", data, s"$label $i")))
+      h(
+        "div",
+        List.tabulate(128)(i =>
+          h("button", VNodeData(on = Map("click" -> handler)), s"$label $i")
+        )
+      )
 
     measurePatches(container, tree("before"), tree("after"), iterations)
   }

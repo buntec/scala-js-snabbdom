@@ -277,4 +277,36 @@ class EventListenersSuite extends BaseSuite {
     assertEquals(calls.toList, List("custom"))
   }
 
+  vnode0.test("patching twice from a stale vnode keeps one listener") {
+    vnode0 =>
+      var calls = 0
+      def vnode(label: String) = h(
+        "button",
+        VNodeData(on =
+          Map("click" -> EventHandler((_: dom.Event) => calls += 1))
+        ),
+        label
+      )
+      val p0 = patch(vnode0, vnode("a"))
+      patch(p0, vnode("b"))
+      patch(p0, vnode("c"))
+      p0.node.asInstanceOf[dom.HTMLElement].click()
+      assertEquals(calls, 1)
+  }
+
+  vnode0.test("patching from a copied vnode keeps one listener") { vnode0 =>
+    var calls = 0
+    def vnode(label: String) = h(
+      "button",
+      VNodeData(on =
+        Map("click" -> EventHandler((_: dom.Event) => calls += 1))
+      ),
+      label
+    )
+    val p = patch(vnode0, vnode("a")).asInstanceOf[PatchedVNode.Element]
+    patch(p.copy(), vnode("b"))
+    p.node.asInstanceOf[dom.HTMLElement].click()
+    assertEquals(calls, 1)
+  }
+
 }

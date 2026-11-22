@@ -129,6 +129,17 @@ class SvgSuite extends BaseSuite {
     assertEquals(renders, 2)
   }
 
+  test("mounts a vnode without ns onto an existing SVG element in place") {
+    val svg = dom.document.createElementNS(svgNS, "svg")
+    val g = dom.document.createElementNS(svgNS, "g")
+    g.setAttribute("id", "mount")
+    svg.appendChild(g)
+    val patched = patch(g, h("g#mount", VNodeData(attrs = Map("x" -> "1"))))
+    assert(patched.node eq g)
+    assert(svg.firstChild eq g)
+    assertEquals(g.getAttribute("x"), "1")
+  }
+
   vnode0.test("removes child svg elements") { vnode0 =>
     val a = h("svg", VNodeData(), List(h("g"), h("g")))
     val b = h("svg", VNodeData(), List(h("g")))
