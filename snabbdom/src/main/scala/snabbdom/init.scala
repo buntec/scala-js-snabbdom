@@ -527,7 +527,8 @@ object init {
 
   private def sameVnode(vnode1: PatchedVNode, vnode2: VNode): Boolean = {
     (vnode1.toVNode, vnode2) match {
-      case (VNode.Text(_), VNode.Text(_)) => true
+      case (VNode.Text(_), VNode.Text(_))       => true
+      case (VNode.Comment(_), VNode.Comment(_)) => true
       case (VNode.Element(sel1, data1, _), VNode.Element(sel2, data2, _)) =>
         data1.key == data2.key && data1.is == data2.is && sel1 == sel2
       case _ => false
