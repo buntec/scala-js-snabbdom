@@ -493,9 +493,8 @@ object init {
       (oldVnode, vnode00) match {
         case (old: PatchedVNode.Element, VNode.Element(_, data, _))
             if data.fn.isDefined && data.fn == old.data.fn &&
-              data.args == old.data.args &&
-              data.hook.exists(_.prepatch.exists(_ eq thunk.prepatchHook)) &&
-              effectiveNs(old.data, ctx) == domNs(old.node) =>
+              data.args == old.data.args && isLibraryThunk(data) &&
+              nsMatches(effectiveNs(old.data, ctx), old.node) =>
           return oldVnode
         case _ => ()
       }
@@ -510,16 +509,24 @@ object init {
       }
 
       // `sameVnode` defers the namespace check for vnodes whose prepatch hook
-      // may still supply one, so verify it against the DOM now.
+      // may still supply one, so verify it against the DOM now. A vnode that
+      // still has no `ns` but has an init hook keeps its element's namespace,
+      // which that hook may have set when the element was created.
       val namespaceChanged = (oldVnode, vnode) match {
         case (old: PatchedVNode.Element, next: VNode.Element) =>
-          effectiveNs(next.data, ctx) != domNs(old.node)
+          !nsMatches(effectiveNs(next.data, ctx), old.node) &&
+          !initMaySupplyNs(next.data)
         case _ => false
       }
       if (namespaceChanged) {
-        return replaceVnode(oldVnode)(
-          createInitializedElm(vnode, ctx, insertedVNodeQueue)
-        )
+        // A library thunk's prepatch hook has already rendered it; any other
+        // vnode is initialised like a newly created one.
+        val replacement = vnode00 match {
+          case VNode.Element(_, data, _) if isLibraryThunk(data) =>
+            createInitializedElm(vnode, ctx, insertedVNodeQueue)
+          case _ => createElm(vnode, ctx, insertedVNodeQueue)
+        }
+        return replaceVnode(oldVnode)(replacement)
       }
 
       val childrenUnchanged = (oldVnode, vnode) match {
@@ -621,12 +628,16 @@ object init {
       cbs.pre.foreach(_())
 
       // A detached root behaves as if it were in an HTML parent, except that
-      // a vnode without `ns` mounted directly onto an element matches that
-      // element's own namespace, so it is patched in place.
+      // a vnode without `ns` mounted directly onto an element, or patched
+      // onto a root that itself had no explicit `ns` (and so inherited its
+      // namespace), matches that element's own namespace and is patched in
+      // place.
       val parentCtx = parentContext(oldVnode)
       val matchCtx = parentCtx.getOrElse(oldVnode match {
-        case PatchedVNode.Element(_, _, _, elm) if mount => domNs(elm)
-        case _                                           => None
+        case PatchedVNode.Element(_, data, _, elm)
+            if mount || data.ns.isEmpty =>
+          domNs(elm)
+        case _ => None
       })
       val vnode0 = if (sameVnode(oldVnode, vnode, matchCtx)) {
         patchVnode(oldVnode, vnode, matchCtx, insertedVNodeQueue)
@@ -673,6 +684,24 @@ object init {
       case ns              => Some(ns)
     }
 
+  // Whether `elm` is in the namespace `expected` describes. `None` matches
+  // whatever `createElement` produces: HTML, or no namespace in an XML
+  // document.
+  private def nsMatches(expected: Option[String], elm: dom.Element): Boolean =
+    expected match {
+      case None => elm.namespaceURI == null || elm.namespaceURI == htmlNamespace
+      case Some("") => elm.namespaceURI == null
+      case Some(ns) => elm.namespaceURI == ns
+    }
+
+  // Init hooks may set `ns` when the element is created, but do not run when
+  // it is patched.
+  private def initMaySupplyNs(data: VNodeData): Boolean =
+    data.ns.isEmpty && data.hook.exists(_.init.isDefined)
+
+  private def isLibraryThunk(data: VNodeData): Boolean =
+    data.hook.exists(_.prepatch.exists(_ eq thunk.prepatchHook))
+
   // The namespace an element is created in: its explicit `ns` (where an
   // explicit HTML namespace equals the default) or else the inherited one.
   private def effectiveNs(
@@ -701,10 +730,12 @@ object init {
       case (old: PatchedVNode.Element, next: VNode.Element) =>
         old.sel == next.sel && old.data.key == next.data.key &&
         old.data.is == next.data.is &&
-        (effectiveNs(next.data, ctx) == domNs(old.node) ||
-          // A prepatch hook (e.g. a thunk's) may still supply the namespace;
-          // `patchVnode` checks it after the hook has run.
-          (next.data.ns.isEmpty && next.data.hook.exists(_.prepatch.isDefined)))
+        (nsMatches(effectiveNs(next.data, ctx), old.node) ||
+          // A prepatch hook (e.g. a thunk's) may still supply the namespace,
+          // or an init hook may have supplied it; `patchVnode` checks it
+          // after the prepatch hook has run.
+          (next.data.ns.isEmpty && next.data.hook
+            .exists(hook => hook.prepatch.isDefined || hook.init.isDefined)))
       case _ => false
     }
   }
