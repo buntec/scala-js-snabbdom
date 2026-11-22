@@ -452,6 +452,25 @@ class SnabbdomSuite extends BaseSuite {
       assertEquals(elm.asInstanceOf[dom.Element].innerHTML, "<b>child</b>")
     }
 
+    vnode0.test("replaces innerText with vnode children") { vnode0 =>
+      val p1 =
+        patch(vnode0, h("p", VNodeData(props = Map("innerText" -> "old"))))
+      val elm = patch(p1, h("p", List(h("b", "new")))).node
+      assertEquals(elm.asInstanceOf[dom.Element].innerHTML, "<b>new</b>")
+    }
+
+    vnode0.test("switches from innerHTML to textContent") { vnode0 =>
+      val p1 = patch(
+        vnode0,
+        h("div", VNodeData(props = Map("innerHTML" -> "<span>raw</span>")))
+      )
+      val elm = patch(
+        p1,
+        h("div", VNodeData(props = Map("textContent" -> "text")))
+      ).node
+      assertEquals(elm.asInstanceOf[dom.Element].innerHTML, "text")
+    }
+
     test("can replace non-empty children with an innerHTML prop") {
       val prevElm = dom.document.createElement("div")
       prevElm.id = "id"

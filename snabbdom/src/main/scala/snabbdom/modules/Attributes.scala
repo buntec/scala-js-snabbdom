@@ -75,8 +75,8 @@ object Attributes {
   private val xmlNS = "http://www.w3.org/XML/1998/namespace"
   private val xmlnsNS = "http://www.w3.org/2000/xmlns/"
 
-  // `xml:*`, `xmlns` and `xmlns:*` attributes are set in their reserved
-  // namespaces, and other `x?????:*` ones are assumed to be `xlink:*`.
+  // `xml:*`, `xlink:*`, `xmlns` and `xmlns:*` attributes are set in their
+  // reserved namespaces; any other attribute is set without a namespace.
   private def setStringAttr(
       elm: dom.Element,
       key: String,
@@ -84,12 +84,12 @@ object Attributes {
   ): Unit =
     if (key.charAt(0) != 'x') {
       elm.setAttribute(key, value)
-    } else if (key.length > 3 && key.charAt(3) == ':') {
+    } else if (key.startsWith("xml:")) {
       setAttrNS(elm, xmlNS, key, value)
+    } else if (key.startsWith("xlink:")) {
+      setAttrNS(elm, xlinkNS, key, value)
     } else if (key == "xmlns" || key.startsWith("xmlns:")) {
       setAttrNS(elm, xmlnsNS, key, value)
-    } else if (key.length > 5 && key.charAt(5) == ':') {
-      setAttrNS(elm, xlinkNS, key, value)
     } else {
       elm.setAttribute(key, value)
     }

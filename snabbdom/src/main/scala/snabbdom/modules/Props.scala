@@ -62,6 +62,9 @@ object Props {
     })
   )
 
+  // Accessor props that replace all children of the element.
+  private val contentProps = List("innerHTML", "textContent", "innerText")
+
   private def setProps(vnode: PatchedVNode.Element): Unit = {
     vnode match {
       case elm: PatchedVNode.Element =>
@@ -95,10 +98,13 @@ object Props {
     // sets this property to the empty string).
     oldProps.foreach { case (key, _) =>
       if (!props.contains(key)) {
-        if (key == "innerHTML" || key == "textContent") {
+        if (contentProps.contains(key)) {
           // These are accessors, so deleting them does nothing. Clear the
-          // markup they set so that it does not stay next to new children.
-          elm.asInstanceOf[js.Dictionary[Any]] += (key -> "")
+          // markup they set so that it does not stay next to new children,
+          // unless another of them has just set the content anew.
+          if (!contentProps.exists(props.contains)) {
+            elm.asInstanceOf[js.Dictionary[Any]] += (key -> "")
+          }
         } else {
           elm.asInstanceOf[js.Dictionary[Any]] -= key
         }

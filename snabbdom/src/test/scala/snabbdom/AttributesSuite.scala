@@ -323,6 +323,22 @@ class AttributesSuite extends BaseSuite {
         assert(!svg.hasAttribute("xmlns"))
     }
 
+    vnode0.test("sets attributes with other prefixes without a namespace") {
+      vnode0 =>
+        val elm = patch(
+          vnode0,
+          h(
+            "div",
+            VNodeData(attrs = Map("xyz:foo" -> "1", "xlinq:foo" -> "2"))
+          )
+        ).node.asInstanceOf[dom.Element]
+        val attrs = (0 until elm.attributes.length).map(elm.attributes.item(_))
+        assertEquals(
+          attrs.map(a => (a.name, Option(a.namespaceURI))).toSet,
+          Set[(String, Option[String])]("xyz:foo" -> None, "xlinq:foo" -> None)
+        )
+    }
+
     vnode0.test("sets non-namespaced attributes starting with `x`") { vnode0 =>
       val elm = patch(
         vnode0,
