@@ -80,7 +80,7 @@ ThisBuild / Test / jsEnv := {
 }
 
 lazy val scalajsDomVersion = "2.8.1"
-lazy val scalacheckVersion = "1.19.0"
+lazy val scalacheckVersion = "1.20.0"
 lazy val munitVersion = "1.3.6"
 
 lazy val root = tlCrossRootProject.aggregate(snabbdom, examples, benchmarks)
